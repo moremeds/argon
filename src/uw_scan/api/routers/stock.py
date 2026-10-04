@@ -373,56 +373,26 @@ def get_stock_fundamentals(
     version is active" are different problems, and collapsing them would hide a
     stack-wide outage behind a per-ticker empty state.
     """
-    from uw_scan.fundamentals.card import (
-        build_card,
-        build_history,
-        build_percentiles,
+    from uw_scan.reports.fundamental_card import (
+        NoActiveMethod,
+        NoScore,
+        assemble_fundamental_card,
     )
-    from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
-    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
-    from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
     t = ticker.upper()
-    conn, schema = repo.conn, settings.db_schema
-    scores = FundamentalScoresRepository(conn, schema=schema)
-    engine = scores.active_version()
-    if engine is None:
+    try:
+        card = assemble_fundamental_card(
+            repo.conn, settings.db_schema, t, quarters=quarters
+        )
+    except NoActiveMethod:
         raise HTTPException(
             status_code=503, detail="no active fundamental method version"
-        )
-    row = scores.latest_for_ticker(t, engine)
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"no fundamental score for {t}")
-    obs = FundamentalObsRepository(conn, schema=schema)
-    violated = obs.violated_fields(row.get("source_obs_ids") or [])
-
-    series = scores.series_for_ticker(t, engine, limit=quarters)
-    cross = scores.cross_section(row["as_of"], engine)
-    # One violation query covering the trajectory AND the comparison panel. Per
-    # row it would be ~290 round-trips for a single card.
-    obs_ids = sorted(
-        {i for r in (*series, *cross) for i in (r.get("source_obs_ids") or [])}
-    )
-    by_obs = obs.violations_by_obs(obs_ids)
-
-    # Scoped to the SAME engine_version as the subscores. A band computed under a
-    # retired method rendering beside live subscores would look current, with
-    # nothing on screen to say the two came from different methods.
-    anchors = FundamentalAnchorsRepository(conn, schema=schema).latest_for_ticker(
-        t, engine
-    )
-
-    return FundamentalCardResponse.model_validate(
-        build_card(
-            ticker=t,
-            row=row,
-            violated=violated,
-            engine_version=engine,
-            history=build_history(series, by_obs),
-            percentiles=build_percentiles(cross, by_obs, t),
-            anchors=anchors,
-        )
-    )
+        ) from None
+    except NoScore:
+        raise HTTPException(
+            status_code=404, detail=f"no fundamental score for {t}"
+        ) from None
+    return FundamentalCardResponse.model_validate(card)
 
 
 @router.get(

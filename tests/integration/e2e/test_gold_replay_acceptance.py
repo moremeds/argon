@@ -36,32 +36,44 @@ def _seed_three_months(repo: Repository, start: date) -> None:
     for i in range(90):
         d = start + timedelta(days=i)
         ts = datetime.combine(d, datetime.min.time(), tzinfo=UTC)
-        repo.insert_macro_series_daily(
-            "GLD_CLOSE",
-            d,
-            Decimal(str(1800 + i * 0.4)),
-            ts,
-            None,
-            "MASSIVE",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "GLD_CLOSE",
+                    "obs_date": d,
+                    "value": Decimal(str(1800 + i * 0.4)),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=ts,
+            source="MASSIVE",
         )
-        repo.insert_macro_series_daily(
-            "DFII10",
-            d,
-            Decimal(str(1.8 - i * 0.002)),
-            ts,
-            None,
-            "FRED",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "DFII10",
+                    "obs_date": d,
+                    "value": Decimal(str(1.8 - i * 0.002)),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=ts,
+            source="FRED",
         )
-        repo.insert_macro_series_daily(
-            "T5YIFR",
-            d,
-            Decimal("2.31"),
-            ts,
-            None,
-            "FRED",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "T5YIFR",
+                    "obs_date": d,
+                    "value": Decimal("2.31"),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=ts,
+            source="FRED",
         )
 
 

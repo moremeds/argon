@@ -13,13 +13,17 @@ from uw_scan.storage.repository import Repository
 def repo(seeded_db_empty_cards) -> Repository:
     return seeded_db_empty_cards
 def test_insert_and_fetch_etf_holdings_daily(repo: Repository) -> None:
-    repo.insert_etf_holdings_daily(
-        ticker="GLD",
-        obs_date=date(2026, 5, 14),
-        holdings_oz=Decimal("28047500.12"),
-        shares_out=None,
-        nav_per_share=Decimal("234.50"),
-        premium_pct=None,
+    repo.insert_etf_holdings_daily_rows(
+        [
+            {
+                "ticker": "GLD",
+                "obs_date": date(2026, 5, 14),
+                "holdings_oz": Decimal("28047500.12"),
+                "shares_out": None,
+                "nav_per_share": Decimal("234.50"),
+                "premium_pct": None,
+            }
+        ],
         as_of=datetime.now(UTC),
         source="SPDR",
     )

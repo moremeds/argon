@@ -37,23 +37,31 @@ def test_gold_posture_compute_writes_row(fresh_db: Settings) -> None:
         base = target - timedelta(days=300)
         for i in range(301):
             d = base + timedelta(days=i)
-            repo.insert_macro_series_daily(
-                "GLD_CLOSE",
-                d,
-                Decimal(str(1800 + i * 0.5)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "MASSIVE",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "GLD_CLOSE",
+                        "obs_date": d,
+                        "value": Decimal(str(1800 + i * 0.5)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="MASSIVE",
             )
-            repo.insert_macro_series_daily(
-                "DFII10",
-                d,
-                Decimal(str(2.0 - i * 0.005)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "FRED",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "DFII10",
+                        "obs_date": d,
+                        "value": Decimal(str(2.0 - i * 0.005)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="FRED",
             )
         conn.commit()
 
@@ -76,23 +84,31 @@ def test_gold_posture_compute_defaults_to_latest_gld_close_date(
         base = latest_market_date - timedelta(days=300)
         for i in range(301):
             d = base + timedelta(days=i)
-            repo.insert_macro_series_daily(
-                "GLD_CLOSE",
-                d,
-                Decimal(str(1800 + i * 0.5)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "MASSIVE",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "GLD_CLOSE",
+                        "obs_date": d,
+                        "value": Decimal(str(1800 + i * 0.5)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="MASSIVE",
             )
-            repo.insert_macro_series_daily(
-                "DFII10",
-                d,
-                Decimal(str(2.0 - i * 0.005)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "FRED",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "DFII10",
+                        "obs_date": d,
+                        "value": Decimal(str(2.0 - i * 0.005)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="FRED",
             )
         conn.commit()
 
@@ -112,23 +128,31 @@ def test_gold_posture_compute_uses_uw_gld_flows(fresh_db: Settings) -> None:
         base = target - timedelta(days=300)
         for i in range(301):
             d = base + timedelta(days=i)
-            repo.insert_macro_series_daily(
-                "GLD_CLOSE",
-                d,
-                Decimal(str(1800 + i * 0.5)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "MASSIVE",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "GLD_CLOSE",
+                        "obs_date": d,
+                        "value": Decimal(str(1800 + i * 0.5)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="MASSIVE",
             )
-            repo.insert_macro_series_daily(
-                "DFII10",
-                d,
-                Decimal(str(2.0 - i * 0.005)),
-                datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-                None,
-                "FRED",
-                None,
+            repo.insert_macro_series_daily_rows(
+                [
+                    {
+                        "series_id": "DFII10",
+                        "obs_date": d,
+                        "value": Decimal(str(2.0 - i * 0.005)),
+                        "release_date": None,
+                        "source_url": None,
+                    }
+                ],
+                as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+                source="FRED",
             )
         repo.insert_etf_flows_daily(
             ticker="GLD",
