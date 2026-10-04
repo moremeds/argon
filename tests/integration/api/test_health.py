@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 
 import uw_scan.api.routers.health as health_router
+import uw_scan.reports.health_assembly as health_assembly
 from uw_scan.api.routers.health import health
 from uw_scan.config import Settings
 from uw_scan.version import app_version
@@ -28,7 +29,7 @@ def _force_record_scans_expected(monkeypatch):
     so the coverage tests are deterministic regardless of the wall-clock a CI
     run lands on. The dedicated market-closed test overrides this to False."""
     monkeypatch.setattr(
-        health_router, "_record_window_scans_expected", lambda *a, **k: True
+        health_assembly, "_record_window_scans_expected", lambda *a, **k: True
     )
 
 
@@ -402,7 +403,7 @@ def test_health_record_check_skips_when_market_closed(
     # the window (weekend / holiday / overnight). No coverage is expected, so the
     # check must read healthy and skip the per-table scan — not flash ALERT.
     monkeypatch.setattr(
-        health_router, "_record_window_scans_expected", lambda *a, **k: False
+        health_assembly, "_record_window_scans_expected", lambda *a, **k: False
     )
     seeded_db_with_cards.upsert_heartbeat("worker")
 
