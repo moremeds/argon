@@ -6,9 +6,9 @@ there for backward compat with callers in sources/, api/, and tests/.
 Internal-only helpers (_d, _nullable_int, _nullable_float) live here too for
 cohesion.
 
-Moved from repository.py during the PR-1 split. Cockpit-specific helpers
-(_pin_candidate, _vanna_conditional_reading, _charm_regime, etc.) stay in
-repository.py for PR-1 and will move with their domain modules in PR-2.
+Moved from repository.py during the PR-1 split. The cockpit dealer helpers
+(_pin_candidate, vanna_conditional_reading, _charm_regime, etc.) are pure
+compute and live in ``cards/cockpit_dealer.py``.
 """
 
 from __future__ import annotations

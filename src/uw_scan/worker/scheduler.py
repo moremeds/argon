@@ -41,17 +41,6 @@ from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.full_scan_hot import full_scan_hot_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
-from uw_scan.worker.jobs.gold_jobs import (
-    gold_cftc_cot_ingest_job,
-    gold_etf_holdings_ingest_job,
-    gold_fred_ingest_job,
-    gold_gpr_ingest_job,
-    gold_lbma_vault_ingest_job,
-    gold_posture_compute_job,
-    gold_spot_ingest_job,
-    gold_uw_options_ingest_job,
-    gold_wgc_cb_ingest_job,
-)
 from uw_scan.worker.jobs.macro_context_snapshot import macro_context_snapshot_job
 from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
 from uw_scan.worker.jobs.macro_market_layer_ingest import (
@@ -88,7 +77,6 @@ from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
 from uw_scan.worker.jobs.regime_jobs import regime_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
-from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_markout_refresh,
@@ -104,6 +92,7 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.vrp_macro_entry import (
     vrp_macro_entry_grid_refresh,
     vrp_macro_entry_snapshot_once,
@@ -117,6 +106,7 @@ from uw_scan.worker.jobs.vrp_trading_jobs import (
     vrp_paper_mark,
     vrp_paper_open,
 )
+from uw_scan.worker.schedule.gold import register as register_gold_jobs
 from uw_scan.worker.schema_gate import wait_for_schema
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
@@ -292,6 +282,13 @@ def _rescan_worker_concurrency(settings: Settings) -> int:
     return RESCAN_WORKER_CONCURRENCY
 
 
+def _pinned(settings: Settings, role: str) -> bool:
+    """True on exactly one process: the single-scheduler ``all`` shape, or index 0
+    of ``role``. The predicate every single-owner job uses (I-51)."""
+    current = settings.worker_role.lower()
+    return current == "all" or (current == role and settings.worker_index == 0)
+
+
 def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
 
@@ -305,33 +302,26 @@ def _owns_global_daily_jobs(settings: Settings) -> bool:
     them three times: tripled UW spend for the gold options ingest and three
     gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
     """
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_macro_policy_ingest(settings: Settings) -> bool:
     """One network/data worker owns free official macro evidence polling."""
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_data_gap_healer(settings: Settings) -> bool:
     """Nightly gap healer runs on exactly one process (uw-0 or 'all'), and only
     when enabled. Off by default until manual runs prove it safe."""
-    role = settings.worker_role.lower()
-    return settings.data_gap_healer_enabled and (
-        role == "all" or (role == "uw" and settings.worker_index == 0)
-    )
+    return settings.data_gap_healer_enabled and _pinned(settings, "uw")
 
 
 def _should_schedule_option_surface_capture(settings: Settings) -> bool:
@@ -341,8 +331,7 @@ def _should_schedule_option_surface_capture(settings: Settings) -> bool:
     index-0 would multiply UW /greeks spend (429 risk) and race upserts. Pin to uw-0,
     following the skew_swing / rates-FRED precedent.
     """
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_uw_alpha_capture(settings: Settings) -> bool:
@@ -354,8 +343,7 @@ def _should_schedule_uw_alpha_capture(settings: Settings) -> bool:
     """
     if not settings.uw_alpha_capture_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_market_tide_capture(settings: Settings) -> bool:
@@ -368,8 +356,7 @@ def _should_schedule_market_tide_capture(settings: Settings) -> bool:
     """
     if not settings.market_tide_capture_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_fundamental_ingest(settings: Settings) -> bool:
@@ -379,8 +366,7 @@ def _should_schedule_fundamental_ingest(settings: Settings) -> bool:
     the insert-or-touch on identical content hashes."""
     if not settings.fundamental_ingest_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_fundamental_ingest_daily(settings: Settings) -> bool:
@@ -389,8 +375,7 @@ def _should_schedule_fundamental_ingest_daily(settings: Settings) -> bool:
     calendar pull against one insert-or-touch table."""
     if not settings.fundamental_ingest_daily_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_fundamental_concentration_capture(settings: Settings) -> bool:
@@ -399,8 +384,7 @@ def _should_schedule_fundamental_concentration_capture(settings: Settings) -> bo
     one insert-or-touch table."""
     if not settings.fundamental_concentration_capture_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_company_sector_refresh(settings: Settings) -> bool:
@@ -408,8 +392,7 @@ def _should_schedule_company_sector_refresh(settings: Settings) -> bool:
     would each spend a call per ticker on one upsert table."""
     if not settings.company_sector_refresh_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
@@ -417,8 +400,7 @@ def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
     pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
     if not settings.top_net_impact_capture_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _gex_cron_trigger(settings: Settings) -> OrTrigger:
@@ -507,8 +489,7 @@ def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
     """
     if not settings.vrp_macro_entry_capture_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
@@ -521,8 +502,7 @@ def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
     delete-then-insert on skew_swing_greeks. Pin to uw-0 (the UW role), following the
     rates-FRED / pipeline-benchmark precedent.
     """
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "uw" and settings.worker_index == 0)
+    return _pinned(settings, "uw")
 
 
 def _should_schedule_regime_live(settings: Settings) -> bool:
@@ -534,15 +514,13 @@ def _should_schedule_regime_live(settings: Settings) -> bool:
     multi-role stack would write N duplicates. Pin to massive-0 (market-
     data role) following the rates-FRED precedent.
     """
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
     """Single owner for the nightly chanlun lifecycle upserts. Pure DB-read +
     apex compute (no UW spend) -> pin to massive-0, same as regime/technical live."""
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_earnings_reactions(settings: Settings) -> bool:
@@ -551,8 +529,7 @@ def _should_schedule_earnings_reactions(settings: Settings) -> bool:
     vrp_markout / chanlun_lifecycle. Gated separately on `earnings_reactions_enabled`."""
     if not settings.earnings_reactions_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_implied_move(settings: Settings) -> bool:
@@ -562,8 +539,7 @@ def _should_schedule_implied_move(settings: Settings) -> bool:
     Gated separately on `implied_move_snapshot_enabled`."""
     if not settings.implied_move_snapshot_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_fundamental_change_events(settings: Settings) -> bool:
@@ -574,8 +550,7 @@ def _should_schedule_fundamental_change_events(settings: Settings) -> bool:
     separately on `fundamental_change_events_enabled`."""
     if not settings.fundamental_change_events_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_fundamentals_desk_rollup(settings: Settings) -> bool:
@@ -585,8 +560,7 @@ def _should_schedule_fundamentals_desk_rollup(settings: Settings) -> bool:
     above. Gated separately on `fundamentals_desk_rollup_enabled`."""
     if not settings.fundamentals_desk_rollup_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_sector_rs_daily(settings: Settings) -> bool:
@@ -596,16 +570,14 @@ def _should_schedule_sector_rs_daily(settings: Settings) -> bool:
     (default off until the backfill lands on the mini)."""
     if not settings.sector_rs_enabled:
         return False
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _should_schedule_mcp_event_retention(settings: Settings) -> bool:
     """Single owner for the nightly mcp_event purge. Pure warm-store
     housekeeping DELETE — no UW/IB spend → pin to massive-0, same as
     sector_rs_daily. No enable flag: pure housekeeping (agent-mcp plan M3)."""
-    role = settings.worker_role.lower()
-    return role == "all" or (role == "massive" and settings.worker_index == 0)
+    return _pinned(settings, "massive")
 
 
 def _worker_label(settings: Settings) -> str:
@@ -1092,9 +1064,8 @@ def main() -> int:
 
     def _sector_rs_daily() -> None:
         from datetime import datetime as _dt
-        from zoneinfo import ZoneInfo
-
         from functools import partial
+        from zoneinfo import ZoneInfo
 
         from uw_scan.sources.apex import fetch_bulk_daily_closes
         from uw_scan.worker.jobs.sector_rs_daily import sector_rs_daily
@@ -1707,63 +1678,6 @@ def main() -> int:
                         logger.warning("discovery_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
                         raise
-
-    def _gold_fred_ingest() -> None:
-        gold_fred_ingest_job(dsn=settings.db_dsn())
-
-    def _gold_spot_ingest() -> None:
-        if settings.massive_api_key is None:
-            logger.warning("MASSIVE_API_KEY not set; skipping gold_spot_ingest")
-            return
-        gold_spot_ingest_job(
-            dsn=settings.db_dsn(),
-            api_key=settings.massive_api_key.get_secret_value(),
-            base_url=settings.massive_base_url,
-        )
-
-    def _gold_gpr_ingest() -> None:
-        gold_gpr_ingest_job(dsn=settings.db_dsn())
-
-    def _gold_etf_holdings_ingest() -> None:
-        gold_etf_holdings_ingest_job(
-            dsn=settings.db_dsn(),
-            uw_api_key=settings.api_key.get_secret_value(),
-            wgc_goldhub_cookie=(
-                settings.wgc_goldhub_cookie.get_secret_value()
-                if settings.wgc_goldhub_cookie is not None
-                else None
-            ),
-            wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
-            rth_tz=settings.rth_tz,
-        )
-
-    def _gold_uw_options_ingest() -> None:
-        gold_uw_options_ingest_job(
-            dsn=settings.db_dsn(),
-            api_key=settings.api_key.get_secret_value(),
-            base_url=settings.base_url,
-            request_timeout=settings.request_timeout_seconds,
-        )
-
-    def _gold_cftc_cot_ingest() -> None:
-        gold_cftc_cot_ingest_job(dsn=settings.db_dsn())
-
-    def _gold_lbma_vault_ingest() -> None:
-        gold_lbma_vault_ingest_job(dsn=settings.db_dsn())
-
-    def _gold_wgc_cb_ingest() -> None:
-        gold_wgc_cb_ingest_job(
-            dsn=settings.db_dsn(),
-            wgc_goldhub_cookie=(
-                settings.wgc_goldhub_cookie.get_secret_value()
-                if settings.wgc_goldhub_cookie is not None
-                else None
-            ),
-            wgc_workbook_path=settings.wgc_cb_reserves_workbook_path or None,
-        )
-
-    def _gold_posture_compute() -> None:
-        gold_posture_compute_job(dsn=settings.db_dsn())
 
     def _rates_fred_ingest() -> None:
         _run_rates_fred_ingest(settings)
@@ -2814,34 +2728,7 @@ def main() -> int:
             max_instances=1,
             coalesce=True,
         )
-        # Phase A1 (Gold) — ET-anchored ingestion cascade then posture compute.
-        # All gold jobs run on the primary worker only: load is light, no
-        # sharding needed, and the UW options ingest (sole UW-bound job in
-        # this group) avoids duplicate UW spend.
-        sched.add_job(
-            _gold_fred_ingest,
-            CronTrigger.from_crontab("0 17 * * 0-4", timezone=settings.rth_tz),
-            id="gold_fred_ingest",
-            name="Gold: FRED daily refresh",
-        )
-        sched.add_job(
-            _gold_spot_ingest,
-            CronTrigger.from_crontab("5 17 * * 0-4", timezone=settings.rth_tz),
-            id="gold_spot_ingest",
-            name="Gold: spot price (GLD daily bars via massive)",
-        )
-        sched.add_job(
-            _gold_uw_options_ingest,
-            CronTrigger.from_crontab("15 17 * * 0-4", timezone=settings.rth_tz),
-            id="gold_uw_options_ingest",
-            name="Gold: UW options snapshot (GLD/GDX/IAU)",
-        )
-        sched.add_job(
-            _gold_etf_holdings_ingest,
-            CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
-            id="gold_etf_holdings_ingest",
-            name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
-        )
+        register_gold_jobs(sched, settings)
         if _should_schedule_macro_policy_ingest(settings):
             if settings.macro_fomc_ingest_enabled:
                 sched.add_job(
@@ -2938,55 +2825,6 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
-        # 18:35, moved up from 20:00. The posture below must land before the
-        # 19:40 macro state compute, and GPRD is the only daily input that was
-        # scheduled after 18:30. Nothing is lost by fetching earlier: the
-        # publisher's file is a static academic .xls that already runs 2-3 days
-        # behind the fetch (an ingest at 19:00 ET on 2026-08-19 returned an
-        # observation dated 2026-08-17), so the fetch clock was never binding.
-        sched.add_job(
-            _gold_gpr_ingest,
-            CronTrigger.from_crontab("35 18 * * 0-4", timezone=settings.rth_tz),
-            id="gold_gpr_ingest",
-            name="Gold: GPR daily refresh",
-        )
-        # 19:10, moved up from 21:00 -- the defect this fixes.
-        #
-        # The gold domain state reads `fetch_gold_posture_as_of(as_of.date())`, and
-        # `gold_posture_compute` stamps its row with the latest GLD_CLOSE date, so an
-        # evening run on day D writes obs_date D. At 21:00 that row did not exist when
-        # the 19:40 state asked for it, so gold stood on the PREVIOUS day's gauge every
-        # night -- not on a bad night, every night. `gauge_age_days` reported the lag
-        # honestly while the schedule itself was creating it.
-        #
-        # 19:10 sits 40 minutes after the last upstream ingest (etf_holdings, 18:30) and
-        # 30 minutes before the state that consumes it. Mon-Fri is kept deliberately:
-        # there is no gold close to compute on a weekend, so the Saturday and Sunday
-        # states legitimately read Friday's gauge and say so.
-        sched.add_job(
-            _gold_posture_compute,
-            CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
-            id="gold_posture_compute",
-            name="Gold: posture row compute (post-ingest)",
-        )
-        sched.add_job(
-            _gold_cftc_cot_ingest,
-            CronTrigger.from_crontab("0 17 * * 4", timezone=settings.rth_tz),
-            id="gold_cftc_cot_ingest",
-            name="Gold: CFTC COT weekly (Fridays)",
-        )
-        sched.add_job(
-            _gold_lbma_vault_ingest,
-            CronTrigger.from_crontab("0 17 8 * *", timezone=settings.rth_tz),
-            id="gold_lbma_vault_ingest",
-            name="Gold: LBMA vault monthly",
-        )
-        sched.add_job(
-            _gold_wgc_cb_ingest,
-            CronTrigger.from_crontab("0 17 10 * *", timezone=settings.rth_tz),
-            id="gold_wgc_cb_ingest",
-            name="Gold: WGC CB reserves monthly",
-        )
 
     stopping = False
 

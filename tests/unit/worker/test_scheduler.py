@@ -385,3 +385,18 @@ def test_tick_job_ids_match_registered_interval_jobs() -> None:
     source = Path(scheduler.__file__).read_text()
     for job_id in scheduler._TICK_JOB_IDS:
         assert f'id="{job_id}"' in source, job_id
+
+
+def test_pinned_is_true_on_exactly_one_process_per_shape():
+    from uw_scan.worker.scheduler import _pinned
+
+    def s(role: str, index: int, count: int = 2) -> Settings:
+        return Settings(
+            api_key="uw", worker_role=role, worker_index=index, worker_count=count
+        )
+
+    assert _pinned(s("all", 0, 1), "uw") and _pinned(s("all", 0, 1), "massive")
+    assert _pinned(s("uw", 0), "uw")
+    assert not _pinned(s("uw", 1), "uw")
+    assert not _pinned(s("massive", 0), "uw")
+    assert not _pinned(s("ai-deepseek", 0), "massive")
