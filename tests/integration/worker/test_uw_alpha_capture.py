@@ -155,8 +155,15 @@ def test_gex_levels_capture_wrapper_real_path(
     # advisory lock released -> re-acquire succeeds
     from uw_scan.worker.jobs.uw_alpha_capture import GEX_LEVELS_CAPTURE_LOCK
 
-    assert repo.try_advisory_lock(GEX_LEVELS_CAPTURE_LOCK)
-    repo.release_advisory_lock(GEX_LEVELS_CAPTURE_LOCK)
+    # Released: this backend no longer holds it (re-acquiring on the same
+    # connection would succeed either way -- session locks are re-entrant).
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+            "AND pid = pg_backend_pid() AND objid = %s",
+            (GEX_LEVELS_CAPTURE_LOCK,),
+        )
+        assert cur.fetchone()[0] == 0
     with repo.conn.cursor() as cur:
         cur.execute(
             "SELECT count(*) FROM uw_scan.uw_gex_levels_daily WHERE ticker=%s",

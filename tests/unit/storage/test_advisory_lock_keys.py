@@ -66,3 +66,22 @@ def current_keys() -> dict[str, int]:
 
 def test_lock_keys_match_golden():
     assert current_keys() == GOLDEN
+
+
+def registry_keys() -> dict[str, int]:
+    from uw_scan.storage.advisory_locks import fixed_key, worker_key
+
+    out = {n: fixed_key(n) for n in GOLDEN if not n.startswith("flow_data_refresh")}
+    out["flow_data_refresh[worker 0]"] = worker_key("flow_data_refresh", 0)
+    out["flow_data_refresh[worker 1]"] = worker_key("flow_data_refresh", 1)
+    return out
+
+
+def test_registry_reproduces_the_golden():
+    assert registry_keys() == GOLDEN
+
+
+def test_registry_has_no_unexplained_overlap():
+    from uw_scan.storage.advisory_locks import KNOWN_OVERLAPS, overlaps
+
+    assert overlaps() == {tuple(sorted(p)) for p in KNOWN_OVERLAPS}

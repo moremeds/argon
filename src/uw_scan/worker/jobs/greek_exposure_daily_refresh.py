@@ -21,12 +21,13 @@ from collections.abc import Callable
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.scanners.gex import fetch_aggregate_gex
+from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-GREEK_DAILY_REFRESH_LOCK = 91503  # mnemonic: migration 049 + slot 03
+GREEK_DAILY_REFRESH_LOCK = fixed_key("greek_daily_refresh")
 
 
 def greek_exposure_daily_refresh(
@@ -41,20 +42,20 @@ def greek_exposure_daily_refresh(
 
     Returns a summary dict: ``{"tickers", "rows", "skipped_index", "errors"}``.
     """
-    if not repo.try_advisory_lock(lock_key):
-        logger.info("greek_daily_refresh: lock held; skipping this tick")
-        return {"tickers": 0, "rows": 0, "skipped_index": 0, "errors": 0}
+    with single_flight(repo.conn, lock_key) as acquired:
+        if not acquired:
+            logger.info("greek_daily_refresh: lock held; skipping this tick")
+            return {"tickers": 0, "rows": 0, "skipped_index": 0, "errors": 0}
 
-    g = GreekExposureDailyRepository(repo.conn, schema=settings.db_schema)
-    # Indices already refreshed by the regime GEX scan — don't double-fetch.
-    index_set = {t.upper() for t in settings.gex_scan_tickers}
+        g = GreekExposureDailyRepository(repo.conn, schema=settings.db_schema)
+        # Indices already refreshed by the regime GEX scan — don't double-fetch.
+        index_set = {t.upper() for t in settings.gex_scan_tickers}
 
-    tickers_done = 0
-    rows_written = 0
-    skipped_index = 0
-    errors = 0
+        tickers_done = 0
+        rows_written = 0
+        skipped_index = 0
+        errors = 0
 
-    try:
         for card in repo.list_watchlist_cards():
             ticker = card.ticker.upper()
             if ticker in index_set:
@@ -91,8 +92,6 @@ def greek_exposure_daily_refresh(
                 repo.conn.rollback()
                 errors += 1
                 logger.warning("greek_daily_refresh: %s failed: %s", ticker, repr(exc))
-    finally:
-        repo.release_advisory_lock(lock_key)
 
     summary = {
         "tickers": tickers_done,
