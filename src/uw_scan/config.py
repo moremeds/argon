@@ -446,8 +446,6 @@ class Settings(BaseModel):
     # SPX 1-5d density cone (nightly 03:30 ET, massive-0). Display-only v13 port —
     # zero UW/IB spend; reads vol_index_daily only.
     spx_density_enabled: bool = False
-    # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
-    chanlun_lifecycle_enabled: bool = False
     # Economic-release calendar capture + FRED actual fill (daily, uw-0,
     # 1 UW call/day). See reports/macro_releases.py.
     macro_release_calendar_enabled: bool = False
@@ -538,15 +536,6 @@ class Settings(BaseModel):
     # rationale as its siblings above: a night not rolled up is a period the
     # matrix cannot show until the next run recomputes it.
     fundamentals_desk_rollup_enabled: bool = True
-    chanlun_anchor_tol: float = 0.0
-    chanlun_stale_sessions: int = 20
-    # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
-    # categories (vertex/divergence/3B/3S) failed the survival gate in both
-    # ticker-halves (~8-17% actual vs >=70% required) — most sub-level-
-    # confirmed marks are superseded within 1-2 sessions rather than surviving
-    # to native confirmation. See docs/research/2026-07-14-chanlun-signal-
-    # lifecycle/phaseb_probe/summary.md for the full gate table.
-    chanlun_promotable_categories: str = ""
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
@@ -1105,9 +1094,6 @@ class Settings(BaseModel):
                 "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", False
             ),
             spx_density_enabled=_env_bool("UW_SCAN_SPX_DENSITY_ENABLED", False),
-            chanlun_lifecycle_enabled=_env_bool(
-                "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
-            ),
             macro_release_calendar_enabled=_env_bool(
                 "UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED", False
             ),
@@ -1155,15 +1141,6 @@ class Settings(BaseModel):
             ),
             fundamentals_desk_rollup_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED", True
-            ),
-            chanlun_anchor_tol=float(
-                os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
-            ),
-            chanlun_stale_sessions=int(
-                os.environ.get("UW_SCAN_CHANLUN_STALE_SESSIONS", "20")
-            ),
-            chanlun_promotable_categories=os.environ.get(
-                "UW_SCAN_CHANLUN_PROMOTABLE_CATEGORIES", ""
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(

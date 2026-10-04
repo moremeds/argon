@@ -70,7 +70,7 @@ def _should_schedule_company_sector_refresh(settings: Settings) -> bool:
 def _should_schedule_earnings_reactions(settings: Settings) -> bool:
     """Single owner for the nightly earnings-reaction compute. Pure warm-store
     read (calendar x daily_ohlc, no UW/IB spend) -> pin to massive-0, same as
-    vrp_markout / chanlun_lifecycle. Gated separately on `earnings_reactions_enabled`."""
+    vrp_markout. Gated separately on `earnings_reactions_enabled`."""
     if not settings.earnings_reactions_enabled:
         return False
     return _pinned(settings, "massive")
@@ -79,7 +79,7 @@ def _should_schedule_earnings_reactions(settings: Settings) -> bool:
 def _should_schedule_implied_move(settings: Settings) -> bool:
     """Single owner for the nightly implied-move snapshot. Pure warm-store
     read (calendar x option_surface_grid_daily, no UW/IB spend) -> pin to
-    massive-0, same as earnings_reactions / vrp_markout / chanlun_lifecycle.
+    massive-0, same as earnings_reactions / vrp_markout.
     Gated separately on `implied_move_snapshot_enabled`."""
     if not settings.implied_move_snapshot_enabled:
         return False
@@ -383,7 +383,7 @@ def register(
         # a Monday-holiday print's Tuesday close still needs to be picked up on
         # schedule. Pure warm-store read (calendar x daily_ohlc); zero UW/IB
         # spend, so massive-0 is the right single-flight home, same pin as
-        # regime_live/chanlun_lifecycle above. Shifted one minute off :40
+        # regime_live above. Shifted one minute off :40
         # (branch-fix-p2, M10) — vrp_paper_mark and macro_state_compute both
         # also fire at 19:40 on massive-0; each opens its own connection and
         # APScheduler's default pool is 10, so this was contention, not
