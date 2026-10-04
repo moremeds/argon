@@ -45,10 +45,10 @@ def _seed_inflation_only_snapshot() -> None:
     _ingest_scenario(settings, _golden_scenario())
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema="uw_scan")
-        result = macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
+        result = macro_inflation_state_job(repo=repo, as_of=DISINFLATION_AS_OF)
         assert result.status == "ok", result.error_message
         snapshot = macro_context_snapshot_job(
-            repo,
+            repo=repo,
             as_of=DISINFLATION_AS_OF,
             assembled_at=DISINFLATION_AS_OF + timedelta(hours=3),
         )

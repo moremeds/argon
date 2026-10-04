@@ -210,7 +210,7 @@ def test_state_abstains_before_the_ingest_runs(seeded_db_empty_cards):
     """No anchor, no row -- and that is a correct outcome, not a failure."""
     settings = _settings()
     with psycopg.connect(settings.db_dsn()) as conn:
-        result = macro_gold_state_job(_repo(conn), as_of=datetime.now(UTC))
+        result = macro_gold_state_job(repo=_repo(conn), as_of=datetime.now(UTC))
 
     assert result.status == "abstained"
     assert result.state_id is None
@@ -228,7 +228,7 @@ def test_state_persists_with_evidence_after_the_ingest(seeded_db_empty_cards):
     # doing its job on the code that was supposed to respect it.
     as_of = datetime.now(UTC)
     with psycopg.connect(settings.db_dsn()) as conn:
-        result = macro_gold_state_job(_repo(conn), as_of=as_of)
+        result = macro_gold_state_job(repo=_repo(conn), as_of=as_of)
 
     assert result.status == "ok", result.error_message
     assert result.state_id is not None
@@ -283,7 +283,7 @@ def test_state_records_dependency_edges_on_its_upstreams(seeded_db_empty_cards):
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = _repo(conn)
         upstream_id = _seed_upstream_state(repo, conn, "policy_rates", as_of)
-        result = macro_gold_state_job(repo, as_of=as_of)
+        result = macro_gold_state_job(repo=repo, as_of=as_of)
 
     assert result.status == "ok", result.error_message
 

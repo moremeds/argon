@@ -79,7 +79,9 @@ class TestACoherentChainIsComplete:
     def test_four_domains_in_causal_order(self, repo: Repository) -> None:
         ids = _coherent_chain(repo)
 
-        snap = macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        snap = macro_context_snapshot_job(
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT
+        )
 
         assert snap is not None
         assert snap.status == "complete"
@@ -96,7 +98,7 @@ class TestACoherentChainIsComplete:
     def test_the_snapshot_is_persisted_and_readable(self, repo: Repository) -> None:
         ids = _coherent_chain(repo)
 
-        macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        macro_context_snapshot_job(repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
         stored = repo.fetch_macro_context_snapshot_as_of(AS_OF)
 
         assert stored is not None
@@ -115,7 +117,9 @@ class TestAFailedDomainCannotRenderFresh:
             repo, "gold", inputs_hash="d" * 64, upstream=[(infl, "realized")]
         )
 
-        snap = macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        snap = macro_context_snapshot_job(
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT
+        )
 
         assert snap is not None
         assert snap.status == "partial"
@@ -142,7 +146,9 @@ class TestAFailedDomainCannotRenderFresh:
             repo, "gold", inputs_hash="d" * 64, upstream=[(usd, "expectations_market")]
         )
 
-        snap = macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        snap = macro_context_snapshot_job(
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT
+        )
 
         assert snap is not None
         assert snap.status == "incompatible"
@@ -170,7 +176,9 @@ class TestAFailedDomainCannotRenderFresh:
             repo, "gold", inputs_hash="d" * 64, upstream=[(usd, "expectations_market")]
         )
 
-        snap = macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        snap = macro_context_snapshot_job(
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT
+        )
 
         assert snap is not None
         assert snap.status != "complete"
@@ -184,9 +192,11 @@ class TestReassemblyIsANoOp:
     ) -> None:
         _coherent_chain(repo)
 
-        first = macro_context_snapshot_job(repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT)
+        first = macro_context_snapshot_job(
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT
+        )
         second = macro_context_snapshot_job(
-            repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT + timedelta(hours=2)
+            repo=repo, as_of=AS_OF, assembled_at=ASSEMBLED_AT + timedelta(hours=2)
         )
 
         assert first is not None and second is not None
@@ -202,4 +212,4 @@ class TestReassemblyIsANoOp:
             assert cur.fetchone()[0] == 1
 
     def test_no_states_at_all_assembles_nothing(self, repo: Repository) -> None:
-        assert macro_context_snapshot_job(repo, as_of=AS_OF) is None
+        assert macro_context_snapshot_job(repo=repo, as_of=AS_OF) is None
