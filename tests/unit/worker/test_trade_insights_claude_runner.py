@@ -13,10 +13,12 @@ import subprocess
 
 import pytest
 
-from uw_scan.worker.jobs.trade_insights_ai_runners import TradeInsightsAiRunnerError
+from uw_scan.worker.jobs.trade_insights_ai_runners import (
+    TradeInsightsAiRunnerError,
+    extract_first_json_object,
+)
 from uw_scan.worker.jobs.trade_insights_claude_runner import (
     ClaudeRunner,
-    _extract_first_balanced_json_object,
     _try_parse_claude_text,
 )
 
@@ -568,31 +570,31 @@ def test_claude_runner_oversized_output_raises(monkeypatch):
 # ---- M4: prose-prefaced fallback recovery + observability ----------------
 
 
-def test_extract_first_balanced_json_object_finds_embedded_object():
+def test_extract_first_json_object_finds_embedded_object():
     text = (
         'Looking at TSLA, here is my analysis: {"a": 1, "b": [1, 2]} hope this helps.'
     )
-    assert _extract_first_balanced_json_object(text) == '{"a": 1, "b": [1, 2]}'
+    assert extract_first_json_object(text) == '{"a": 1, "b": [1, 2]}'
 
 
-def test_extract_first_balanced_json_object_handles_nested_objects():
+def test_extract_first_json_object_handles_nested_objects():
     text = 'Prefix {"outer": {"inner": {"deep": 1}}} suffix'
-    assert _extract_first_balanced_json_object(text) == (
+    assert extract_first_json_object(text) == (
         '{"outer": {"inner": {"deep": 1}}}'
     )
 
 
-def test_extract_first_balanced_json_object_skips_braces_inside_strings():
+def test_extract_first_json_object_skips_braces_inside_strings():
     # Brace literal inside a JSON string value must NOT confuse depth tracking.
     text = 'x {"k": "value with } brace and \\" quote"} after'
-    assert _extract_first_balanced_json_object(text) == (
+    assert extract_first_json_object(text) == (
         '{"k": "value with } brace and \\" quote"}'
     )
 
 
-def test_extract_first_balanced_json_object_returns_none_when_unbalanced():
-    assert _extract_first_balanced_json_object("no braces here") is None
-    assert _extract_first_balanced_json_object('half open {"k": 1') is None
+def test_extract_first_json_object_returns_none_when_unbalanced():
+    assert extract_first_json_object("no braces here") is None
+    assert extract_first_json_object('half open {"k": 1') is None
 
 
 def test_try_parse_claude_text_strips_markdown_fence():

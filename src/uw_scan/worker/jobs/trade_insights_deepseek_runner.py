@@ -57,6 +57,7 @@ import httpx
 from uw_scan.worker.jobs.trade_insights_ai_runners import (
     RunnerResult,
     TradeInsightsAiRunnerError,
+    extract_first_json_object,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,16 +71,14 @@ _FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 def _extract_json_from_text(text: str) -> str:
     """Probe helper — pull a JSON object out of free-form content.
 
-    Tries: fenced ```json``` block → first complete {...} object via a
-    string-aware decoder → raw. Lets json.loads raise downstream if nothing
-    usable was found.
+    Tries: fenced ```json``` block → first complete {...} object → raw. Lets
+    json.loads raise downstream if nothing usable was found.
 
     A thinking model often appends prose after the JSON object (DeepSeek's
-    content channel). The first complete object must be isolated with a
-    string-aware scan: ``json.JSONDecoder().raw_decode`` correctly skips
-    braces that appear inside string literals, which a naive brace-depth
-    counter mis-counts — leaving trailing text that makes ``json.loads`` fail
-    with "Extra data".
+    content channel), and its string values can hold stray braces. The shared
+    ``extract_first_json_object`` scan skips braces inside string literals, so
+    it isolates exactly the first object instead of leaving trailing text that
+    makes ``json.loads`` fail with "Extra data".
     """
     fence = _FENCED_JSON_RE.search(text)
     if fence:
@@ -87,25 +86,7 @@ def _extract_json_from_text(text: str) -> str:
     start = text.find("{")
     if start < 0:
         return text
-    try:
-        _obj, end = json.JSONDecoder().raw_decode(text, start)
-        return text[start:end]
-    except json.JSONDecodeError as exc:
-        logger.debug(
-            "raw_decode failed at pos %d: %r, trying brace-depth fallback",
-            start,
-            repr(exc),
-        )
-        depth = 0
-        for i in range(start, len(text)):
-            ch = text[i]
-            if ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    return text[start : i + 1]
-        return text[start:]
+    return extract_first_json_object(text) or text[start:]
 
 
 class DeepSeekRunner:
