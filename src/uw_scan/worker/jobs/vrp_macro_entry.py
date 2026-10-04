@@ -354,7 +354,6 @@ def _snapshot_cohort(
     expiry: _date = cohort["expiry"]
     expiry_occ = expiry.strftime("%Y%m%d")
     legs = {leg: float(cohort[leg]) for leg in _LEG_FIELDS}
-    und_spot = und if und is not None else float(cohort["spot_at_birth"])
     try:
         uw_nbbo = _uw_leg_nbbo(repo, settings, "SPX", expiry, list(legs.values()))
     except Exception as exc:  # noqa: BLE001 — UW miss is non-fatal; xenon is primary
@@ -372,7 +371,7 @@ def _snapshot_cohort(
                 strike=strike,
                 expiry=expiry_occ,
                 as_of=as_of,
-                underlying_spot=und_spot,
+                underlying_spot=und,
                 r=rfr,
                 settings=settings,
                 uw_row=uw_nbbo.get(strike),

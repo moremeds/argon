@@ -159,7 +159,7 @@ def quote_leg(
     strike: float,
     expiry: str,
     as_of: datetime,
-    underlying_spot: float,
+    underlying_spot: float | None,
     r: float,
     settings: Any,
     xenon_client: Any = None,
@@ -178,6 +178,9 @@ def quote_leg(
     returns a full greek set, ``'bs'`` when only a real IV is present (UW legs, or
     IB without greeks), else ``'none'`` (greeks 0.0). ``source`` tags the
     NBBO+IV+und_spot provenance independently of ``greeks_source``.
+    ``underlying_spot`` is None when no live spot exists; ``und_spot`` is then
+    NULL (IB undPrice aside) and BS greeks are skipped, never computed off a
+    substituted spot.
     """
     exp_date = datetime.strptime(expiry, "%Y%m%d").date()
     as_of_date = as_of.astimezone(_ET).date()
@@ -242,9 +245,9 @@ def quote_leg(
         vega = float(ib["vega"]) * _IB_VEGA_TO_BS
         theta = float(ib["theta"]) * _IB_THETA_TO_BS
         greeks_source = "ib"
-    elif iv is not None and float(iv) > 0:
+    elif iv is not None and float(iv) > 0 and und is not None:
         sig = float(iv)
-        s = float(und) if und is not None else float(underlying_spot)
+        s = float(und)
         k = float(strike)
         delta = bs_delta(s, k, T, r, sig, is_call=False)
         gamma = bs_gamma(s, k, T, r, sig)
