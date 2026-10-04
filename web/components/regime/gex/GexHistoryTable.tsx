@@ -103,10 +103,14 @@ export function GexHistoryTable({ history }: { history: GexHistoryEntry[] }) {
                   <td
                     className="text-right"
                     style={{
+                      // Missing net GEX keeps the table's default text
+                      // colour, like the other "---" cells.
                       color:
-                        row.net_gex! >= 0
-                          ? "var(--signal-core)"
-                          : "var(--fault)",
+                        row.net_gex == null
+                          ? undefined
+                          : row.net_gex >= 0
+                            ? "var(--signal-core)"
+                            : "var(--fault)",
                     }}
                   >
                     {fmtGex(row.net_gex)}

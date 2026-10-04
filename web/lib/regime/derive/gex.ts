@@ -33,6 +33,9 @@ export function quoteIsFreshAt(
  *
  * Moved verbatim from GexSubTab.tsx — that file re-exports it so existing
  * imports keep working.
+ *
+ * A bucket with a null strike has no distance from spot: it is never the
+ * nearest, never a tag, and keeps `pct_from_spot: null` and no tag.
  */
 export function retagProfileForSpot(
   profile: GexBucket[],
@@ -53,15 +56,17 @@ export function retagProfileForSpot(
   let nearest: number | null = null;
   let minDist = Infinity;
   for (const b of profile) {
-    const d = Math.abs(b.strike! - liveSpot);
+    if (b.strike == null) continue;
+    const d = Math.abs(b.strike - liveSpot);
     if (d < minDist) {
       minDist = d;
-      nearest = b.strike!;
+      nearest = b.strike;
     }
   }
   const tagMap = new Map<number, string>();
   if (nearest != null) tagMap.set(nearest, "SPOT");
-  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike!, "GEX FLIP");
+  if (levels?.gex_flip?.strike != null)
+    tagMap.set(levels.gex_flip.strike, "GEX FLIP");
   const labelled: [GexLevel, string][] = [
     [levels?.max_magnet ?? null, "MAX MAGNET"],
     [levels?.second_magnet ?? null, "SECOND MAGNET"],
@@ -70,13 +75,18 @@ export function retagProfileForSpot(
     [levels?.call_wall ?? null, "CALL WALL"],
   ];
   for (const [level, label] of labelled) {
-    if (level && !tagMap.has(level.strike!)) tagMap.set(level.strike!, label);
+    if (level?.strike != null && !tagMap.has(level.strike))
+      tagMap.set(level.strike, label);
   }
-  return profile.map((b) => ({
-    ...b,
-    pct_from_spot: ((b.strike! - liveSpot) / liveSpot) * 100,
-    tag: tagMap.get(b.strike!) ?? null,
-  }));
+  return profile.map((b) =>
+    b.strike == null
+      ? { ...b, pct_from_spot: null, tag: null }
+      : {
+          ...b,
+          pct_from_spot: ((b.strike - liveSpot) / liveSpot) * 100,
+          tag: tagMap.get(b.strike) ?? null,
+        },
+  );
 }
 
 /**
