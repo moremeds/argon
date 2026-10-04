@@ -44,7 +44,9 @@ def test_complete_run_sets_status(seeded_db_empty_cards) -> None:
     repo.complete_run(run_id, status="error", error="all configs failed")
     with seeded_db_empty_cards.conn.cursor() as cur:
         cur.execute(
-            "SELECT status, error FROM backtest_sweep_runs WHERE id = %s", (run_id,)
+            f"SELECT status, error FROM {seeded_db_empty_cards._schema}.backtest_sweep_runs "
+            "WHERE id = %s",
+            (run_id,),
         )
         status, error = cur.fetchone()
     assert status == "error" and error == "all configs failed"

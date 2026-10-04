@@ -98,8 +98,6 @@ class UwHistoricalAlphaRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     # -- generic writer -------------------------------------------------- #
     def _write(
@@ -125,7 +123,7 @@ class UwHistoricalAlphaRepository:
             )
         else:
             conflict = f"ON CONFLICT ({', '.join(conflict_cols)}) DO NOTHING"
-        sql = f"INSERT INTO {table} ({collist}) VALUES ({values}) {conflict}"
+        sql = f"INSERT INTO {self._schema}.{table} ({collist}) VALUES ({values}) {conflict}"
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)
             # rows ACTUALLY written — for the DO-NOTHING event logs this is

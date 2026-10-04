@@ -86,8 +86,6 @@ class TechnicalsRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_series(self, ticker: str, rows: list[dict]) -> int:
         if not rows:
@@ -101,8 +99,8 @@ class TechnicalsRepository:
                     round(core["volume"])
                 )  # BIGINT col; pandas float64
             params.append({**core, "ticker": ticker.upper(), "metrics": Jsonb(metrics)})
-        sql = """
-            INSERT INTO technical_daily
+        sql = f"""
+            INSERT INTO {self._schema}.technical_daily
                 (ticker, as_of, open, high, low, close, volume, sma20, sma50,
                  sma200, z_vs_200dma, z_band, sma200_slope_ann, slope_regime,
                  rsi14, macd_hist_atr, rs_ratio, metrics)
@@ -141,25 +139,25 @@ class TechnicalsRepository:
         t = ticker.upper()
         with self._conn.cursor() as cur:
             cur.execute(
-                "UPDATE technical_daily SET detail = NULL, forward_returns = NULL "
+                f"UPDATE {self._schema}.technical_daily SET detail = NULL, forward_returns = NULL "
                 "WHERE ticker = %s AND as_of <> %s AND detail IS NOT NULL",
                 (t, as_of),
             )
             cur.execute(
-                "UPDATE technical_daily SET detail = %s, forward_returns = %s, "
+                f"UPDATE {self._schema}.technical_daily SET detail = %s, forward_returns = %s, "
                 "bars_n = %s WHERE ticker = %s AND as_of = %s",
                 (Jsonb(detail), Jsonb(forward_returns), detail.get("bars_n"), t, as_of),
             )
         self._conn.commit()
 
     def fetch_series(self, ticker: str, *, limit: int = 1300) -> list[dict]:
-        sql = """
+        sql = f"""
             SELECT * FROM (
                 SELECT as_of, open, high, low, close, volume, sma20, sma50,
                        sma200, z_vs_200dma, z_band, sma200_slope_ann,
                        slope_regime, rsi14, macd_hist_atr, rs_ratio, metrics,
                        detail, forward_returns
-                  FROM technical_daily
+                  FROM {self._schema}.technical_daily
                  WHERE ticker = %s
                  ORDER BY as_of DESC
                  LIMIT %s
@@ -171,12 +169,12 @@ class TechnicalsRepository:
             return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
 
     def fetch_latest(self, ticker: str) -> dict | None:
-        sql = """
+        sql = f"""
             SELECT ticker, as_of, open, high, low, close, volume, sma20, sma50,
                    sma200, z_vs_200dma, z_band, sma200_slope_ann, slope_regime,
                    rsi14, macd_hist_atr, rs_ratio, bars_n, detail,
                    forward_returns
-              FROM technical_daily
+              FROM {self._schema}.technical_daily
              WHERE ticker = %s
              -- Prefer the true computed-latest (the only row carrying detail);
              -- a stale future row from a regressed apex window has detail=NULL
@@ -195,11 +193,11 @@ class TechnicalsRepository:
     def fetch_latest_macd_all(self) -> list[dict]:
         # ponytail: DISTINCT ON walked all ~268k history rows (89 ms warm);
         # enumerate tickers, then one PK-ordered LIMIT 1 each (20 ms). Same rows.
-        sql = """
+        sql = f"""
             SELECT tickers.ticker, latest.macd_hist_atr
-              FROM (SELECT DISTINCT ticker FROM technical_daily) tickers
+              FROM (SELECT DISTINCT ticker FROM {self._schema}.technical_daily) tickers
               CROSS JOIN LATERAL (
-                  SELECT macd_hist_atr FROM technical_daily d
+                  SELECT macd_hist_atr FROM {self._schema}.technical_daily d
                    WHERE d.ticker = tickers.ticker
                    ORDER BY d.as_of DESC
                    LIMIT 1

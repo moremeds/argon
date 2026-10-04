@@ -38,8 +38,6 @@ class UwFetchMemoRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def get(
         self, ticker: str, endpoint: str, as_of_date: date
@@ -52,8 +50,8 @@ class UwFetchMemoRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE uw_fetch_memo
+                f"""
+                UPDATE {self._schema}.uw_fetch_memo
                    SET hit_count = hit_count + 1,
                        last_hit_at = now()
                  WHERE ticker = %s AND endpoint = %s AND as_of_date = %s
@@ -76,8 +74,8 @@ class UwFetchMemoRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_fetch_memo (ticker, endpoint, as_of_date, payload)
+                f"""
+                INSERT INTO {self._schema}.uw_fetch_memo (ticker, endpoint, as_of_date, payload)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (ticker, endpoint, as_of_date) DO UPDATE
                     SET payload = EXCLUDED.payload,
@@ -90,7 +88,7 @@ class UwFetchMemoRepository:
         """Delete memo rows older than `before` (stale trading days). Returns count."""
         with self._conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM uw_fetch_memo WHERE as_of_date < %s",
+                f"DELETE FROM {self._schema}.uw_fetch_memo WHERE as_of_date < %s",
                 (before,),
             )
             return cur.rowcount

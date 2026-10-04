@@ -37,8 +37,6 @@ class DataGapHealerRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     # --- runs -------------------------------------------------------------
 
@@ -55,8 +53,8 @@ class DataGapHealerRepository:
     ) -> int:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO data_gap_runs
+                f"""
+                INSERT INTO {self._schema}.data_gap_runs
                     (mode, status, start_date, end_date, datasets,
                      uw_budget_cap, summary_jsonb)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -81,8 +79,8 @@ class DataGapHealerRepository:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE data_gap_runs
+                f"""
+                UPDATE {self._schema}.data_gap_runs
                    SET status = %s,
                        finished_at = now(),
                        summary_jsonb = COALESCE(%s, summary_jsonb)
@@ -95,10 +93,10 @@ class DataGapHealerRepository:
     def get_run(self, run_id: int) -> dict | None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT id, started_at, finished_at, mode, status, start_date,
                        end_date, datasets, uw_budget_cap, summary_jsonb, created_by
-                  FROM data_gap_runs WHERE id = %s
+                  FROM {self._schema}.data_gap_runs WHERE id = %s
                 """,
                 (run_id,),
             )
@@ -111,9 +109,9 @@ class DataGapHealerRepository:
     def latest_run(self) -> dict | None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT id, started_at, finished_at, mode, status, summary_jsonb
-                  FROM data_gap_runs
+                  FROM {self._schema}.data_gap_runs
                  ORDER BY started_at DESC LIMIT 1
                 """
             )
@@ -142,8 +140,8 @@ class DataGapHealerRepository:
             }
             for it in items
         ]
-        sql = """
-            INSERT INTO data_gap_items
+        sql = f"""
+            INSERT INTO {self._schema}.data_gap_items
                 (run_id, dataset, data_date, ticker, scope_key,
                  expected_count, covered_count, status, reason)
             VALUES
@@ -184,10 +182,10 @@ class DataGapHealerRepository:
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
-                UPDATE data_gap_items
+                UPDATE {self._schema}.data_gap_items
                    SET status = 'running', attempts = attempts + 1
                  WHERE id IN (
-                     SELECT id FROM data_gap_items
+                     SELECT id FROM {self._schema}.data_gap_items
                       WHERE {where}
                       ORDER BY data_date NULLS LAST, dataset, ticker
                       LIMIT %s
@@ -215,8 +213,8 @@ class DataGapHealerRepository:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE data_gap_items
+                f"""
+                UPDATE {self._schema}.data_gap_items
                    SET status = %s,
                        reason = COALESCE(%s, reason),
                        actual_requests = actual_requests + COALESCE(%s, 0),
@@ -263,7 +261,7 @@ class DataGapHealerRepository:
                 SELECT id, dataset, data_date, ticker, scope_key, expected_count,
                        covered_count, actual_requests, status, reason, attempts,
                        last_error, verified_at
-                  FROM data_gap_items
+                  FROM {self._schema}.data_gap_items
                  WHERE {where}
                  ORDER BY dataset, data_date NULLS LAST, ticker
                 """,
@@ -275,9 +273,9 @@ class DataGapHealerRepository:
     def count_items_by_status(self, run_id: int) -> dict[str, int]:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT status, COUNT(*)::int
-                  FROM data_gap_items WHERE run_id = %s GROUP BY status
+                  FROM {self._schema}.data_gap_items WHERE run_id = %s GROUP BY status
                 """,
                 (run_id,),
             )
@@ -298,9 +296,9 @@ class DataGapHealerRepository:
         run_id = run["id"]
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT dataset, COUNT(*)::int
-                  FROM data_gap_items
+                  FROM {self._schema}.data_gap_items
                  WHERE run_id = %s
                    -- 'running' belongs here even though claim_next_items will not
                    -- re-claim it: these are items the healer took and never drove
@@ -314,7 +312,7 @@ class DataGapHealerRepository:
                 (run_id,),
             )
             open_by_dataset = {r[0]: r[1] for r in cur.fetchall()}
-            cur.execute("SELECT MAX(verified_at) FROM data_gap_items")
+            cur.execute(f"SELECT MAX(verified_at) FROM {self._schema}.data_gap_items")
             last_verified = cur.fetchone()[0]
         return {
             "latest_run_id": run_id,
@@ -338,11 +336,11 @@ class DataGapHealerRepository:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 WITH recent AS (
-                    SELECT id FROM data_gap_runs ORDER BY id DESC LIMIT %s
+                    SELECT id FROM {self._schema}.data_gap_runs ORDER BY id DESC LIMIT %s
                 )
-                SELECT count(*)::int FROM data_gap_items i
+                SELECT count(*)::int FROM {self._schema}.data_gap_items i
                  WHERE i.run_id IN (SELECT id FROM recent)
                    AND i.dataset = %s
                    AND i.data_date = %s
@@ -356,8 +354,8 @@ class DataGapHealerRepository:
     def upsert_caveat(self, cav: Caveat) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO data_gap_caveats
+                f"""
+                INSERT INTO {self._schema}.data_gap_caveats
                     (dataset, ticker, start_date, end_date, reason, source)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (dataset, COALESCE(ticker, ''),
@@ -387,7 +385,7 @@ class DataGapHealerRepository:
             cur.execute(
                 f"""
                 SELECT dataset, ticker, start_date, end_date, reason, source
-                  FROM data_gap_caveats {where}
+                  FROM {self._schema}.data_gap_caveats {where}
                  ORDER BY dataset, ticker NULLS FIRST
                 """,
                 args,
@@ -427,8 +425,8 @@ class DataGapHealerRepository:
             }
             for e in entries
         ]
-        sql = """
-            INSERT INTO data_gap_dataset_registry
+        sql = f"""
+            INSERT INTO {self._schema}.data_gap_dataset_registry
                 (table_name, dataset_group, audit_mode, date_col, ticker_col,
                  expected_frequency, provider, granularity, healer_adapter,
                  source_system, retention_days, enabled, reason)
@@ -459,11 +457,11 @@ class DataGapHealerRepository:
     def list_dataset_registry(self) -> list[dict]:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT table_name, dataset_group, audit_mode, date_col, ticker_col,
                        expected_frequency, provider, granularity, healer_adapter,
                        source_system, retention_days, enabled, reason
-                  FROM data_gap_dataset_registry
+                  FROM {self._schema}.data_gap_dataset_registry
                  ORDER BY dataset_group, table_name
                 """
             )
@@ -485,7 +483,7 @@ class DataGapHealerRepository:
                  GROUP BY table_name
                 HAVING {_TEMPORAL_HAVING}
                 EXCEPT
-                SELECT table_name FROM data_gap_dataset_registry
+                SELECT table_name FROM {self._schema}.data_gap_dataset_registry
                  ORDER BY table_name
                 """,
                 (self._schema,),
@@ -499,7 +497,7 @@ class DataGapHealerRepository:
         them, and heals are idempotent, so a blanket requeue is safe."""
         with self._conn.cursor() as cur:
             cur.execute(
-                "UPDATE data_gap_items SET status = 'planned' "
+                f"UPDATE {self._schema}.data_gap_items SET status = 'planned' "
                 "WHERE run_id = %s AND status = 'running'",
                 (run_id,),
             )
@@ -518,8 +516,8 @@ class DataGapHealerRepository:
             return 0
         with self._conn.cursor() as cur:
             cur.executemany(
-                """
-                INSERT INTO watchlist_ticker_events
+                f"""
+                INSERT INTO {self._schema}.watchlist_ticker_events
                     (ticker, event, event_date, note)
                 VALUES (%s, %s, %s, %s)
                 """,
@@ -532,9 +530,9 @@ class DataGapHealerRepository:
         """Latest event per ticker -> {ticker: 'added'|'removed'}."""
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT DISTINCT ON (ticker) ticker, event
-                  FROM watchlist_ticker_events
+                  FROM {self._schema}.watchlist_ticker_events
                  ORDER BY ticker, id DESC
                 """
             )
@@ -550,7 +548,7 @@ class DataGapHealerRepository:
             cur.execute(
                 f"""
                 SELECT ticker, event, event_date, note, created_at
-                  FROM watchlist_ticker_events {clause}
+                  FROM {self._schema}.watchlist_ticker_events {clause}
                  ORDER BY id DESC LIMIT %s
                 """,
                 args,

@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Standalone storage repositories no longer change the caller's `search_path` (I-60); no behaviour change.** 21 standalone repositories ran `SET search_path TO <schema>, public` in `__init__` on a connection the caller owns. Pooled API connections and the worker's `repo.conn` therefore carried that session state into whatever borrowed them next. No role or database default puts `uw_scan` on the path. Every one of them now schema-qualifies its tables with `{self._schema}.` and leaves the session alone. `DataGapHealerRepository` was dropped last, after the healer split qualified the raw healer SQL that leaned on it. `tests/integration/storage/test_repos_keep_caller_search_path.py` sets the path to `public`, calls one read per repository and asserts the path is unchanged; with the path at `public`, an unqualified table would also fail. `tests/unit/storage/test_no_set_search_path.py` fails if a storage module adds a `SET search_path`. Two storage tests whose raw SQL leaned on the old `SET` now qualify their table, and two stale worker-job comments are reworded (code unchanged).
+
 ### Changed
 
 - **`storage/gold.py` follows the repository schema and takes a typed posture row (I-61, I-62); no behaviour change.** The 20 hard-coded `uw_scan.` table prefixes now read `{self._schema}.`. `insert_gold_posture_daily` takes one frozen, keyword-only `GoldPosture` dataclass (exported from `uw_scan.storage.gold`) instead of 51 keyword arguments. The fields keep the same names, types, order and defaults, and the INSERT column list and parameter order are unchanged. A row dump of a fully populated posture insert on origin/main and on this branch is byte-identical. The single-row wrappers `insert_macro_series_daily`, `insert_macro_series_monthly` and `insert_etf_holdings_daily` are removed. Production already called their `*_rows` twins, so only tests change call shape. `reports/gold_posture.py` builds `GoldPosture(...)`.

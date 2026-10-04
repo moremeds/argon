@@ -28,8 +28,6 @@ class OptionIntradayBucketRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_buckets(
         self,
@@ -63,8 +61,8 @@ class OptionIntradayBucketRepository:
             }
             for b in rows
         ]
-        sql = """
-            INSERT INTO option_intraday_buckets
+        sql = f"""
+            INSERT INTO {self._schema}.option_intraday_buckets
                 (option_symbol, trade_date, start_time,
                  open, high, low, close, avg_price,
                  iv_high, iv_low,
@@ -106,7 +104,7 @@ class OptionIntradayBucketRepository:
         trade_date: _date,
     ) -> list[dict]:
         """All buckets for one contract on one session, ordered by start_time."""
-        sql = """
+        sql = f"""
             SELECT option_symbol, trade_date, start_time,
                    open, high, low, close, avg_price,
                    iv_high, iv_low,
@@ -114,7 +112,7 @@ class OptionIntradayBucketRepository:
                    volume_mid_side, volume_multi,
                    premium_ask_side, premium_bid_side,
                    premium_mid_side, premium_no_side
-              FROM option_intraday_buckets
+              FROM {self._schema}.option_intraday_buckets
              WHERE option_symbol = %s AND trade_date = %s
              ORDER BY start_time ASC
         """
@@ -137,7 +135,7 @@ class OptionIntradayBucketRepository:
             return {}
         symbols = [p[0] for p in pairs]
         dates = [p[1] for p in pairs]
-        sql = """
+        sql = f"""
             SELECT b.option_symbol, b.trade_date, b.start_time,
                    b.open, b.high, b.low, b.close, b.avg_price,
                    b.iv_high, b.iv_low,
@@ -145,7 +143,7 @@ class OptionIntradayBucketRepository:
                    b.volume_mid_side, b.volume_multi,
                    b.premium_ask_side, b.premium_bid_side,
                    b.premium_mid_side, b.premium_no_side
-              FROM option_intraday_buckets b
+              FROM {self._schema}.option_intraday_buckets b
               JOIN unnest(%s::text[], %s::date[]) AS k(option_symbol, trade_date)
                 ON b.option_symbol = k.option_symbol
                AND b.trade_date = k.trade_date

@@ -12,8 +12,6 @@ class TechnicalLiveRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert(
         self,
@@ -25,8 +23,8 @@ class TechnicalLiveRepository:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO technical_live
+                f"""
+                INSERT INTO {self._schema}.technical_live
                     (ticker, captured_at, spot, spot_source, payload)
                 VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (ticker) DO UPDATE SET
@@ -43,9 +41,9 @@ class TechnicalLiveRepository:
     def fetch(self, ticker: str) -> dict | None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT ticker, captured_at, spot, spot_source, payload
-                FROM technical_live WHERE ticker = %s
+                FROM {self._schema}.technical_live WHERE ticker = %s
                 """,
                 (ticker.upper(),),
             )

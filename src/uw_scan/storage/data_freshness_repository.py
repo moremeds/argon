@@ -14,8 +14,6 @@ class DataFreshnessRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_snapshot(self, run_date: date, rows: list[FreshnessRow]) -> int:
         if not rows:
@@ -36,8 +34,8 @@ class DataFreshnessRepository:
             }
             for r in rows
         ]
-        sql = """
-            INSERT INTO data_freshness_snapshots
+        sql = f"""
+            INSERT INTO {self._schema}.data_freshness_snapshots
                 (run_date, table_name, date_col, scope, expected_count,
                  covered_count, coverage_pct, max_data_date, days_stale, frozen,
                  sessions_missing)
@@ -78,9 +76,9 @@ class DataFreshnessRepository:
         there silently shrank the counted streak whenever the caller's day
         differed from the wall clock (which is exactly what pinned-date tests
         do), so the breaker under-counted and retriggered."""
-        sql = """
+        sql = f"""
             SELECT table_name, run_date, frozen
-              FROM data_freshness_snapshots
+              FROM {self._schema}.data_freshness_snapshots
              WHERE run_date > COALESCE(%s, CURRENT_DATE) - %s::int
              ORDER BY table_name, run_date DESC
         """
@@ -113,11 +111,11 @@ class DataFreshnessRepository:
         return counts
 
     def latest_snapshot(self) -> list[dict]:
-        sql = """
+        sql = f"""
             SELECT table_name, date_col, scope, expected_count, covered_count,
                    coverage_pct, max_data_date, days_stale, frozen
-              FROM data_freshness_snapshots
-             WHERE run_date = (SELECT MAX(run_date) FROM data_freshness_snapshots)
+              FROM {self._schema}.data_freshness_snapshots
+             WHERE run_date = (SELECT MAX(run_date) FROM {self._schema}.data_freshness_snapshots)
              ORDER BY frozen DESC, coverage_pct ASC NULLS FIRST, table_name
         """
         with self._conn.cursor() as cur:
@@ -130,7 +128,9 @@ class DataFreshnessRepository:
             # counted streak whenever the newest snapshot lags the clock
             # (pinned-date tests, a paused monitor) — same date-bomb class
             # the monitor job's call site already fixed by passing `today`.
-            cur.execute("SELECT MAX(run_date) FROM data_freshness_snapshots")
+            cur.execute(
+                f"SELECT MAX(run_date) FROM {self._schema}.data_freshness_snapshots"
+            )
             max_run_date = cur.fetchone()[0]
         streaks = self.consecutive_frozen_counts(as_of=max_run_date)
         for row in rows:

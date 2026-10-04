@@ -17,12 +17,10 @@ class MarketTideSentimentRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert(self, data_date: date, s: TideSentiment) -> None:
-        sql = """
-            INSERT INTO market_tide_sentiment_daily
+        sql = f"""
+            INSERT INTO {self._schema}.market_tide_sentiment_daily
                 (data_date, state, magnitude, driver, momentum, spread,
                  session_slope, recent_slope, trend_strength, volume_confirms,
                  bars, computed_at)
@@ -49,7 +47,7 @@ class MarketTideSentimentRepository:
 
     def fetch_history(self, *, days: int = 90) -> list[dict]:
         """Most-recent N sessions ASC by date — for backtest joins."""
-        sql = """
+        sql = f"""
             SELECT data_date, state, magnitude, driver, momentum,
                    spread::float8        AS spread,
                    session_slope::float8 AS session_slope,
@@ -57,7 +55,7 @@ class MarketTideSentimentRepository:
                    trend_strength::float8 AS trend_strength,
                    volume_confirms, bars
               FROM (
-                  SELECT * FROM market_tide_sentiment_daily
+                  SELECT * FROM {self._schema}.market_tide_sentiment_daily
                    ORDER BY data_date DESC LIMIT %s
               ) t
              ORDER BY data_date ASC
