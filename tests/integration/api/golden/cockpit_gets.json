@@ -1,0 +1,1830 @@
+{
+ "empty": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  }
+ },
+ "test_cockpit_dealer_excludes_same_day_pin_candidate": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": "2026-05-15",
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [
+     {
+      "days": 30,
+      "implied_move_expected_abs": null,
+      "implied_move_perc": null,
+      "market_date": "2026-05-15",
+      "percentile": null,
+      "volatility": "0.20"
+     }
+    ],
+    "market_date": "2026-05-15",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [
+     {
+      "iv": "0.20",
+      "iv_rank_1y": null,
+      "market_date": "2026-05-15",
+      "rv": null,
+      "vrp": null
+     }
+    ],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_dealer_flow_color_uses_last_three_trading_event_dates": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-18",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": "-1000",
+     "flow_call_premium_3d": "1000",
+     "flow_color_lookback_3d": "put_heavy",
+     "flow_put_premium_3d": "2000",
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [
+     {
+      "aggressor_label_confidence": "0.00",
+      "alert_id": "friday-call-flow",
+      "alert_rule": null,
+      "all_opening_trades": null,
+      "created_at": "2026-05-15T15:00:00Z",
+      "expiry": null,
+      "flow_footprint_label": "unclassified",
+      "has_floor": null,
+      "has_multileg": null,
+      "has_sweep": null,
+      "open_interest": null,
+      "option_chain": null,
+      "option_type": "call",
+      "strike": null,
+      "total_ask_side_prem": null,
+      "total_bid_side_prem": null,
+      "total_premium": "1000",
+      "volume": null
+     },
+     {
+      "aggressor_label_confidence": "0.00",
+      "alert_id": "thursday-put-flow",
+      "alert_rule": null,
+      "all_opening_trades": null,
+      "created_at": "2026-05-14T15:00:00Z",
+      "expiry": null,
+      "flow_footprint_label": "unclassified",
+      "has_floor": null,
+      "has_multileg": null,
+      "has_sweep": null,
+      "open_interest": null,
+      "option_chain": null,
+      "option_type": "put",
+      "strike": null,
+      "total_ask_side_prem": null,
+      "total_bid_side_prem": null,
+      "total_premium": "2000",
+      "volume": null
+     }
+    ],
+    "implied_moves": [],
+    "market_date": "2026-05-18",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-18",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-18",
+    "points": [
+     {
+      "iv": "0.20",
+      "iv_rank_1y": null,
+      "market_date": "2026-05-18",
+      "rv": null,
+      "vrp": null
+     }
+    ],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_dealer_metrics_can_read_persisted_signal_rows": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-18",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": "34.5",
+     "dealer_net_vanna_proxy": "12.5",
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": "700",
+     "flow_color_lookback_3d": "put_heavy",
+     "flow_put_premium_3d": "2100",
+     "gamma_regime": "long_gamma",
+     "iv_30d_delta_5d": "-0.03",
+     "net_gamma": "9.5",
+     "net_gamma_sign": "positive",
+     "pin_candidate_expiry": "2026-05-19",
+     "pin_candidate_strike": "500",
+     "pin_distance_sigma": "0.42",
+     "pin_regime_flag": true,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [],
+    "market_date": "2026-05-18",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-18",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-18",
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_dealer_metrics_use_exposure_fallback_without_chain_oi": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": "15",
+     "dealer_net_vanna_proxy": "10",
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": "long_gamma",
+     "iv_30d_delta_5d": null,
+     "net_gamma": "3",
+     "net_gamma_sign": "positive",
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [
+     {
+      "call_charm": "3",
+      "call_vanna": "1",
+      "expiry": "2026-05-16",
+      "exposure_call_charm": "8",
+      "exposure_call_vanna": "15",
+      "exposure_put_charm": "7",
+      "exposure_put_vanna": "-5",
+      "put_charm": "-4",
+      "put_vanna": "-2",
+      "strike": "200"
+     }
+    ],
+    "ticker": "IWM"
+   },
+   "status": 200
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [],
+    "market_date": "2026-05-15",
+    "ticker": "IWM"
+   },
+   "status": 200
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "IWM"
+   },
+   "status": 200
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [],
+    "ticker": "IWM"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  }
+ },
+ "test_cockpit_dealer_pin_uses_latest_oi_snapshot_and_marks_source_date": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": "0",
+     "dealer_net_vanna_proxy": "0",
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": "2026-05-18",
+     "pin_candidate_strike": "500.0000",
+     "pin_distance_sigma": "0E+23",
+     "pin_regime_flag": false,
+     "pin_source_date": "2026-05-14",
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [
+     {
+      "call_charm": "1",
+      "call_vanna": "1",
+      "expiry": "2026-05-18",
+      "exposure_call_charm": null,
+      "exposure_call_vanna": null,
+      "exposure_put_charm": null,
+      "exposure_put_vanna": null,
+      "put_charm": "1",
+      "put_vanna": "1",
+      "strike": "500"
+     }
+    ],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [
+     {
+      "days": 30,
+      "implied_move_expected_abs": null,
+      "implied_move_perc": null,
+      "market_date": "2026-05-15",
+      "percentile": null,
+      "volatility": "0.20"
+     }
+    ],
+    "market_date": "2026-05-15",
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [
+     {
+      "iv": "0.20",
+      "iv_rank_1y": null,
+      "market_date": "2026-05-15",
+      "rv": null,
+      "vrp": null
+     }
+    ],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  }
+ },
+ "test_cockpit_flow_im_exposes_expected_abs_move": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [
+     {
+      "days": 30,
+      "implied_move_expected_abs": "0.015958",
+      "implied_move_perc": "0.02",
+      "market_date": "2026-05-15",
+      "percentile": null,
+      "volatility": "0.20"
+     }
+    ],
+    "market_date": "2026-05-15",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "freshness": {
+     "im_vrp": "2026-05-15T21:00:00Z",
+     "oi": null,
+     "skew": null,
+     "term": null,
+     "vanna_charm": null,
+     "vrp_rv": null
+    },
+    "state": {
+     "atm_straddle_mid": null,
+     "back_iv": "0.30",
+     "charm_regime": null,
+     "charm_state": "stale",
+     "charm_stress_override": false,
+     "cluster_coverage_ok": false,
+     "consistency_tier": "insufficient_data",
+     "directional_imbalance_3d": null,
+     "flow_state": "stale",
+     "front_back_spread": "0.06",
+     "front_iv": "0.24",
+     "full_curve_slope_pct": null,
+     "im_state": "stale",
+     "implied_move_event_percentile": null,
+     "implied_move_expected_abs": null,
+     "implied_move_pct": null,
+     "iv_atm_30d": null,
+     "market_date": "2026-05-15",
+     "pin_distance_sigma": null,
+     "rv_30d": null,
+     "single_point_bump_pct": null,
+     "skew_25d_5d_change": null,
+     "skew_25d_zscore_180d": null,
+     "skew_regime": null,
+     "skew_state": "neutral",
+     "skew_term_structure": null,
+     "term_classification": "contango",
+     "term_johnson_slope_pc1": null,
+     "term_state": "vol_down",
+     "threshold_version": 1,
+     "ticker": "SPY",
+     "vanna_conditional_reading": null,
+     "vanna_oi_change_bias": null,
+     "vanna_state": "stale",
+     "vrp": null,
+     "vrp_sign_flip_aligned_days": 0,
+     "vrp_sign_flip_status": "insufficient_history",
+     "vrp_state": "neutral",
+     "vrp_zscore_252d": null,
+     "vrp_zscore_60d": null
+    }
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_flow_im_exposes_flow_alert_classifier_inputs": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": "150000",
+     "flow_call_premium_3d": "250000",
+     "flow_color_lookback_3d": "call_heavy",
+     "flow_put_premium_3d": "0",
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [
+     {
+      "aggressor_label_confidence": "0.75",
+      "alert_id": "classifier-inputs",
+      "alert_rule": "RepeatedHits",
+      "all_opening_trades": true,
+      "created_at": "2026-05-15T15:00:00Z",
+      "expiry": "2026-05-15",
+      "flow_footprint_label": "directional_whale",
+      "has_floor": false,
+      "has_multileg": true,
+      "has_sweep": true,
+      "open_interest": 300,
+      "option_chain": "SPY260515C00500000",
+      "option_type": "call",
+      "strike": "500",
+      "total_ask_side_prem": "200000",
+      "total_bid_side_prem": "50000",
+      "total_premium": "250000",
+      "volume": 1000
+     }
+    ],
+    "implied_moves": [],
+    "market_date": "2026-05-15",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "freshness": {
+     "im_vrp": null,
+     "oi": null,
+     "skew": null,
+     "term": null,
+     "vanna_charm": null,
+     "vrp_rv": null
+    },
+    "state": {
+     "atm_straddle_mid": null,
+     "back_iv": "0.30",
+     "charm_regime": null,
+     "charm_state": "stale",
+     "charm_stress_override": false,
+     "cluster_coverage_ok": false,
+     "consistency_tier": "insufficient_data",
+     "directional_imbalance_3d": null,
+     "flow_state": "stale",
+     "front_back_spread": "0.06",
+     "front_iv": "0.24",
+     "full_curve_slope_pct": null,
+     "im_state": "stale",
+     "implied_move_event_percentile": null,
+     "implied_move_expected_abs": null,
+     "implied_move_pct": null,
+     "iv_atm_30d": null,
+     "market_date": "2026-05-15",
+     "pin_distance_sigma": null,
+     "rv_30d": null,
+     "single_point_bump_pct": null,
+     "skew_25d_5d_change": null,
+     "skew_25d_zscore_180d": null,
+     "skew_regime": null,
+     "skew_state": "neutral",
+     "skew_term_structure": null,
+     "term_classification": "contango",
+     "term_johnson_slope_pc1": null,
+     "term_state": "vol_down",
+     "threshold_version": 1,
+     "ticker": "SPY",
+     "vanna_conditional_reading": null,
+     "vanna_oi_change_bias": null,
+     "vanna_state": "stale",
+     "vrp": null,
+     "vrp_sign_flip_aligned_days": 0,
+     "vrp_sign_flip_status": "insufficient_history",
+     "vrp_state": "neutral",
+     "vrp_zscore_252d": null,
+     "vrp_zscore_60d": null
+    }
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_freshness_oi_reports_stale_snapshot": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  }
+ },
+ "test_cockpit_phase4_tabs_return_read_models": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [],
+    "market_date": "2026-05-15",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "freshness": {
+     "im_vrp": null,
+     "oi": null,
+     "skew": null,
+     "term": null,
+     "vanna_charm": null,
+     "vrp_rv": null
+    },
+    "state": {
+     "atm_straddle_mid": null,
+     "back_iv": "0.30",
+     "charm_regime": null,
+     "charm_state": "stale",
+     "charm_stress_override": false,
+     "cluster_coverage_ok": false,
+     "consistency_tier": "insufficient_data",
+     "directional_imbalance_3d": null,
+     "flow_state": "stale",
+     "front_back_spread": "0.06",
+     "front_iv": "0.24",
+     "full_curve_slope_pct": null,
+     "im_state": "stale",
+     "implied_move_event_percentile": null,
+     "implied_move_expected_abs": null,
+     "implied_move_pct": null,
+     "iv_atm_30d": null,
+     "market_date": "2026-05-15",
+     "pin_distance_sigma": null,
+     "rv_30d": null,
+     "single_point_bump_pct": null,
+     "skew_25d_5d_change": null,
+     "skew_25d_zscore_180d": null,
+     "skew_regime": null,
+     "skew_state": "neutral",
+     "skew_term_structure": null,
+     "term_classification": "contango",
+     "term_johnson_slope_pc1": null,
+     "term_state": "vol_down",
+     "threshold_version": 1,
+     "ticker": "SPY",
+     "vanna_conditional_reading": null,
+     "vanna_oi_change_bias": null,
+     "vanna_state": "stale",
+     "vrp": null,
+     "vrp_sign_flip_aligned_days": 0,
+     "vrp_sign_flip_status": "insufficient_history",
+     "vrp_state": "neutral",
+     "vrp_zscore_252d": null,
+     "vrp_zscore_60d": null
+    }
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_state_latest_returns_state_and_freshness": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "neutral",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": null,
+     "dealer_net_vanna_proxy": null,
+     "directional_imbalance_3d": null,
+     "flow_call_premium_3d": null,
+     "flow_color_lookback_3d": null,
+     "flow_put_premium_3d": null,
+     "gamma_regime": null,
+     "iv_30d_delta_5d": null,
+     "net_gamma": null,
+     "net_gamma_sign": null,
+     "pin_candidate_expiry": null,
+     "pin_candidate_strike": null,
+     "pin_distance_sigma": null,
+     "pin_regime_flag": null,
+     "pin_source_date": null,
+     "vanna_conditional_reading": "weak_noise",
+     "vanna_oi_change_bias": null
+    },
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "alerts": [],
+    "implied_moves": [],
+    "market_date": "2026-05-15",
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "freshness": {
+     "im_vrp": null,
+     "oi": null,
+     "skew": null,
+     "term": null,
+     "vanna_charm": null,
+     "vrp_rv": null
+    },
+    "state": {
+     "atm_straddle_mid": null,
+     "back_iv": "0.30",
+     "charm_regime": null,
+     "charm_state": "stale",
+     "charm_stress_override": false,
+     "cluster_coverage_ok": false,
+     "consistency_tier": "insufficient_data",
+     "directional_imbalance_3d": null,
+     "flow_state": "stale",
+     "front_back_spread": "0.06",
+     "front_iv": "0.24",
+     "full_curve_slope_pct": null,
+     "im_state": "stale",
+     "implied_move_event_percentile": null,
+     "implied_move_expected_abs": null,
+     "implied_move_pct": null,
+     "iv_atm_30d": null,
+     "market_date": "2026-05-15",
+     "pin_distance_sigma": null,
+     "rv_30d": null,
+     "single_point_bump_pct": null,
+     "skew_25d_5d_change": null,
+     "skew_25d_zscore_180d": null,
+     "skew_regime": null,
+     "skew_state": "neutral",
+     "skew_term_structure": null,
+     "term_classification": "contango",
+     "term_johnson_slope_pc1": null,
+     "term_state": "vol_down",
+     "threshold_version": 1,
+     "ticker": "SPY",
+     "vanna_conditional_reading": null,
+     "vanna_oi_change_bias": null,
+     "vanna_state": "stale",
+     "vrp": null,
+     "vrp_sign_flip_aligned_days": 0,
+     "vrp_sign_flip_status": "insufficient_history",
+     "vrp_state": "neutral",
+     "vrp_zscore_252d": null,
+     "vrp_zscore_60d": null
+    }
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [],
+    "ticker": "SPY"
+   },
+   "status": 200
+  }
+ },
+ "test_cockpit_tabs_use_source_date_without_state_snapshot": {
+  "/api/cockpit/IWM/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/state": {
+   "body": {
+    "detail": "no Cockpit state for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/surface": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/IWM/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for IWM"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/dealer": {
+   "body": {
+    "market_date": "2026-05-15",
+    "metrics": {
+     "charm_regime": "opex_vortex",
+     "charm_stress_override": false,
+     "dealer_net_charm_proxy": "50000",
+     "dealer_net_vanna_proxy": "20000",
+     "directional_imbalance_3d": "-500",
+     "flow_call_premium_3d": "500",
+     "flow_color_lookback_3d": "put_heavy",
+     "flow_put_premium_3d": "1000",
+     "gamma_regime": "long_gamma",
+     "iv_30d_delta_5d": "-0.10",
+     "net_gamma": "5",
+     "net_gamma_sign": "positive",
+     "pin_candidate_expiry": "2026-05-16",
+     "pin_candidate_strike": "500.0000",
+     "pin_distance_sigma": "0E+23",
+     "pin_regime_flag": true,
+     "pin_source_date": "2026-05-15",
+     "vanna_conditional_reading": "grind_up",
+     "vanna_oi_change_bias": null
+    },
+    "points": [
+     {
+      "call_charm": "3",
+      "call_vanna": "1",
+      "expiry": "2026-05-16",
+      "exposure_call_charm": "30",
+      "exposure_call_vanna": "10",
+      "exposure_put_charm": "-40",
+      "exposure_put_vanna": "-20",
+      "put_charm": "-4",
+      "put_vanna": "-2",
+      "strike": "500"
+     }
+    ],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/flow-im": {
+   "body": {
+    "alerts": [
+     {
+      "aggressor_label_confidence": "0.00",
+      "alert_id": "put-flow",
+      "alert_rule": null,
+      "all_opening_trades": null,
+      "created_at": "2026-05-15T15:00:00Z",
+      "expiry": null,
+      "flow_footprint_label": "unclassified",
+      "has_floor": null,
+      "has_multileg": null,
+      "has_sweep": null,
+      "open_interest": null,
+      "option_chain": null,
+      "option_type": "put",
+      "strike": null,
+      "total_ask_side_prem": null,
+      "total_bid_side_prem": null,
+      "total_premium": "1000",
+      "volume": null
+     },
+     {
+      "aggressor_label_confidence": "0.00",
+      "alert_id": "call-flow",
+      "alert_rule": null,
+      "all_opening_trades": null,
+      "created_at": "2026-05-15T15:00:00Z",
+      "expiry": null,
+      "flow_footprint_label": "unclassified",
+      "has_floor": null,
+      "has_multileg": null,
+      "has_sweep": null,
+      "open_interest": null,
+      "option_chain": null,
+      "option_type": "call",
+      "strike": null,
+      "total_ask_side_prem": null,
+      "total_bid_side_prem": null,
+      "total_premium": "500",
+      "volume": null
+     }
+    ],
+    "implied_moves": [
+     {
+      "days": 30,
+      "implied_move_expected_abs": null,
+      "implied_move_perc": null,
+      "market_date": "2026-05-10",
+      "percentile": null,
+      "volatility": "0.30"
+     },
+     {
+      "days": 30,
+      "implied_move_expected_abs": null,
+      "implied_move_perc": null,
+      "market_date": "2026-05-15",
+      "percentile": null,
+      "volatility": "0.20"
+     }
+    ],
+    "market_date": "2026-05-15",
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/state": {
+   "body": {
+    "detail": "no Cockpit state for QQQ"
+   },
+   "status": 404
+  },
+  "/api/cockpit/QQQ/surface": {
+   "body": {
+    "market_date": "2026-05-15",
+    "skew": [],
+    "term": [],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/QQQ/vrp": {
+   "body": {
+    "market_date": "2026-05-15",
+    "points": [
+     {
+      "iv": "0.20",
+      "iv_rank_1y": null,
+      "market_date": "2026-05-15",
+      "rv": null,
+      "vrp": null
+     }
+    ],
+    "ticker": "QQQ"
+   },
+   "status": 200
+  },
+  "/api/cockpit/SPY/dealer": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/flow-im": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/state": {
+   "body": {
+    "detail": "no Cockpit state for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/surface": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  },
+  "/api/cockpit/SPY/vrp": {
+   "body": {
+    "detail": "no Cockpit source data for SPY"
+   },
+   "status": 404
+  }
+ }
+}
