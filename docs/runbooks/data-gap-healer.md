@@ -6,7 +6,7 @@ table and repairs safe coverage gaps. It is the *exact* cousin of the
 grace window; the gap healer answers "exactly which (ticker, date) rows are
 missing?" and heals them.
 
-- Code: `reports/data_gap_healer.py` (registry + scanner), `worker/jobs/data_gap_adapters.py`
+- Code: `reports/data_gap_registry/` (the registry, one file per data domain) + `reports/data_gap_types.py` (entry/gap types) + `reports/data_gap_healer.py` (scanner), `worker/jobs/data_gap_adapters.py`
   (heal dispatch), `worker/jobs/data_gap_healer.py` (orchestration + nightly job),
   `storage/data_gap_healer_repository.py`, `migration 092`.
 - CLI: `scripts/backfill/data_gap_healer.py`.

@@ -125,7 +125,7 @@ from uw_scan.storage.corporate_actions import CorporateActionsRepository
 from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
 from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
-from uw_scan.worker.jobs.fundamental_scoring import _knowledge_date
+from uw_scan.worker.jobs.fundamental_scoring import knowledge_date
 
 log = logging.getLogger(__name__)
 
@@ -254,7 +254,7 @@ def _bronze_basis_refusal(
         )
     if not periods or not events:
         return None
-    start = _knowledge_date(per, periods[-WINDOW_QUARTERS:][0])[0]
+    start = knowledge_date(per, periods[-WINDOW_QUARTERS:][0])[0]
     if any(d >= start for d, _ in events):
         return (
             "this name split inside the window being priced and the lake has no "
@@ -355,7 +355,7 @@ def _history(
             if converted is None:
                 continue
             qi = converted
-        know, _ = _knowledge_date(per, p)
+        know, _ = knowledge_date(per, p)
         y = yield_at(method, qi, close_on_or_before(closes, know))
         if y is not None:
             hist.append(y)
@@ -876,7 +876,7 @@ def fundamental_anchors(
         if foreign:
             counters["converted"] += 1
 
-        know, _ = _knowledge_date(per, periods[latest_i])
+        know, _ = knowledge_date(per, periods[latest_i])
         band = build_anchors(
             ticker=ticker,
             company_type=company_type,

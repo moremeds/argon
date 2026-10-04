@@ -6,13 +6,15 @@ import typing
 from datetime import date
 
 from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
-    SEED_CAVEATS,
-    AuditMode,
-    DatasetRegistryEntry,
     eligible_tickers_for_date,
     registered_table_names,
     unregistered,
+)
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import (
+    SEED_CAVEATS,
+    AuditMode,
+    DatasetRegistryEntry,
 )
 
 _ACTIVE = ["AAPL", "NVDA", "SPCX", "qqq"]  # mixed case on purpose

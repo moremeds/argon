@@ -65,7 +65,7 @@ def test_every_replay_dataset_is_declared_replay_safe():
     silently fabricate. Keep the two lists in agreement."""
     from uw_scan.pipeline_replay_policy import REPLAY_REFUSED
 
-    from uw_scan.reports.data_gap_healer import REGISTRY
+    from uw_scan.reports.data_gap_registry import REGISTRY
 
     replay_tables = [
         e.table_name for e in REGISTRY if e.healer_adapter == "pipeline_replay"

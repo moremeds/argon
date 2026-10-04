@@ -8,7 +8,8 @@ probed the provider, or it is an untested assumption and says so.
 
 from __future__ import annotations
 
-from uw_scan.reports.data_gap_healer import BY_DESIGN_AUDIT_MODES, REGISTRY
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import BY_DESIGN_AUDIT_MODES
 
 # Every table round 1 healed by hand, plus every one whose entrypoint was
 # already date-aware. None may still claim "no auto-backfill".
