@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.23] — 2026-10-04
+
+
 ### Added
 
 - **Research code cannot reach an alert (I-89).** `tests/unit/test_import_boundaries.py` names a file-level `RESEARCH` set (theta harvester, sector RS, VRP candidates/backtest/trading/research, skew markout, the chanlun port). The outbound alert surfaces (`alerts.py`, `storage/mcp_events.py`, and any future top-level `alerts*` / `proposals*` module) may not import a research module, and a research module may not import an alert surface. `from pkg import module` counts as importing the module. Every `RESEARCH` entry must exist, so a rename cannot void the rule, and a synthetic tree proves both directions fire. 0 violations today; no runtime behaviour changes.
@@ -20,7 +23,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **API contract change (I-88): every API model now lives in `src/uw_scan/models/`, and the regime GEX level component is renamed.** `api/schemas.py`, `api/models/` and the router-local models in `benchmark`, `provider_usage`, `jobs` and `scanner` moved into domain modules (`models/regime_*.py`, `watchlist`, `scanner_feed`, `theta_harvester`, `vrp_macro_entry`, `benchmark`, `provider_usage`); the old modules are deleted with no shims. The two `GexLevel` classes had collided, so OpenAPI named them `uw_scan__api__schemas__GexLevel` and `uw_scan__models__GexLevel`. The regime one is now `RegimeGexLevel` and the stock one is plain `GexLevel`. Clients that use the old component names must update; `web/lib/types.ts` is regenerated and the two web references follow. Fields, defaults, `models.__all__` and every other component are unchanged.
 
 - **Releases ship only the changed code layer to the mini, not a new 220 MB dependency layer.** `docker/app.Dockerfile` copied `src/` before `uv sync`, so every code change rebuilt the 738 MB `.venv` layer. `release.yml` also cached builds in the GitHub Actions cache, which Actions scopes by ref, so the run for tag vX+1 could not read the cache written by tag vX: every release built cold and produced new layer digests even for unchanged content. On the mini, Watchtower then pulled about 228 MB compressed per release, which took 1 to 28 minutes depending on GHCR. Now a `lock` stage exports the pinned dependencies without the project (`uv export --no-emit-project`; its text does not change on a version bump), a `deps` stage installs `.venv` from that list only, and `uw_scan` runs from `/app/src` on `PYTHONPATH`, as it did through the editable install before. The build cache moves to the GHCR registry (`:buildcache`, never deployed; Watchtower follows `:latest`). Checked on the mini with the legacy builder: two builds that differ in `src/`, `VERSION`, `pyproject.toml` and `uv.lock` share the 738 MB `.venv` layer, and the second build took 10 s. The new image imports the api, scheduler, migrate runner and ws consumer with the same output as `:latest`, and installs the same 46 third-party packages; the only difference is that the `uw_scan` dist-info is gone. The registry-cache hit across two real releases is first measurable on the next release after this one.
-
 ## [0.13.22] — 2026-10-04
 
 
