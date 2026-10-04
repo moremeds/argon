@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
+from uw_scan.storage.gold import GoldPosture
 from uw_scan.storage.repository import Repository
 
 
@@ -25,37 +26,39 @@ def _test_settings() -> Settings:
 
 def _insert(repo: Repository, computed_at: datetime, state: str) -> None:
     repo.insert_gold_posture_daily(
-        obs_date=date(2026, 5, 10),
-        computed_at=computed_at,
-        gauge_corr_60d=None,
-        gauge_corr_126d=None,
-        gauge_corr_252d=None,
-        gauge_corr_504d=None,
-        gauge_corr_252d_returns=None,
-        gauge_state=state,
-        structural_state_label=None,
-        cb_strategic_12m_sum_t=None,
-        cb_tactical_12m_sum_t=None,
-        cb_diversifier_12m_sum_t=None,
-        gld_holdings_t=None,
-        gld_30d_net_flow_t=None,
-        comex_registered_oz=None,
-        comex_20d_roc_pct=None,
-        cot_mm_net_pct=None,
-        cyclical_zone_label=None,
-        cpi_yoy=None,
-        t5yifr=None,
-        dfii10=None,
-        dfii10_60d_change_bps=None,
-        factors_jsonb={},
-        valuation_flag="Low",
-        real_price_percentile=None,
-        gold_m2_ratio_percentile=None,
-        gold_spx_ratio_percentile=None,
-        structural_posture_text=None,
-        cyclical_posture_text=None,
-        valuation_posture_text=None,
-        inputs_jsonb={},
+        GoldPosture(
+            obs_date=date(2026, 5, 10),
+            computed_at=computed_at,
+            gauge_corr_60d=None,
+            gauge_corr_126d=None,
+            gauge_corr_252d=None,
+            gauge_corr_504d=None,
+            gauge_corr_252d_returns=None,
+            gauge_state=state,
+            structural_state_label=None,
+            cb_strategic_12m_sum_t=None,
+            cb_tactical_12m_sum_t=None,
+            cb_diversifier_12m_sum_t=None,
+            gld_holdings_t=None,
+            gld_30d_net_flow_t=None,
+            comex_registered_oz=None,
+            comex_20d_roc_pct=None,
+            cot_mm_net_pct=None,
+            cyclical_zone_label=None,
+            cpi_yoy=None,
+            t5yifr=None,
+            dfii10=None,
+            dfii10_60d_change_bps=None,
+            factors_jsonb={},
+            valuation_flag="Low",
+            real_price_percentile=None,
+            gold_m2_ratio_percentile=None,
+            gold_spx_ratio_percentile=None,
+            structural_posture_text=None,
+            cyclical_posture_text=None,
+            valuation_posture_text=None,
+            inputs_jsonb={},
+        )
     )
 
 

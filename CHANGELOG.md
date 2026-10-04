@@ -9,6 +9,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
+- **`storage/gold.py` follows the repository schema and takes a typed posture row (I-61, I-62); no behaviour change.** The 20 hard-coded `uw_scan.` table prefixes now read `{self._schema}.`. `insert_gold_posture_daily` takes one frozen, keyword-only `GoldPosture` dataclass (exported from `uw_scan.storage.gold`) instead of 51 keyword arguments. The fields keep the same names, types, order and defaults, and the INSERT column list and parameter order are unchanged. A row dump of a fully populated posture insert on origin/main and on this branch is byte-identical. The single-row wrappers `insert_macro_series_daily`, `insert_macro_series_monthly` and `insert_etf_holdings_daily` are removed. Production already called their `*_rows` twins, so only tests change call shape. `reports/gold_posture.py` builds `GoldPosture(...)`.
+
+### Changed
+
 - **The trade-blast AI lane shares the Trade Insights AI implementation instead of a copy (I-80); no behaviour change.** `reports/trade_blast/` was ~80% a copy of `reports/trade_insights_ai/`. `trade_insights_ai` now owns the analysis-input builder, hash, prompt assembly, output schema, lenient coercer and validator once, with keyword hooks for what blast changes (prompt version, extra hash exclusions, embedded reference and framework directive, the scenario wording, extra structural checks, the soft-mode autocorrect and the framework coercer). The base prompt is split into named fragments that blast composes with its worked example and qualitative scenario table. `trade_blast` keeps only its deltas: the M6 framework payload sections, the framework KB, the framework validator rules and coercion (~1,850 fewer lines). Both lanes stay live and both packages export the same names. Proof: `tests/unit/reports/test_trade_ai_lanes_golden.py`, recorded on the pre-refactor code, pins each lane's prompt version, analysis input and hash, prompt payload, full prompt text, output schema, and the validated outcome + Markdown for every validator mode the worker uses; it is byte-identical after the change.
 
 ## [0.13.21] — 2026-10-04

@@ -78,14 +78,18 @@ def _seed_fundamentals(repo: Repository, *, ticker: str) -> None:
 
 def _seed_macro(repo: Repository, *, as_of: datetime) -> None:
     for i, series_id in enumerate(_BLAST_MACRO_SERIES):
-        repo.insert_macro_series_daily(
-            series_id=series_id,
-            obs_date=date.today() - timedelta(days=1),
-            value=Decimal(10 + i),
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": series_id,
+                    "obs_date": date.today() - timedelta(days=1),
+                    "value": Decimal(10 + i),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
             as_of=as_of,
-            release_date=None,
             source="test",
-            source_url=None,
         )
     repo.conn.commit()
 

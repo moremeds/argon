@@ -30,49 +30,69 @@ def _seed_minimum(repo: Repository, today: date) -> None:
     base = today - timedelta(days=300)
     for i in range(301):
         d = base + timedelta(days=i)
-        repo.insert_macro_series_daily(
-            "GLD_CLOSE",
-            d,
-            Decimal(str(1800 + i * 0.5)),
-            datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-            None,
-            "MASSIVE",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "GLD_CLOSE",
+                    "obs_date": d,
+                    "value": Decimal(str(1800 + i * 0.5)),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+            source="MASSIVE",
         )
-        repo.insert_macro_series_daily(
-            "DFII10",
-            d,
-            Decimal(str(2.0 - i * 0.005)),
-            datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-            None,
-            "FRED",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "DFII10",
+                    "obs_date": d,
+                    "value": Decimal(str(2.0 - i * 0.005)),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+            source="FRED",
         )
-    repo.insert_macro_series_monthly(
-        "CPIAUCSL",
-        date(today.year, today.month, 1),
-        Decimal("315.0"),
-        knowable,
-        date(today.year, today.month, 14),
-        "FRED",
-        None,
+    repo.insert_macro_series_monthly_rows(
+        [
+            {
+                "series_id": "CPIAUCSL",
+                "obs_month": date(today.year, today.month, 1),
+                "value": Decimal("315.0"),
+                "release_date": date(today.year, today.month, 14),
+                "source_url": None,
+            }
+        ],
+        as_of=knowable,
+        source="FRED",
     )
-    repo.insert_macro_series_daily(
-        "T5YIFR",
-        today,
-        Decimal("2.31"),
-        knowable,
-        None,
-        "FRED",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "T5YIFR",
+                "obs_date": today,
+                "value": Decimal("2.31"),
+                "release_date": None,
+                "source_url": None,
+            }
+        ],
+        as_of=knowable,
+        source="FRED",
     )
-    repo.insert_etf_holdings_daily(
-        ticker="GLD",
-        obs_date=today,
-        holdings_oz=Decimal("32150746.6"),
-        shares_out=None,
-        nav_per_share=Decimal("420.50"),
-        premium_pct=Decimal("0.01"),
+    repo.insert_etf_holdings_daily_rows(
+        [
+            {
+                "ticker": "GLD",
+                "obs_date": today,
+                "holdings_oz": Decimal("32150746.6"),
+                "shares_out": None,
+                "nav_per_share": Decimal("420.50"),
+                "premium_pct": Decimal("0.01"),
+            }
+        ],
         as_of=knowable,
         source="SPDR",
     )
@@ -212,14 +232,18 @@ def test_a_replay_does_not_read_a_vintage_retrieved_after_it(repo: Repository) -
     # append-only property that makes them quotable at all.
     known_on_the_day = Decimal("1950.0")
     # The restatement, retrieved a month after the instant being replayed.
-    repo.insert_macro_series_daily(
-        "GLD_CLOSE",
-        replay,
-        Decimal("9999.0"),
-        knowable + timedelta(days=30),
-        None,
-        "MASSIVE",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "GLD_CLOSE",
+                "obs_date": replay,
+                "value": Decimal("9999.0"),
+                "release_date": None,
+                "source_url": None,
+            }
+        ],
+        as_of=knowable + timedelta(days=30),
+        source="MASSIVE",
     )
 
     compute_and_persist_gold_posture(
