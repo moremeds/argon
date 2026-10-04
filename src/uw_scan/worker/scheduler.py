@@ -151,16 +151,10 @@ def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
     return _pinned(settings, "uw")
 
 
-def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
-    """Single owner for the nightly chanlun lifecycle upserts. Pure DB-read +
-    apex compute (no UW spend) -> pin to massive-0, same as regime/technical live."""
-    return _pinned(settings, "massive")
-
-
 def _should_schedule_sector_rs_daily(settings: Settings) -> bool:
     """Single owner for the nightly sector RS + breadth upserts. apex bars plus
     a daily_ohlc fallback, no UW/IB spend → pin to massive-0, same as
-    earnings_reactions / chanlun_lifecycle. Gated on `sector_rs_enabled`
+    earnings_reactions. Gated on `sector_rs_enabled`
     (default off until the backfill lands on the mini)."""
     if not settings.sector_rs_enabled:
         return False
@@ -606,13 +600,6 @@ def main() -> int:
                 )
         logger.info("technical_live_scan_tick %s", summary)
 
-    def _chanlun_lifecycle_scan() -> None:
-        from uw_scan.worker.jobs.chanlun_lifecycle import chanlun_lifecycle_scan
-
-        with _repo(settings) as repo:
-            summary = chanlun_lifecycle_scan(repo, settings)
-        logger.info("chanlun_lifecycle_scan_tick %s", summary)
-
 
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
@@ -1002,20 +989,6 @@ def main() -> int:
             IntervalTrigger(minutes=settings.technical_live_scan_interval_minutes),
             id="technical_live_scan",
             name="Live technicals coverage",
-            max_instances=1,
-            coalesce=True,
-        )
-
-    if settings.chanlun_lifecycle_enabled and _should_schedule_chanlun_lifecycle(
-        settings
-    ):
-        sched.add_job(
-            _chanlun_lifecycle_scan,
-            CronTrigger(
-                hour=3, minute=10, day_of_week="tue-sat", timezone=settings.rth_tz
-            ),
-            id="chanlun_lifecycle_scan",
-            name="Chanlun daily-mark lifecycle (30m sub-level confirm)",
             max_instances=1,
             coalesce=True,
         )

@@ -7,6 +7,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Removed
+
+- **The chanlun Phase B lifecycle job is retired (I-89).** Its walk-forward probe failed all four categories, the flag `UW_SCAN_CHANLUN_LIFECYCLE_ENABLED` was off in prod, and `chanlun_signal_events` has never held a row. Removed: `worker/jobs/chanlun_lifecycle.py`, its schedule entry and `_should_schedule_chanlun_lifecycle`, the four settings only it read (`chanlun_lifecycle_enabled`, `chanlun_promotable_categories`, `chanlun_anchor_tol`, `chanlun_stale_sessions`), and its two tests. The scheduler golden loses the two `all_enabled` entries for the job. Kept: the table and migration 107 (no data change), `storage/chanlun_signal_repository.py`, `GET /stock/{ticker}/chanlun/lifecycle` and its model (OpenAPI snapshot byte-identical), and the `src/uw_scan/chanlun/` port, which the evidence reproducers in `scripts/research/chanlun_*` import.
+
+### Added
+
+- **Research code cannot reach an alert (I-89).** `tests/unit/test_import_boundaries.py` names a file-level `RESEARCH` set (theta harvester, sector RS, VRP candidates/backtest/trading/research, skew markout, the chanlun port). The outbound alert surfaces (`alerts.py`, `storage/mcp_events.py`, and any future top-level `alerts*` / `proposals*` module) may not import a research module, and a research module may not import an alert surface. `from pkg import module` counts as importing the module. Every `RESEARCH` entry must exist, so a rename cannot void the rule, and a synthetic tree proves both directions fire. 0 violations today; no runtime behaviour changes.
+
 ## [0.13.22] — 2026-10-04
 
 

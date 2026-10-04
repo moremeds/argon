@@ -93,16 +93,6 @@
  ],
  "all_enabled/all-0": [
   {
-   "func": "_chanlun_lifecycle_scan",
-   "id": "chanlun_lifecycle_scan",
-   "options": {
-    "coalesce": "True",
-    "max_instances": "1",
-    "name": "'Chanlun daily-mark lifecycle (30m sub-level confirm)'"
-   },
-   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='10'] tz=America/New_York"
-  },
-  {
    "func": "_cockpit_daily_snapshot",
    "id": "cockpit_daily_snapshot",
    "options": {
@@ -1047,16 +1037,6 @@
   }
  ],
  "all_enabled/massive-0": [
-  {
-   "func": "_chanlun_lifecycle_scan",
-   "id": "chanlun_lifecycle_scan",
-   "options": {
-    "coalesce": "True",
-    "max_instances": "1",
-    "name": "'Chanlun daily-mark lifecycle (30m sub-level confirm)'"
-   },
-   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='10'] tz=America/New_York"
-  },
   {
    "func": "_corporate_actions_refresh",
    "id": "corporate_actions_refresh",

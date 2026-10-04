@@ -23,8 +23,7 @@ DEFAULT_STALE_SESSIONS = 20
 # (docs/research/2026-07-14-chanlun-signal-lifecycle/phaseb_probe/summary.md).
 # ALL FOUR FAILED the survival gate on 2026-07-15 (~8-17% actual survival vs
 # >=70% required, both ticker-halves) -- this is NOT a shipped default and is
-# imported nowhere. `Settings.chanlun_promotable_categories` (empty string by
-# design) is the only source of truth for what the nightly job promotes.
+# imported nowhere. The nightly job that promoted marks was retired (I-89).
 CANDIDATE_CATEGORIES = frozenset({"vertex", "divergence", "3B", "3S"})
 
 _ET = ZoneInfo("America/New_York")
@@ -83,7 +82,7 @@ def derive_marks(full: ChanlunFullResult, bars: list[ChanlunBar]) -> list[Mark]:
 
 
 def promotable_key(category: str, kind: str) -> str:
-    """The token used against `chanlun_promotable_categories` — `category` for
+    """The token matched against a promotable set — `category` for
     vertex/divergence, `kind` for point (so tokens are vertex,divergence,1B,1S,2B,2S,3B,3S)."""
     return kind if category == "point" else category
 
