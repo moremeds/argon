@@ -197,6 +197,18 @@ def macro_fred_series_ingest_job(
             )
         conn.commit()
 
+    if succeeded == 0 and failures:
+        # Every series failed. Raise only now, after the macro_source_status
+        # row is committed — the streak records the dead run while the
+        # 'degraded' status row stays queryable as the reason.
+        raise RuntimeError(
+            f"macro_series_ingest: {len(failures)} of {len(series)} "
+            "series failed: "
+            + "; ".join(
+                f"{series_id}: {etype}: {emsg}" for series_id, (etype, emsg) in failures
+            )
+        )
+
     return MacroSeriesIngestResult(
         source=FRED_SOURCE,
         status="degraded" if failures else "ok",

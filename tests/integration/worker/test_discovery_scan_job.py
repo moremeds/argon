@@ -99,9 +99,33 @@ def test_discovery_scan_persists_snapshots_and_dp(seeded_db_empty_cards, monkeyp
     assert len(zaaa_dp) == 3
 
 
-def test_discovery_scan_degrades_when_dp_fetch_fails(
+def _prints(ticker):
+    """Buy-heavy prints (price above mid) -> ACCUMULATION for `ticker`."""
+    return [
+        DarkPoolPrint(
+            ticker=ticker,
+            tracking_id=abs(hash((ticker, i))) % 1_000_000,
+            # Relative to NOW so the prints always fall inside
+            # fetch_dark_pool_window's 5-day rolling window (was a fixed
+            # 2026-06-15 date-bomb that broke once the calendar passed it).
+            executed_at=datetime.now(timezone.utc) - timedelta(minutes=i),
+            price=Decimal("10.00"),
+            size=5000,
+            premium=Decimal("50000"),
+            nbbo_bid=Decimal("9.50"),
+            nbbo_ask=Decimal("9.90"),
+            canceled=False,
+        )
+        for i in range(3)
+    ]
+
+
+def test_discovery_scan_degrades_when_some_dp_fetches_fail(
     seeded_db_empty_cards, monkeypatch
 ):
+    """A partial DP outage degrades the failed candidates only: the run still
+    finishes 'ok'. (One failing unit among interchangeable units is not a run
+    failure — that only happens when every unit fails, tested below.)"""
     repo: Repository = seeded_db_empty_cards
     from uw_scan.config import Settings
 
@@ -109,7 +133,54 @@ def test_discovery_scan_degrades_when_dp_fetch_fails(
 
     monkeypatch.setattr(
         "uw_scan.worker.jobs.discovery_scan.fetch_market_flow_alerts",
-        lambda c, r, run_id, limit=200: [_alert("ZAAA", "call", 300000, sweep=True)],
+        lambda c, r, run_id, limit=200: [
+            _alert("ZAAA", "call", 300000, sweep=True),
+            _alert("ZBBB", "put", 200000),
+        ],
+    )
+
+    def partial(client, r, run_id, ticker):
+        if ticker == "ZAAA":
+            raise RuntimeError("UW darkpool 500")
+        return _prints(ticker)
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.discovery_scan.fetch_darkpool_ticker", partial
+    )
+
+    summary = discovery_scan_once(repo=repo, client=_FakeUw(), settings=settings)
+    repo.conn.commit()
+    assert summary["status"] == "ok"
+
+    sigs = SignalsRepository(repo.conn, schema="uw_scan")
+    snap = sigs.fetch_latest_discovery_snapshot(limit=20)
+    # ZAAA still scored on flow factors; DP marked degraded; DP factors zeroed.
+    cand = next(c for c in snap["candidates"] if c["ticker"] == "ZAAA")
+    assert cand["evidence"]["dp_status"] == "degraded"
+    assert cand["evidence"]["dp_direction"] == "NO_DATA"
+    # ZBBB's DP enrichment landed normally.
+    other = next(c for c in snap["candidates"] if c["ticker"] == "ZBBB")
+    assert other["evidence"]["dp_status"] == "ok"
+
+
+def test_discovery_scan_fails_when_every_dp_fetch_fails(
+    seeded_db_empty_cards, monkeypatch
+):
+    """Every interchangeable unit failed: the run is 'fail' and the job raises
+    so the listener records it — a dead run must not read as a clean 'ok'."""
+    import pytest
+
+    repo: Repository = seeded_db_empty_cards
+    from uw_scan.config import Settings
+
+    settings = Settings.from_env()
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.discovery_scan.fetch_market_flow_alerts",
+        lambda c, r, run_id, limit=200: [
+            _alert("ZAAA", "call", 300000, sweep=True),
+            _alert("ZBBB", "put", 200000),
+        ],
     )
 
     def boom(client, r, run_id, ticker):
@@ -119,16 +190,14 @@ def test_discovery_scan_degrades_when_dp_fetch_fails(
         "uw_scan.worker.jobs.discovery_scan.fetch_darkpool_ticker", boom
     )
 
-    summary = discovery_scan_once(repo=repo, client=_FakeUw(), settings=settings)
-    repo.conn.commit()
-    assert summary["status"] == "ok"
+    with pytest.raises(RuntimeError, match="all 2 dark-pool fetches failed"):
+        discovery_scan_once(repo=repo, client=_FakeUw(), settings=settings)
 
-    sigs = SignalsRepository(repo.conn, schema="uw_scan")
-    snap = sigs.fetch_latest_discovery_snapshot(limit=20)
-    # Still scored on flow factors; DP marked degraded; DP factors zeroed.
-    cand = next(c for c in snap["candidates"] if c["ticker"] == "ZAAA")
-    assert cand["evidence"]["dp_status"] == "degraded"
-    assert cand["evidence"]["dp_direction"] == "NO_DATA"
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT status FROM uw_scan.scan_runs WHERE notes = 'discovery_scan'"
+        )
+        assert [r[0] for r in cur.fetchall()] == ["fail"]
 
 
 def test_discovery_scan_empty_feed(seeded_db_empty_cards, monkeypatch):

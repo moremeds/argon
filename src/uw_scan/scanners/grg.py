@@ -167,7 +167,7 @@ def run(
         row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
     except ValueError as exc:
         log.warning("grg_scan_skipped_thin_data err=%s", repr(exc))
-        repo.finish_scan_run(run_id, status="error")
+        repo.finish_scan_run(run_id, status="degraded")
         return None
     except Exception:
         repo.finish_scan_run(run_id, status="error")

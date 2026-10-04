@@ -169,6 +169,18 @@ def macro_market_layer_ingest_job(
             )
         conn.commit()
 
+    if succeeded == 0 and failures:
+        # Every interchangeable unit failed. Raise only now, after the
+        # macro_source_status rows are committed — the streak records the dead
+        # run while the 'degraded' status rows stay queryable as the reason.
+        raise RuntimeError(
+            f"macro_market_layer_ingest: {len(failures)} of {len(feeds)} "
+            "feeds failed: "
+            + "; ".join(
+                f"{feed_name}: {etype}: {emsg}" for feed_name, (etype, emsg) in failures
+            )
+        )
+
     if failures:
         first_feed, (first_type, first_message) = failures[0]
         error_type: str | None = "MacroMarketLayerFailures"
