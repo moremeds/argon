@@ -199,3 +199,19 @@ class TestInstantArguments:
         assert requested.tzinfo is not None
         assert requested.astimezone(UTC).date().isoformat() == "2023-07-28"
         assert requested.astimezone(UTC).hour == 23
+
+
+def test_macro_refuses_an_ambiguous_or_naive_instant(
+    client: TestClient, seeded_db_empty_cards
+) -> None:
+    """The 422 contract resolve_instant gives every replaying route (I-40)."""
+    both = client.get(
+        "/api/macro/inflation",
+        params={"as_of": "2026-05-20", "as_of_ts": "2026-05-20T12:00:00+00:00"},
+    )
+    assert both.status_code == 422
+    assert both.json() == {"detail": "supply either as_of or as_of_ts, not both"}
+
+    naive = client.get("/api/macro/usd", params={"as_of_ts": "2026-05-20T12:00:00"})
+    assert naive.status_code == 422
+    assert naive.json() == {"detail": "as_of_ts must carry a UTC offset"}

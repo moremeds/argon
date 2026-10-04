@@ -1,0 +1,3647 @@
+{
+ "empty": {
+  "/api/regime": {
+   "body": {
+    "cor1m": null,
+    "cor1m_5d_change": null,
+    "cor1m_previous_close": null,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": null,
+      "realized_vol": null
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 0.0,
+      "vvix": 0.0
+     },
+     "composite_version": null,
+     "level": "LOW",
+     "score": 0.0
+    },
+    "cta": {
+     "est_selling_bn": null,
+     "exposure_pct": null,
+     "forced_reduction": false,
+     "forced_reduction_pct": null,
+     "realized_vol": null,
+     "selling_usd_b": null
+    },
+    "date": null,
+    "history": [],
+    "pullback_20d_pct": null,
+    "realized_vol": null,
+    "scan_time": "",
+    "spx_100d_ma": null,
+    "spx_distance_pct": null,
+    "spx_source": null,
+    "spy": null,
+    "spy_closes": [],
+    "status": "empty",
+    "vix": null,
+    "vix3m": null,
+    "vix_5d_roc": null,
+    "vix_delta_3d": null,
+    "vix_vix3m_ratio": null,
+    "vix_zscore_30d": null,
+    "vrp": null,
+    "vvix": null,
+    "vvix_5d_roc": null,
+    "vvix_vix_ratio": null
+   },
+   "status": 200
+  },
+  "/api/regime/canary": {
+   "body": {
+    "detail": "no canary snapshot at current composite_version"
+   },
+   "status": 503
+  },
+  "/api/regime/canary/history": {
+   "body": {
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/canary/validation": {
+   "body": {
+    "detail": "no completed canary backtest at current composite_version (or row missing is_winning_form)"
+   },
+   "status": 503
+  },
+  "/api/regime/cri/history": {
+   "body": {
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/cri/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/cri/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "carried_forward": [],
+    "cor1m": null,
+    "cor1m_5d_change": null,
+    "cor1m_previous_close": null,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": null,
+      "realized_vol": null
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 0.0,
+      "vvix": 0.0
+     },
+     "composite_version": null,
+     "level": "LOW",
+     "score": 0.0
+    },
+    "cta": {
+     "est_selling_bn": null,
+     "exposure_pct": null,
+     "forced_reduction": false,
+     "forced_reduction_pct": null,
+     "realized_vol": null,
+     "selling_usd_b": null
+    },
+    "date": null,
+    "history": [],
+    "live_quotes": {},
+    "pullback_20d_pct": null,
+    "realized_vol": null,
+    "scan_time": "",
+    "spx_100d_ma": null,
+    "spx_distance_pct": null,
+    "spx_source": null,
+    "spy": null,
+    "spy_closes": [],
+    "status": "empty",
+    "vix": null,
+    "vix3m": null,
+    "vix_5d_roc": null,
+    "vix_delta_3d": null,
+    "vix_vix3m_ratio": null,
+    "vix_zscore_30d": null,
+    "vrp": null,
+    "vvix": null,
+    "vvix_5d_roc": null,
+    "vvix_vix_ratio": null
+   },
+   "status": 200
+  },
+  "/api/regime/dealer": {
+   "body": {
+    "closest_levels": [],
+    "gamma_decay": [],
+    "net_gex": null,
+    "odte_gex": null,
+    "odte_share_pct": null,
+    "prev_close_net_gex": null,
+    "scan_time": "",
+    "signal": {
+     "charm_score": 0.0,
+     "gamma_score": 0.0,
+     "headline": "",
+     "label": "neutral",
+     "score": 0.0,
+     "subtitle": "",
+     "vanna_score": 0.0
+    },
+    "spot": null,
+    "status": "empty",
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/dispersion": {
+   "body": {
+    "as_of": null,
+    "cor1m": null,
+    "cor1m_percentile": null,
+    "history_start": null,
+    "n_obs": 0,
+    "vix": null,
+    "vix_cor1m_ratio": null,
+    "vix_cor1m_ratio_z": null
+   },
+   "status": 200
+  },
+  "/api/regime/gex": {
+   "body": {
+    "atm_iv": null,
+    "bias": {
+     "days_above_flip": null,
+     "direction": null,
+     "flip_migration": [],
+     "reasons": []
+    },
+    "close": null,
+    "data_date": null,
+    "day_change": null,
+    "day_change_pct": null,
+    "expected_range": {
+     "high": null,
+     "iv_1d": null,
+     "low": null
+    },
+    "history": [],
+    "iv": null,
+    "levels": {
+     "call_wall": null,
+     "gex_flip": null,
+     "max_accelerator": null,
+     "max_magnet": null,
+     "put_wall": null,
+     "second_magnet": null
+    },
+    "market_open": true,
+    "market_time": null,
+    "mq": null,
+    "net_dex": null,
+    "net_gex": null,
+    "prev_close": null,
+    "profile": [],
+    "scan_time": "",
+    "source_delta": null,
+    "spot": null,
+    "spot_source": null,
+    "tape_time": null,
+    "ticker": "SPX",
+    "vol_pc": null
+   },
+   "status": 200
+  },
+  "/api/regime/gex/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": [],
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/grg": {
+   "body": {
+    "assets": null,
+    "basis": "eod",
+    "data_date": null,
+    "events": {
+     "bottoms": [],
+     "stats": {
+      "bottoms": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      },
+      "fwd_window": 0,
+      "tops": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      }
+     },
+     "tops": []
+    },
+    "gates": [],
+    "history": [],
+    "lookback_days": 0,
+    "market_open": false,
+    "scan_time": "",
+    "signal": {
+     "bottom_score": 0,
+     "bottom_watch": false,
+     "grg_z": null,
+     "interpretation": "NORMAL",
+     "raw_spread": null,
+     "spy_3d_gamma_change": null,
+     "spy_gamma_z": null,
+     "state": "NEUTRAL",
+     "state_label": "Neutral",
+     "summary": "",
+     "tier": null,
+     "tlt_3d_gamma_change": null,
+     "tlt_gamma_z": null,
+     "top_score": 0,
+     "top_watch": false
+    },
+    "source": "Unusual Whales",
+    "status": "empty",
+    "top_bottom": {
+     "bottom": {
+      "active": false,
+      "copy": ""
+     },
+     "top": {
+      "active": false,
+      "copy": ""
+     }
+    },
+    "z_window": 63
+   },
+   "status": 200
+  },
+  "/api/regime/guidance": {
+   "body": {
+    "detail": "no CRI snapshot \u2014 run the scanner first"
+   },
+   "status": 404
+  },
+  "/api/regime/market-tide": {
+   "body": {
+    "as_of": null,
+    "market_open": true,
+    "sentiment": null,
+    "sessions": [],
+    "spot_ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/regime/quotes": {
+   "body": {
+    "active_source": null,
+    "as_of": null,
+    "fresh_within_seconds": 900,
+    "quotes": {}
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density": {
+   "body": {
+    "disclaimer": "Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.",
+    "forecast": null,
+    "gamma_levels": {
+     "as_of": null,
+     "call_wall": null,
+     "dropped": [],
+     "gamma_flip": null,
+     "put_wall": null,
+     "source": null,
+     "spot": null
+    },
+    "recent_path": []
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density/issued": {
+   "body": {
+    "forecasts": [],
+    "hit_rates": []
+   },
+   "status": 200
+  },
+  "/api/regime/top-net-impact": {
+   "body": {
+    "data_date": null,
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/validation": {
+   "body": {
+    "detail": "no completed CRI backtest run at the current COMPOSITE_VERSION; run scripts/backtest_cri.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg": {
+   "body": {
+    "credit_proxy": "HYG",
+    "date": null,
+    "history": [],
+    "scan_time": "",
+    "signal": {
+     "alpha": null,
+     "attribution": {
+      "model_implied": 0.0,
+      "vix_component": 0.0,
+      "vix_pct": 0.0,
+      "vvix_component": 0.0,
+      "vvix_pct": 0.0
+     },
+     "beta1_vvix": null,
+     "beta2_vix": null,
+     "bounce": 0,
+     "credit_5d_return_pct": 0.0,
+     "credit_price": 0.0,
+     "edr": 0,
+     "interpretation": "NORMAL",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": null,
+     "ro": 0,
+     "sign_ok": true,
+     "sign_suppressed": false,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 0.0,
+     "vix_percentile_rank": null,
+     "vvix": 0.0,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "moderate"
+    },
+    "status": "empty"
+   },
+   "status": 200
+  },
+  "/api/regime/vcg-validation": {
+   "body": {
+    "detail": "no completed VCG backtest run at the current COMPOSITE_VERSION; run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg/history": {
+   "body": {
+    "credit_proxy": "HYG",
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/intraday": {
+   "body": {
+    "as_of": null,
+    "credit_proxy": "HYG",
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "carried_forward": [],
+    "credit_proxy": "HYG",
+    "date": null,
+    "history": [],
+    "live_quotes": {},
+    "scan_time": "",
+    "signal": {
+     "alpha": null,
+     "attribution": {
+      "model_implied": 0.0,
+      "vix_component": 0.0,
+      "vix_pct": 0.0,
+      "vvix_component": 0.0,
+      "vvix_pct": 0.0
+     },
+     "beta1_vvix": null,
+     "beta2_vix": null,
+     "bounce": 0,
+     "credit_5d_return_pct": 0.0,
+     "credit_price": 0.0,
+     "edr": 0,
+     "interpretation": "NORMAL",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": null,
+     "ro": 0,
+     "sign_ok": true,
+     "sign_suppressed": false,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 0.0,
+     "vix_percentile_rank": null,
+     "vvix": 0.0,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "moderate"
+    },
+    "status": "empty"
+   },
+   "status": 200
+  },
+  "/api/regime/vol-backdrop": {
+   "body": {
+    "as_of": null,
+    "series": {
+     "COR1M": [],
+     "VIX": [],
+     "VIX3M": [],
+     "VVIX": []
+    },
+    "term_structure_ratio": null,
+    "term_structure_state": null
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-harvest": {
+   "body": {
+    "verdicts": []
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal": {
+   "body": {
+    "signals": []
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/entry/preview": {
+   "body": {
+    "action": null,
+    "as_of": null,
+    "expiry": null,
+    "hold_days": null,
+    "legs": [],
+    "modeled_credit": null,
+    "name": "SPX",
+    "spot": null,
+    "vrp_z": null,
+    "weight": null
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "live_quotes": {},
+    "signal": null,
+    "status": "ok"
+   },
+   "status": 200
+  }
+ },
+ "seeded": {
+  "/api/regime": {
+   "body": {
+    "cor1m": null,
+    "cor1m_5d_change": null,
+    "cor1m_previous_close": null,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": null,
+      "realized_vol": null
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 0.0,
+      "vvix": 0.0
+     },
+     "composite_version": null,
+     "level": "LOW",
+     "score": 0.0
+    },
+    "cta": {
+     "est_selling_bn": null,
+     "exposure_pct": null,
+     "forced_reduction": false,
+     "forced_reduction_pct": null,
+     "realized_vol": null,
+     "selling_usd_b": null
+    },
+    "date": null,
+    "history": [],
+    "pullback_20d_pct": null,
+    "realized_vol": null,
+    "scan_time": "",
+    "spx_100d_ma": null,
+    "spx_distance_pct": null,
+    "spx_source": null,
+    "spy": null,
+    "spy_closes": [],
+    "status": "empty",
+    "vix": null,
+    "vix3m": null,
+    "vix_5d_roc": null,
+    "vix_delta_3d": null,
+    "vix_vix3m_ratio": null,
+    "vix_zscore_30d": null,
+    "vrp": null,
+    "vvix": null,
+    "vvix_5d_roc": null,
+    "vvix_vix_ratio": null
+   },
+   "status": 200
+  },
+  "/api/regime/canary": {
+   "body": {
+    "detail": "no canary snapshot at current composite_version"
+   },
+   "status": 503
+  },
+  "/api/regime/canary/history": {
+   "body": {
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/canary/validation": {
+   "body": {
+    "detail": "no completed canary backtest at current composite_version (or row missing is_winning_form)"
+   },
+   "status": 503
+  },
+  "/api/regime/cri/history": {
+   "body": {
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/cri/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/cri/live": {
+   "body": {
+    "active_source": null,
+    "basis": "live",
+    "carried_forward": [
+     "COR1M",
+     "VIX3M"
+    ],
+    "cor1m": 16.29,
+    "cor1m_5d_change": 0.04,
+    "cor1m_previous_close": 16.29,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": 16.29,
+      "realized_vol": 1.95
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 15.1,
+      "vvix": 10.2
+     },
+     "composite_version": 3,
+     "level": "ELEVATED",
+     "score": 25.3
+    },
+    "cta": {
+     "est_selling_bn": 0.0,
+     "exposure_pct": 200.0,
+     "forced_reduction": false,
+     "forced_reduction_pct": 0.0,
+     "realized_vol": 1.95,
+     "selling_usd_b": 0.0
+    },
+    "date": "2026-06-12",
+    "history": [
+     {
+      "cor1m": 16.11,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-18",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7222.0,
+      "vix": 19.11,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.55,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.12,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-19",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7224.0,
+      "vix": 19.12,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.6,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.13,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-20",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7226.0,
+      "vix": 19.13,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.65,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.14,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-21",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7228.0,
+      "vix": 19.14,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.7,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.15,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-22",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7230.0,
+      "vix": 19.15,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.75,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.16,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-25",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7232.0,
+      "vix": 19.16,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.8,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.17,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-26",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7234.0,
+      "vix": 19.17,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.85,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.18,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-27",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7236.0,
+      "vix": 19.18,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.9,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.19,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-28",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7238.0,
+      "vix": 19.19,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.95,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.2,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-29",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7240.0,
+      "vix": 19.2,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.0,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.21,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-01",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7242.0,
+      "vix": 19.21,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.05,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.22,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-02",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7244.0,
+      "vix": 19.22,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.1,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.23,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-03",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7246.0,
+      "vix": 19.23,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.15,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.24,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-04",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7248.0,
+      "vix": 19.24,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.2,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.25,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-05",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7250.0,
+      "vix": 19.25,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.25,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.26,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-08",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7252.0,
+      "vix": 19.26,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.3,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.27,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-09",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7254.0,
+      "vix": 19.27,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.35,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.28,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-10",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7256.0,
+      "vix": 19.28,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.4,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.29,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-11",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7258.0,
+      "vix": 19.29,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.45,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.29,
+      "cor1m_5d_change": 0.04,
+      "date": "2026-06-12",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 1.95,
+      "spx_vs_ma_pct": 1.94,
+      "spy": 7300.0,
+      "vix": 25.5,
+      "vix_5d_roc": 32.5,
+      "vvix": 112.0,
+      "vvix_5d_roc": 10.6
+     }
+    ],
+    "live_quotes": {
+     "HYG": {
+      "price": 78.9,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "SPX": {
+      "price": 7300.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VIX": {
+      "price": 25.5,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VVIX": {
+      "price": 112.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     }
+    },
+    "pullback_20d_pct": 0.0,
+    "realized_vol": 1.95,
+    "scan_time": "2026-06-12T15:30:05+00:00",
+    "spx_100d_ma": 7161.4,
+    "spx_distance_pct": 1.94,
+    "spx_source": "SPX",
+    "spy": 7300.0,
+    "spy_closes": [
+     7182.0,
+     7184.0,
+     7186.0,
+     7188.0,
+     7190.0,
+     7192.0,
+     7194.0,
+     7196.0,
+     7198.0,
+     7200.0,
+     7202.0,
+     7204.0,
+     7206.0,
+     7208.0,
+     7210.0,
+     7212.0,
+     7214.0,
+     7216.0,
+     7218.0,
+     7220.0,
+     7222.0,
+     7224.0,
+     7226.0,
+     7228.0,
+     7230.0,
+     7232.0,
+     7234.0,
+     7236.0,
+     7238.0,
+     7240.0,
+     7242.0,
+     7244.0,
+     7246.0,
+     7248.0,
+     7250.0,
+     7252.0,
+     7254.0,
+     7256.0,
+     7258.0,
+     7300.0
+    ],
+    "status": "ok",
+    "vix": 25.5,
+    "vix3m": 20.29,
+    "vix_5d_roc": 32.5,
+    "vix_delta_3d": 6.23,
+    "vix_vix3m_ratio": 1.257,
+    "vix_zscore_30d": 72.19,
+    "vrp": 23.55,
+    "vvix": 112.0,
+    "vvix_5d_roc": 10.6,
+    "vvix_vix_ratio": 4.39
+   },
+   "status": 200
+  },
+  "/api/regime/dealer": {
+   "body": {
+    "closest_levels": [],
+    "gamma_decay": [],
+    "net_gex": null,
+    "odte_gex": null,
+    "odte_share_pct": null,
+    "prev_close_net_gex": null,
+    "scan_time": "",
+    "signal": {
+     "charm_score": 0.0,
+     "gamma_score": 0.0,
+     "headline": "",
+     "label": "neutral",
+     "score": 0.0,
+     "subtitle": "",
+     "vanna_score": 0.0
+    },
+    "spot": null,
+    "status": "empty",
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/dispersion": {
+   "body": {
+    "as_of": "2026-06-11",
+    "cor1m": 16.29,
+    "cor1m_percentile": 1.0,
+    "history_start": "2025-12-12",
+    "n_obs": 130,
+    "vix": 19.29,
+    "vix_cor1m_ratio": 1.18416206,
+    "vix_cor1m_ratio_z": -1.6975941
+   },
+   "status": 200
+  },
+  "/api/regime/gex": {
+   "body": {
+    "atm_iv": null,
+    "bias": {
+     "days_above_flip": null,
+     "direction": null,
+     "flip_migration": [],
+     "reasons": []
+    },
+    "close": null,
+    "data_date": null,
+    "day_change": null,
+    "day_change_pct": null,
+    "expected_range": {
+     "high": null,
+     "iv_1d": null,
+     "low": null
+    },
+    "history": [],
+    "iv": null,
+    "levels": {
+     "call_wall": null,
+     "gex_flip": null,
+     "max_accelerator": null,
+     "max_magnet": null,
+     "put_wall": null,
+     "second_magnet": null
+    },
+    "market_open": true,
+    "market_time": null,
+    "mq": null,
+    "net_dex": null,
+    "net_gex": null,
+    "prev_close": null,
+    "profile": [],
+    "scan_time": "",
+    "source_delta": null,
+    "spot": null,
+    "spot_source": null,
+    "tape_time": null,
+    "ticker": "SPX",
+    "vol_pc": null
+   },
+   "status": 200
+  },
+  "/api/regime/gex/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": [],
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/grg": {
+   "body": {
+    "assets": null,
+    "basis": "eod",
+    "data_date": null,
+    "events": {
+     "bottoms": [],
+     "stats": {
+      "bottoms": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      },
+      "fwd_window": 0,
+      "tops": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      }
+     },
+     "tops": []
+    },
+    "gates": [],
+    "history": [],
+    "lookback_days": 0,
+    "market_open": false,
+    "scan_time": "",
+    "signal": {
+     "bottom_score": 0,
+     "bottom_watch": false,
+     "grg_z": null,
+     "interpretation": "NORMAL",
+     "raw_spread": null,
+     "spy_3d_gamma_change": null,
+     "spy_gamma_z": null,
+     "state": "NEUTRAL",
+     "state_label": "Neutral",
+     "summary": "",
+     "tier": null,
+     "tlt_3d_gamma_change": null,
+     "tlt_gamma_z": null,
+     "top_score": 0,
+     "top_watch": false
+    },
+    "source": "Unusual Whales",
+    "status": "empty",
+    "top_bottom": {
+     "bottom": {
+      "active": false,
+      "copy": ""
+     },
+     "top": {
+      "active": false,
+      "copy": ""
+     }
+    },
+    "z_window": 63
+   },
+   "status": 200
+  },
+  "/api/regime/guidance": {
+   "body": {
+    "detail": "no CRI snapshot \u2014 run the scanner first"
+   },
+   "status": 404
+  },
+  "/api/regime/market-tide": {
+   "body": {
+    "as_of": null,
+    "market_open": true,
+    "sentiment": null,
+    "sessions": [],
+    "spot_ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/regime/quotes": {
+   "body": {
+    "active_source": null,
+    "as_of": "2026-06-12T15:30:00Z",
+    "fresh_within_seconds": 900,
+    "quotes": {
+     "HYG": {
+      "price": 78.9,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "SPX": {
+      "price": 7300.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VIX": {
+      "price": 25.5,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VVIX": {
+      "price": 112.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     }
+    }
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density": {
+   "body": {
+    "disclaimer": "Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.",
+    "forecast": null,
+    "gamma_levels": {
+     "as_of": null,
+     "call_wall": null,
+     "dropped": [],
+     "gamma_flip": null,
+     "put_wall": null,
+     "source": null,
+     "spot": null
+    },
+    "recent_path": []
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density/issued": {
+   "body": {
+    "forecasts": [],
+    "hit_rates": []
+   },
+   "status": 200
+  },
+  "/api/regime/top-net-impact": {
+   "body": {
+    "data_date": null,
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/validation": {
+   "body": {
+    "detail": "no completed CRI backtest run at the current COMPOSITE_VERSION; run scripts/backtest_cri.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg": {
+   "body": {
+    "credit_proxy": "HYG",
+    "date": null,
+    "history": [],
+    "scan_time": "",
+    "signal": {
+     "alpha": null,
+     "attribution": {
+      "model_implied": 0.0,
+      "vix_component": 0.0,
+      "vix_pct": 0.0,
+      "vvix_component": 0.0,
+      "vvix_pct": 0.0
+     },
+     "beta1_vvix": null,
+     "beta2_vix": null,
+     "bounce": 0,
+     "credit_5d_return_pct": 0.0,
+     "credit_price": 0.0,
+     "edr": 0,
+     "interpretation": "NORMAL",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": null,
+     "ro": 0,
+     "sign_ok": true,
+     "sign_suppressed": false,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 0.0,
+     "vix_percentile_rank": null,
+     "vvix": 0.0,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "moderate"
+    },
+    "status": "empty"
+   },
+   "status": 200
+  },
+  "/api/regime/vcg-validation": {
+   "body": {
+    "detail": "no completed VCG backtest run at the current COMPOSITE_VERSION; run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg/history": {
+   "body": {
+    "credit_proxy": "HYG",
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/intraday": {
+   "body": {
+    "as_of": null,
+    "credit_proxy": "HYG",
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/live": {
+   "body": {
+    "active_source": null,
+    "basis": "live",
+    "carried_forward": [],
+    "credit_proxy": "HYG",
+    "date": "2026-06-12",
+    "history": [
+     {
+      "beta1": 0.2788,
+      "beta2": -0.237338,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-18",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.11,
+      "vvix": 100.55
+     },
+     {
+      "beta1": 0.279166,
+      "beta2": -0.237668,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-19",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.12,
+      "vvix": 100.6
+     },
+     {
+      "beta1": 0.279532,
+      "beta2": -0.237998,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-20",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.13,
+      "vvix": 100.65
+     },
+     {
+      "beta1": 0.279898,
+      "beta2": -0.238328,
+      "bounce": 0,
+      "credit": 79.57,
+      "date": "2026-05-21",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.14,
+      "vvix": 100.7
+     },
+     {
+      "beta1": 0.280264,
+      "beta2": -0.238659,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-22",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.15,
+      "vvix": 100.75
+     },
+     {
+      "beta1": 0.280631,
+      "beta2": -0.23899,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-25",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.16,
+      "vvix": 100.8
+     },
+     {
+      "beta1": 0.280998,
+      "beta2": -0.239322,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-26",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.17,
+      "vvix": 100.85
+     },
+     {
+      "beta1": 0.281365,
+      "beta2": -0.239653,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-27",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.18,
+      "vvix": 100.9
+     },
+     {
+      "beta1": 0.281733,
+      "beta2": -0.239985,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-28",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.19,
+      "vvix": 100.95
+     },
+     {
+      "beta1": 0.282101,
+      "beta2": -0.240317,
+      "bounce": 0,
+      "credit": 79.6,
+      "date": "2026-05-29",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.2,
+      "vvix": 101.0
+     },
+     {
+      "beta1": 0.282469,
+      "beta2": -0.240649,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-01",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.21,
+      "vvix": 101.05
+     },
+     {
+      "beta1": 0.282837,
+      "beta2": -0.240982,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-02",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.22,
+      "vvix": 101.1
+     },
+     {
+      "beta1": 0.283206,
+      "beta2": -0.241315,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-03",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.23,
+      "vvix": 101.15
+     },
+     {
+      "beta1": 0.283575,
+      "beta2": -0.241648,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-04",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.24,
+      "vvix": 101.2
+     },
+     {
+      "beta1": 0.283944,
+      "beta2": -0.241982,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-05",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.25,
+      "vvix": 101.25
+     },
+     {
+      "beta1": 0.284314,
+      "beta2": -0.242315,
+      "bounce": 0,
+      "credit": 79.63,
+      "date": "2026-06-08",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.26,
+      "vvix": 101.3
+     },
+     {
+      "beta1": 0.284683,
+      "beta2": -0.242649,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-09",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.27,
+      "vvix": 101.35
+     },
+     {
+      "beta1": 0.285053,
+      "beta2": -0.242984,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-10",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.28,
+      "vvix": 101.4
+     },
+     {
+      "beta1": 0.285424,
+      "beta2": -0.243318,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-11",
+      "edr": 0,
+      "residual": -0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.29,
+      "vvix": 101.45
+     },
+     {
+      "beta1": 0.088166,
+      "beta2": -0.065117,
+      "bounce": 0,
+      "credit": 78.9,
+      "date": "2026-06-12",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 25.5,
+      "vvix": 112.0
+     }
+    ],
+    "live_quotes": {
+     "HYG": {
+      "price": 78.9,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "SPX": {
+      "price": 7300.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VIX": {
+      "price": 25.5,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VVIX": {
+      "price": 112.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     }
+    },
+    "scan_time": "2026-06-12T15:30:05+00:00",
+    "signal": {
+     "alpha": 5.3e-05,
+     "attribution": {
+      "model_implied": -0.009398,
+      "vix_component": -0.018174,
+      "vix_pct": 67.6,
+      "vvix_component": 0.008723,
+      "vvix_pct": 32.4
+     },
+     "beta1_vvix": 0.088166,
+     "beta2_vix": -0.065117,
+     "bounce": 0,
+     "credit_5d_return_pct": -0.911,
+     "credit_price": 78.9,
+     "edr": 0,
+     "interpretation": "INSUFFICIENT_DATA",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": 0.0,
+     "ro": 0,
+     "sign_ok": false,
+     "sign_suppressed": true,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 25.5,
+     "vix_percentile_rank": null,
+     "vvix": 112.0,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "elevated"
+    },
+    "status": "ok"
+   },
+   "status": 200
+  },
+  "/api/regime/vol-backdrop": {
+   "body": {
+    "as_of": null,
+    "series": {
+     "COR1M": [],
+     "VIX": [],
+     "VIX3M": [],
+     "VVIX": []
+    },
+    "term_structure_ratio": null,
+    "term_structure_state": null
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-harvest": {
+   "body": {
+    "verdicts": []
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal": {
+   "body": {
+    "signals": [
+     {
+      "action": "SKIP",
+      "as_of": "2026-05-21",
+      "bt_annror": 0.53,
+      "bt_calmar": 0.67,
+      "bt_maxdd": -0.796,
+      "bt_n": 522,
+      "bt_sharpe": 1.6524,
+      "credit": null,
+      "expiry": null,
+      "hold_days": 30,
+      "iv": 0.164,
+      "long_put": null,
+      "long_put_delta": null,
+      "max_loss": null,
+      "name": "SPX",
+      "put_width": null,
+      "rv20": 0.1612,
+      "short_delta": 0.25,
+      "short_put": null,
+      "short_put_delta": null,
+      "snapshot_date": "2026-06-22",
+      "spot": 7445.72,
+      "strike_basis": null,
+      "strike_grid_date": null,
+      "vrp": 0.0028,
+      "vrp_z": -1.953,
+      "weight": 0.0,
+      "wing_delta": 0.125
+     }
+    ]
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/entry/preview": {
+   "body": {
+    "action": "TRADE",
+    "as_of": null,
+    "expiry": null,
+    "hold_days": 30,
+    "legs": [],
+    "modeled_credit": null,
+    "name": "SPX",
+    "spot": 7300.0,
+    "vrp_z": 0.363265604,
+    "weight": 0.726531209
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/live": {
+   "body": {
+    "active_source": null,
+    "basis": "live",
+    "live_quotes": {
+     "SPX": {
+      "price": 7300.0,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     },
+     "VIX": {
+      "price": 25.5,
+      "quoted_at": "2026-06-12T15:30:00Z",
+      "source": "xenon_ws"
+     }
+    },
+    "signal": {
+     "action": "TRADE",
+     "as_of": "2026-06-11",
+     "bt_annror": 0.53,
+     "bt_calmar": 0.67,
+     "bt_maxdd": -0.796,
+     "bt_n": 522,
+     "bt_sharpe": 1.6524,
+     "credit": 58.7614583,
+     "expiry": null,
+     "hold_days": 30,
+     "iv": 0.255,
+     "long_put": 6654.51244,
+     "long_put_delta": null,
+     "max_loss": 225.762487,
+     "name": "SPX",
+     "put_width": 284.523945,
+     "rv20": 6.98910159e-06,
+     "short_delta": 0.25,
+     "short_put": 6939.03638,
+     "short_put_delta": null,
+     "snapshot_date": "2026-06-12",
+     "spot": 7300.0,
+     "strike_basis": "flat_vol_model",
+     "strike_grid_date": null,
+     "vrp": 0.254993011,
+     "vrp_z": 0.363265604,
+     "weight": 0.726531209,
+     "wing_delta": 0.125
+    },
+    "status": "ok"
+   },
+   "status": 200
+  }
+ },
+ "stale": {
+  "/api/regime": {
+   "body": {
+    "cor1m": 16.29,
+    "cor1m_5d_change": 0.05,
+    "cor1m_previous_close": 16.29,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": 16.29,
+      "realized_vol": 0.0
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 3.6,
+      "vvix": 5.8
+     },
+     "composite_version": 3,
+     "level": "LOW",
+     "score": 9.4
+    },
+    "cta": {
+     "est_selling_bn": 0.0,
+     "exposure_pct": 200.0,
+     "forced_reduction": false,
+     "forced_reduction_pct": 0.0,
+     "realized_vol": 0.0,
+     "selling_usd_b": 0.0
+    },
+    "date": "2026-06-11",
+    "history": [
+     {
+      "cor1m": 16.1,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-15",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7220.0,
+      "vix": 19.1,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.5,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.11,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-18",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7222.0,
+      "vix": 19.11,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.55,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.12,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-19",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7224.0,
+      "vix": 19.12,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.6,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.13,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-20",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7226.0,
+      "vix": 19.13,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.65,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.14,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-21",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7228.0,
+      "vix": 19.14,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.7,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.15,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-22",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7230.0,
+      "vix": 19.15,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.75,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.16,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-25",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7232.0,
+      "vix": 19.16,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.8,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.17,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-26",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7234.0,
+      "vix": 19.17,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.85,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.18,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-27",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7236.0,
+      "vix": 19.18,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.9,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.19,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-28",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7238.0,
+      "vix": 19.19,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.95,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.2,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-29",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7240.0,
+      "vix": 19.2,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.0,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.21,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-01",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7242.0,
+      "vix": 19.21,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.05,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.22,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-02",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7244.0,
+      "vix": 19.22,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.1,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.23,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-03",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7246.0,
+      "vix": 19.23,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.15,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.24,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-04",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7248.0,
+      "vix": 19.24,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.2,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.25,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-05",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7250.0,
+      "vix": 19.25,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.25,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.26,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-08",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7252.0,
+      "vix": 19.26,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.3,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.27,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-09",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7254.0,
+      "vix": 19.27,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.35,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.28,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-10",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7256.0,
+      "vix": 19.28,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.4,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.29,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-11",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7258.0,
+      "vix": 19.29,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.45,
+      "vvix_5d_roc": 0.2
+     }
+    ],
+    "pullback_20d_pct": 0.0,
+    "realized_vol": 0.0,
+    "scan_time": "2026-06-11T21:00:00+00:00",
+    "spx_100d_ma": 7159.0,
+    "spx_distance_pct": 1.38,
+    "spx_source": "SPX",
+    "spy": 7258.0,
+    "spy_closes": [
+     7180.0,
+     7182.0,
+     7184.0,
+     7186.0,
+     7188.0,
+     7190.0,
+     7192.0,
+     7194.0,
+     7196.0,
+     7198.0,
+     7200.0,
+     7202.0,
+     7204.0,
+     7206.0,
+     7208.0,
+     7210.0,
+     7212.0,
+     7214.0,
+     7216.0,
+     7218.0,
+     7220.0,
+     7222.0,
+     7224.0,
+     7226.0,
+     7228.0,
+     7230.0,
+     7232.0,
+     7234.0,
+     7236.0,
+     7238.0,
+     7240.0,
+     7242.0,
+     7244.0,
+     7246.0,
+     7248.0,
+     7250.0,
+     7252.0,
+     7254.0,
+     7256.0,
+     7258.0
+    ],
+    "status": "ok",
+    "vix": 19.29,
+    "vix3m": 20.29,
+    "vix_5d_roc": 0.3,
+    "vix_delta_3d": 0.03,
+    "vix_vix3m_ratio": 0.951,
+    "vix_zscore_30d": 1.76,
+    "vrp": 19.29,
+    "vvix": 101.45,
+    "vvix_5d_roc": 0.2,
+    "vvix_vix_ratio": 5.26
+   },
+   "status": 200
+  },
+  "/api/regime/canary": {
+   "body": {
+    "detail": "no canary snapshot at current composite_version"
+   },
+   "status": 503
+  },
+  "/api/regime/canary/history": {
+   "body": {
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/canary/validation": {
+   "body": {
+    "detail": "no completed canary backtest at current composite_version (or row missing is_winning_form)"
+   },
+   "status": 503
+  },
+  "/api/regime/cri/history": {
+   "body": {
+    "rows": [
+     {
+      "cor1m": 16.29,
+      "cri_score": 9.4,
+      "date": "2026-06-11",
+      "realized_vol": 0.0,
+      "spx": 7258.0,
+      "spx_distance_pct": 1.38,
+      "vix": 19.29,
+      "vix3m": 20.29,
+      "vix_vix3m_ratio": 0.951,
+      "vix_zscore_30d": 1.76,
+      "vrp": 19.29,
+      "vvix": 101.45
+     }
+    ]
+   },
+   "status": 200
+  },
+  "/api/regime/cri/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/cri/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "carried_forward": [],
+    "cor1m": 16.29,
+    "cor1m_5d_change": 0.05,
+    "cor1m_previous_close": 16.29,
+    "crash_trigger": {
+     "conditions": {
+      "cor1m_gt_60": false,
+      "realized_vol_gt_25": false,
+      "spx_below_100d_ma": false
+     },
+     "fired": false,
+     "triggered": false,
+     "values": {
+      "cor1m": 16.29,
+      "realized_vol": 0.0
+     }
+    },
+    "cri": {
+     "components": {
+      "correlation": 0.0,
+      "momentum": 0.0,
+      "vix": 3.6,
+      "vvix": 5.8
+     },
+     "composite_version": 3,
+     "level": "LOW",
+     "score": 9.4
+    },
+    "cta": {
+     "est_selling_bn": 0.0,
+     "exposure_pct": 200.0,
+     "forced_reduction": false,
+     "forced_reduction_pct": 0.0,
+     "realized_vol": 0.0,
+     "selling_usd_b": 0.0
+    },
+    "date": "2026-06-11",
+    "history": [
+     {
+      "cor1m": 16.1,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-15",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7220.0,
+      "vix": 19.1,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.5,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.11,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-18",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7222.0,
+      "vix": 19.11,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.55,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.12,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-19",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7224.0,
+      "vix": 19.12,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.6,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.13,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-20",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7226.0,
+      "vix": 19.13,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.65,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.14,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-21",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7228.0,
+      "vix": 19.14,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.7,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.15,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-22",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7230.0,
+      "vix": 19.15,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.75,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.16,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-25",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7232.0,
+      "vix": 19.16,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.8,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.17,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-26",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7234.0,
+      "vix": 19.17,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.85,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.18,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-27",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7236.0,
+      "vix": 19.18,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.9,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.19,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-28",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7238.0,
+      "vix": 19.19,
+      "vix_5d_roc": 0.3,
+      "vvix": 100.95,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.2,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-05-29",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7240.0,
+      "vix": 19.2,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.0,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.21,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-01",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7242.0,
+      "vix": 19.21,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.05,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.22,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-02",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7244.0,
+      "vix": 19.22,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.1,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.23,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-03",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.39,
+      "spy": 7246.0,
+      "vix": 19.23,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.15,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.24,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-04",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7248.0,
+      "vix": 19.24,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.2,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.25,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-05",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7250.0,
+      "vix": 19.25,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.25,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.26,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-08",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7252.0,
+      "vix": 19.26,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.3,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.27,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-09",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7254.0,
+      "vix": 19.27,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.35,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.28,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-10",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7256.0,
+      "vix": 19.28,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.4,
+      "vvix_5d_roc": 0.2
+     },
+     {
+      "cor1m": 16.29,
+      "cor1m_5d_change": 0.05,
+      "date": "2026-06-11",
+      "pullback_20d_pct": 0.0,
+      "realized_vol": 0.0,
+      "spx_vs_ma_pct": 1.38,
+      "spy": 7258.0,
+      "vix": 19.29,
+      "vix_5d_roc": 0.3,
+      "vvix": 101.45,
+      "vvix_5d_roc": 0.2
+     }
+    ],
+    "live_quotes": {},
+    "pullback_20d_pct": 0.0,
+    "realized_vol": 0.0,
+    "scan_time": "2026-06-11T21:00:00+00:00",
+    "spx_100d_ma": 7159.0,
+    "spx_distance_pct": 1.38,
+    "spx_source": "SPX",
+    "spy": 7258.0,
+    "spy_closes": [
+     7180.0,
+     7182.0,
+     7184.0,
+     7186.0,
+     7188.0,
+     7190.0,
+     7192.0,
+     7194.0,
+     7196.0,
+     7198.0,
+     7200.0,
+     7202.0,
+     7204.0,
+     7206.0,
+     7208.0,
+     7210.0,
+     7212.0,
+     7214.0,
+     7216.0,
+     7218.0,
+     7220.0,
+     7222.0,
+     7224.0,
+     7226.0,
+     7228.0,
+     7230.0,
+     7232.0,
+     7234.0,
+     7236.0,
+     7238.0,
+     7240.0,
+     7242.0,
+     7244.0,
+     7246.0,
+     7248.0,
+     7250.0,
+     7252.0,
+     7254.0,
+     7256.0,
+     7258.0
+    ],
+    "status": "ok",
+    "vix": 19.29,
+    "vix3m": 20.29,
+    "vix_5d_roc": 0.3,
+    "vix_delta_3d": 0.03,
+    "vix_vix3m_ratio": 0.951,
+    "vix_zscore_30d": 1.76,
+    "vrp": 19.29,
+    "vvix": 101.45,
+    "vvix_5d_roc": 0.2,
+    "vvix_vix_ratio": 5.26
+   },
+   "status": 200
+  },
+  "/api/regime/dealer": {
+   "body": {
+    "closest_levels": [],
+    "gamma_decay": [],
+    "net_gex": null,
+    "odte_gex": null,
+    "odte_share_pct": null,
+    "prev_close_net_gex": null,
+    "scan_time": "",
+    "signal": {
+     "charm_score": 0.0,
+     "gamma_score": 0.0,
+     "headline": "",
+     "label": "neutral",
+     "score": 0.0,
+     "subtitle": "",
+     "vanna_score": 0.0
+    },
+    "spot": null,
+    "status": "empty",
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/dispersion": {
+   "body": {
+    "as_of": "2026-06-11",
+    "cor1m": 16.29,
+    "cor1m_percentile": 1.0,
+    "history_start": "2025-12-12",
+    "n_obs": 130,
+    "vix": 19.29,
+    "vix_cor1m_ratio": 1.18416206,
+    "vix_cor1m_ratio_z": -1.6975941
+   },
+   "status": 200
+  },
+  "/api/regime/gex": {
+   "body": {
+    "atm_iv": null,
+    "bias": {
+     "days_above_flip": null,
+     "direction": null,
+     "flip_migration": [],
+     "reasons": []
+    },
+    "close": null,
+    "data_date": null,
+    "day_change": null,
+    "day_change_pct": null,
+    "expected_range": {
+     "high": null,
+     "iv_1d": null,
+     "low": null
+    },
+    "history": [],
+    "iv": null,
+    "levels": {
+     "call_wall": null,
+     "gex_flip": null,
+     "max_accelerator": null,
+     "max_magnet": null,
+     "put_wall": null,
+     "second_magnet": null
+    },
+    "market_open": true,
+    "market_time": null,
+    "mq": null,
+    "net_dex": null,
+    "net_gex": null,
+    "prev_close": null,
+    "profile": [],
+    "scan_time": "",
+    "source_delta": null,
+    "spot": null,
+    "spot_source": null,
+    "tape_time": null,
+    "ticker": "SPX",
+    "vol_pc": null
+   },
+   "status": 200
+  },
+  "/api/regime/gex/intraday": {
+   "body": {
+    "as_of": null,
+    "sessions": [],
+    "ticker": "SPX"
+   },
+   "status": 200
+  },
+  "/api/regime/grg": {
+   "body": {
+    "assets": null,
+    "basis": "eod",
+    "data_date": null,
+    "events": {
+     "bottoms": [],
+     "stats": {
+      "bottoms": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      },
+      "fwd_window": 0,
+      "tops": {
+       "median_extreme_gap_pct": null,
+       "median_lead_sessions": null,
+       "n": 0
+      }
+     },
+     "tops": []
+    },
+    "gates": [],
+    "history": [],
+    "lookback_days": 0,
+    "market_open": false,
+    "scan_time": "",
+    "signal": {
+     "bottom_score": 0,
+     "bottom_watch": false,
+     "grg_z": null,
+     "interpretation": "NORMAL",
+     "raw_spread": null,
+     "spy_3d_gamma_change": null,
+     "spy_gamma_z": null,
+     "state": "NEUTRAL",
+     "state_label": "Neutral",
+     "summary": "",
+     "tier": null,
+     "tlt_3d_gamma_change": null,
+     "tlt_gamma_z": null,
+     "top_score": 0,
+     "top_watch": false
+    },
+    "source": "Unusual Whales",
+    "status": "empty",
+    "top_bottom": {
+     "bottom": {
+      "active": false,
+      "copy": ""
+     },
+     "top": {
+      "active": false,
+      "copy": ""
+     }
+    },
+    "z_window": 63
+   },
+   "status": 200
+  },
+  "/api/regime/guidance": {
+   "body": {
+    "body_md": "\u2022 No directional vol edge \u2014 curve has flattened\n\u2022 Premium selling consistent (defined-risk only \u2014 iron condors, credit verticals, cash-secured puts)\n\u2022 Size small; respect the no-naked-shorts rule\n\u2022 Watch for VIX/VIX3M crossing 1.0 \u2014 that's the regime-flip signal",
+    "matched_condition": "level == 'LOW' and 0.95 <= vix_vix3m_ratio < 1.0",
+    "posture": "neutral",
+    "state": "low_neutral"
+   },
+   "status": 200
+  },
+  "/api/regime/market-tide": {
+   "body": {
+    "as_of": null,
+    "market_open": true,
+    "sentiment": null,
+    "sessions": [],
+    "spot_ticker": "SPY"
+   },
+   "status": 200
+  },
+  "/api/regime/quotes": {
+   "body": {
+    "active_source": null,
+    "as_of": "2026-06-10T15:30:05Z",
+    "fresh_within_seconds": 900,
+    "quotes": {
+     "HYG": {
+      "price": 78.9,
+      "quoted_at": "2026-06-10T15:30:05Z",
+      "source": "xenon_ws"
+     },
+     "SPX": {
+      "price": 7300.0,
+      "quoted_at": "2026-06-10T15:30:05Z",
+      "source": "xenon_ws"
+     },
+     "VIX": {
+      "price": 25.5,
+      "quoted_at": "2026-06-10T15:30:05Z",
+      "source": "xenon_ws"
+     },
+     "VVIX": {
+      "price": 112.0,
+      "quoted_at": "2026-06-10T15:30:05Z",
+      "source": "xenon_ws"
+     }
+    }
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density": {
+   "body": {
+    "disclaimer": "Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.",
+    "forecast": null,
+    "gamma_levels": {
+     "as_of": null,
+     "call_wall": null,
+     "dropped": [],
+     "gamma_flip": null,
+     "put_wall": null,
+     "source": null,
+     "spot": null
+    },
+    "recent_path": []
+   },
+   "status": 200
+  },
+  "/api/regime/spx-density/issued": {
+   "body": {
+    "forecasts": [],
+    "hit_rates": []
+   },
+   "status": 200
+  },
+  "/api/regime/top-net-impact": {
+   "body": {
+    "data_date": null,
+    "rows": []
+   },
+   "status": 200
+  },
+  "/api/regime/validation": {
+   "body": {
+    "detail": "no completed CRI backtest run at the current COMPOSITE_VERSION; run scripts/backtest_cri.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg": {
+   "body": {
+    "credit_proxy": "HYG",
+    "date": "2026-06-11",
+    "history": [
+     {
+      "beta1": 0.278435,
+      "beta2": -0.237008,
+      "bounce": 0,
+      "credit": 79.55,
+      "date": "2026-05-15",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.1,
+      "vvix": 100.5
+     },
+     {
+      "beta1": 0.2788,
+      "beta2": -0.237338,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-18",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.11,
+      "vvix": 100.55
+     },
+     {
+      "beta1": 0.279166,
+      "beta2": -0.237668,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-19",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.12,
+      "vvix": 100.6
+     },
+     {
+      "beta1": 0.279532,
+      "beta2": -0.237998,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-20",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.13,
+      "vvix": 100.65
+     },
+     {
+      "beta1": 0.279898,
+      "beta2": -0.238328,
+      "bounce": 0,
+      "credit": 79.57,
+      "date": "2026-05-21",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.14,
+      "vvix": 100.7
+     },
+     {
+      "beta1": 0.280264,
+      "beta2": -0.238659,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-22",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.15,
+      "vvix": 100.75
+     },
+     {
+      "beta1": 0.280631,
+      "beta2": -0.23899,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-25",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.16,
+      "vvix": 100.8
+     },
+     {
+      "beta1": 0.280998,
+      "beta2": -0.239322,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-26",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.17,
+      "vvix": 100.85
+     },
+     {
+      "beta1": 0.281365,
+      "beta2": -0.239653,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-27",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.18,
+      "vvix": 100.9
+     },
+     {
+      "beta1": 0.281733,
+      "beta2": -0.239985,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-28",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.19,
+      "vvix": 100.95
+     },
+     {
+      "beta1": 0.282101,
+      "beta2": -0.240317,
+      "bounce": 0,
+      "credit": 79.6,
+      "date": "2026-05-29",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.2,
+      "vvix": 101.0
+     },
+     {
+      "beta1": 0.282469,
+      "beta2": -0.240649,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-01",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.21,
+      "vvix": 101.05
+     },
+     {
+      "beta1": 0.282837,
+      "beta2": -0.240982,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-02",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.22,
+      "vvix": 101.1
+     },
+     {
+      "beta1": 0.283206,
+      "beta2": -0.241315,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-03",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.23,
+      "vvix": 101.15
+     },
+     {
+      "beta1": 0.283575,
+      "beta2": -0.241648,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-04",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.24,
+      "vvix": 101.2
+     },
+     {
+      "beta1": 0.283944,
+      "beta2": -0.241982,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-05",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.25,
+      "vvix": 101.25
+     },
+     {
+      "beta1": 0.284314,
+      "beta2": -0.242315,
+      "bounce": 0,
+      "credit": 79.63,
+      "date": "2026-06-08",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.26,
+      "vvix": 101.3
+     },
+     {
+      "beta1": 0.284683,
+      "beta2": -0.242649,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-09",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.27,
+      "vvix": 101.35
+     },
+     {
+      "beta1": 0.285053,
+      "beta2": -0.242984,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-10",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.28,
+      "vvix": 101.4
+     },
+     {
+      "beta1": 0.285424,
+      "beta2": -0.243318,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-11",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.29,
+      "vvix": 101.45
+     }
+    ],
+    "scan_time": "2026-06-11T21:00:00+00:00",
+    "signal": {
+     "alpha": 4.8e-05,
+     "attribution": {
+      "model_implied": 6.3e-05,
+      "vix_component": -0.000126,
+      "vix_pct": 47.3,
+      "vvix_component": 0.000141,
+      "vvix_pct": 52.7
+     },
+     "beta1_vvix": 0.285424,
+     "beta2_vix": -0.243318,
+     "bounce": 0,
+     "credit_5d_return_pct": 0.031,
+     "credit_price": 79.64,
+     "edr": 0,
+     "interpretation": "INSUFFICIENT_DATA",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": 0.0,
+     "ro": 0,
+     "sign_ok": false,
+     "sign_suppressed": true,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 19.29,
+     "vix_percentile_rank": null,
+     "vvix": 101.45,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "elevated"
+    },
+    "status": "ok"
+   },
+   "status": 200
+  },
+  "/api/regime/vcg-validation": {
+   "body": {
+    "detail": "no completed VCG backtest run at the current COMPOSITE_VERSION; run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs"
+   },
+   "status": 503
+  },
+  "/api/regime/vcg/history": {
+   "body": {
+    "credit_proxy": "HYG",
+    "rows": [
+     {
+      "beta1": 0.285424,
+      "beta2": -0.243318,
+      "credit_5d_return_pct": 0.031,
+      "credit_price": 79.64,
+      "date": "2026-06-11",
+      "residual": 0.0,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.29,
+      "vvix": 101.45
+     }
+    ]
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/intraday": {
+   "body": {
+    "as_of": null,
+    "credit_proxy": "HYG",
+    "sessions": []
+   },
+   "status": 200
+  },
+  "/api/regime/vcg/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "carried_forward": [],
+    "credit_proxy": "HYG",
+    "date": "2026-06-11",
+    "history": [
+     {
+      "beta1": 0.278435,
+      "beta2": -0.237008,
+      "bounce": 0,
+      "credit": 79.55,
+      "date": "2026-05-15",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.1,
+      "vvix": 100.5
+     },
+     {
+      "beta1": 0.2788,
+      "beta2": -0.237338,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-18",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.11,
+      "vvix": 100.55
+     },
+     {
+      "beta1": 0.279166,
+      "beta2": -0.237668,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-19",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.12,
+      "vvix": 100.6
+     },
+     {
+      "beta1": 0.279532,
+      "beta2": -0.237998,
+      "bounce": 0,
+      "credit": 79.56,
+      "date": "2026-05-20",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.13,
+      "vvix": 100.65
+     },
+     {
+      "beta1": 0.279898,
+      "beta2": -0.238328,
+      "bounce": 0,
+      "credit": 79.57,
+      "date": "2026-05-21",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.14,
+      "vvix": 100.7
+     },
+     {
+      "beta1": 0.280264,
+      "beta2": -0.238659,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-22",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.15,
+      "vvix": 100.75
+     },
+     {
+      "beta1": 0.280631,
+      "beta2": -0.23899,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-25",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.16,
+      "vvix": 100.8
+     },
+     {
+      "beta1": 0.280998,
+      "beta2": -0.239322,
+      "bounce": 0,
+      "credit": 79.58,
+      "date": "2026-05-26",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.17,
+      "vvix": 100.85
+     },
+     {
+      "beta1": 0.281365,
+      "beta2": -0.239653,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-27",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.18,
+      "vvix": 100.9
+     },
+     {
+      "beta1": 0.281733,
+      "beta2": -0.239985,
+      "bounce": 0,
+      "credit": 79.59,
+      "date": "2026-05-28",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.19,
+      "vvix": 100.95
+     },
+     {
+      "beta1": 0.282101,
+      "beta2": -0.240317,
+      "bounce": 0,
+      "credit": 79.6,
+      "date": "2026-05-29",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.2,
+      "vvix": 101.0
+     },
+     {
+      "beta1": 0.282469,
+      "beta2": -0.240649,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-01",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.21,
+      "vvix": 101.05
+     },
+     {
+      "beta1": 0.282837,
+      "beta2": -0.240982,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-02",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.22,
+      "vvix": 101.1
+     },
+     {
+      "beta1": 0.283206,
+      "beta2": -0.241315,
+      "bounce": 0,
+      "credit": 79.61,
+      "date": "2026-06-03",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.23,
+      "vvix": 101.15
+     },
+     {
+      "beta1": 0.283575,
+      "beta2": -0.241648,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-04",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.24,
+      "vvix": 101.2
+     },
+     {
+      "beta1": 0.283944,
+      "beta2": -0.241982,
+      "bounce": 0,
+      "credit": 79.62,
+      "date": "2026-06-05",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.25,
+      "vvix": 101.25
+     },
+     {
+      "beta1": 0.284314,
+      "beta2": -0.242315,
+      "bounce": 0,
+      "credit": 79.63,
+      "date": "2026-06-08",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.26,
+      "vvix": 101.3
+     },
+     {
+      "beta1": 0.284683,
+      "beta2": -0.242649,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-09",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.27,
+      "vvix": 101.35
+     },
+     {
+      "beta1": 0.285053,
+      "beta2": -0.242984,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-10",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.28,
+      "vvix": 101.4
+     },
+     {
+      "beta1": 0.285424,
+      "beta2": -0.243318,
+      "bounce": 0,
+      "credit": 79.64,
+      "date": "2026-06-11",
+      "edr": 0,
+      "residual": 0.0,
+      "ro": 0,
+      "tier": null,
+      "vcg": null,
+      "vcg_adj": null,
+      "vix": 19.29,
+      "vvix": 101.45
+     }
+    ],
+    "live_quotes": {},
+    "scan_time": "2026-06-11T21:00:00+00:00",
+    "signal": {
+     "alpha": 4.8e-05,
+     "attribution": {
+      "model_implied": 6.3e-05,
+      "vix_component": -0.000126,
+      "vix_pct": 47.3,
+      "vvix_component": 0.000141,
+      "vvix_pct": 52.7
+     },
+     "beta1_vvix": 0.285424,
+     "beta2_vix": -0.243318,
+     "bounce": 0,
+     "credit_5d_return_pct": 0.031,
+     "credit_price": 79.64,
+     "edr": 0,
+     "interpretation": "INSUFFICIENT_DATA",
+     "pi_panic": 0.0,
+     "regime": "DIVERGENCE",
+     "residual": 0.0,
+     "ro": 0,
+     "sign_ok": false,
+     "sign_suppressed": true,
+     "tier": null,
+     "vcg": null,
+     "vcg_adj": null,
+     "vix": 19.29,
+     "vix_percentile_rank": null,
+     "vvix": 101.45,
+     "vvix_percentile_rank": null,
+     "vvix_severity": "elevated"
+    },
+    "status": "ok"
+   },
+   "status": 200
+  },
+  "/api/regime/vol-backdrop": {
+   "body": {
+    "as_of": null,
+    "series": {
+     "COR1M": [],
+     "VIX": [],
+     "VIX3M": [],
+     "VVIX": []
+    },
+    "term_structure_ratio": null,
+    "term_structure_state": null
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-harvest": {
+   "body": {
+    "verdicts": []
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal": {
+   "body": {
+    "signals": [
+     {
+      "action": "SKIP",
+      "as_of": "2026-05-21",
+      "bt_annror": 0.53,
+      "bt_calmar": 0.67,
+      "bt_maxdd": -0.796,
+      "bt_n": 522,
+      "bt_sharpe": 1.6524,
+      "credit": null,
+      "expiry": null,
+      "hold_days": 30,
+      "iv": 0.164,
+      "long_put": null,
+      "long_put_delta": null,
+      "max_loss": null,
+      "name": "SPX",
+      "put_width": null,
+      "rv20": 0.1612,
+      "short_delta": 0.25,
+      "short_put": null,
+      "short_put_delta": null,
+      "snapshot_date": "2026-06-22",
+      "spot": 7445.72,
+      "strike_basis": null,
+      "strike_grid_date": null,
+      "vrp": 0.0028,
+      "vrp_z": -1.953,
+      "weight": 0.0,
+      "wing_delta": 0.125
+     }
+    ]
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/entry/preview": {
+   "body": {
+    "action": "TRADE",
+    "as_of": null,
+    "expiry": null,
+    "hold_days": 30,
+    "legs": [],
+    "modeled_credit": null,
+    "name": "SPX",
+    "spot": 7258.0,
+    "vrp_z": 0.279366598,
+    "weight": 0.558733196
+   },
+   "status": 200
+  },
+  "/api/regime/vrp-macro-signal/live": {
+   "body": {
+    "active_source": null,
+    "basis": "eod",
+    "live_quotes": {},
+    "signal": {
+     "action": "SKIP",
+     "as_of": "2026-05-21",
+     "bt_annror": 0.53,
+     "bt_calmar": 0.67,
+     "bt_maxdd": -0.796,
+     "bt_n": 522,
+     "bt_sharpe": 1.6524,
+     "credit": null,
+     "expiry": null,
+     "hold_days": 30,
+     "iv": 0.164,
+     "long_put": null,
+     "long_put_delta": null,
+     "max_loss": null,
+     "name": "SPX",
+     "put_width": null,
+     "rv20": 0.1612,
+     "short_delta": 0.25,
+     "short_put": null,
+     "short_put_delta": null,
+     "snapshot_date": "2026-06-22",
+     "spot": 7445.72,
+     "strike_basis": null,
+     "strike_grid_date": null,
+     "vrp": 0.0028,
+     "vrp_z": -1.953,
+     "weight": 0.0,
+     "wing_delta": 0.125
+    },
+    "status": "ok"
+   },
+   "status": 200
+  }
+ }
+}

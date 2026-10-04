@@ -49,6 +49,22 @@ EOF
   exit 1
 fi
 
+# Migrate before anything starts. Workers wait for the schema their code needs
+# (worker/schema_gate.py), and the local api does not self-migrate like the
+# Docker one, so an unmigrated DB would otherwise surface as a worker heartbeat
+# timeout in `control-argon up`. Idempotent: prod replays every file on every
+# boot. A failure stops here with the migrate error. Never against the mini:
+# its own api migrates it.
+if [[ "$db_host" == "100.66.147.98" ]]; then
+  echo "[dev.sh] DB is the mini; skipping migrations (its api migrates it)." >&2
+else
+  echo "[dev.sh] Applying migrations to $db_name..." >&2
+  if ! bash scripts/migrate.sh >&2; then
+    echo "[dev.sh] scripts/migrate.sh FAILED against $db_host/$db_name; not starting the stack." >&2
+    exit 1
+  fi
+fi
+
 # Ensure web/ deps are installed (cheap if already cached).
 if [ ! -d web/node_modules ]; then
   ( cd web && npm install )

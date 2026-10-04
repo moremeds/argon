@@ -10,11 +10,13 @@ alignment doesn't drop the session entirely.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from typing import TypeVar
 from zoneinfo import ZoneInfo
 
+from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
 
 _ET = ZoneInfo("America/New_York")
@@ -49,6 +51,29 @@ def load_live_quotes(
             source=row.source,
         )
     return out
+
+
+_T = TypeVar("_T")
+
+
+def live_or_eod(
+    repo: Repository,
+    settings: Settings,
+    live: Callable[[dict[str, LiveQuote]], _T | None],
+    eod: Callable[[], _T],
+) -> _T:
+    """The regime live endpoints' one fallback rule: load the fresh WS quotes
+    (``regime_ws_symbols``, ``regime_live_quote_max_age_seconds``), return
+    ``live(quotes)``, and fall back to ``eod()`` when that is None. Each caller
+    keeps its own idea of "live is possible" (any quote, or SPX+VIX) and of
+    the EOD answer inside the two callables (I-37)."""
+    quotes = load_live_quotes(
+        repo,
+        settings.regime_ws_symbols,
+        max_age_seconds=settings.regime_live_quote_max_age_seconds,
+    )
+    result = live(quotes)
+    return eod() if result is None else result
 
 
 def live_session_date(quotes: Mapping[str, LiveQuote]) -> date | None:
