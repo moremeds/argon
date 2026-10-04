@@ -28,6 +28,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -148,6 +149,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -268,6 +270,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -388,6 +391,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -508,6 +512,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -628,6 +633,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -748,6 +754,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -868,6 +875,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -988,6 +996,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [],
     "last_full_scan_at": null,
     "latency_p95_ms": null,
@@ -1169,6 +1178,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -1361,6 +1371,7 @@
     "http_429": 1,
     "http_4xx": 1,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -1553,6 +1564,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -1745,6 +1757,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -1937,6 +1950,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -2129,6 +2143,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -2321,6 +2336,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -2513,6 +2529,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -2713,6 +2730,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -2905,6 +2923,7 @@
     "http_429": 1,
     "http_4xx": 1,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -3097,6 +3116,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -3289,6 +3309,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -3481,6 +3502,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -3696,6 +3718,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -3911,6 +3934,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -4126,6 +4150,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -4338,6 +4363,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -4530,6 +4556,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -4722,6 +4749,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -4914,6 +4942,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -5106,6 +5135,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -5298,6 +5328,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -5490,6 +5521,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -5682,6 +5714,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -5874,6 +5907,7 @@
     "http_429": 0,
     "http_4xx": 0,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -6068,6 +6102,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -6260,6 +6295,7 @@
     "http_429": 1,
     "http_4xx": 1,
     "http_5xx": 0,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -6452,6 +6488,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -6644,6 +6681,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -6836,6 +6874,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -7028,6 +7067,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -7220,6 +7260,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
@@ -7412,6 +7453,7 @@
     "http_429": 1,
     "http_4xx": 2,
     "http_5xx": 1,
+    "job_degraded": [],
     "job_failures": [
      {
       "consecutive": 3,
