@@ -23,9 +23,7 @@ import {
   useAiAnalysisPolling,
 } from "@/components/stock/panels/tradeInsightsAi/useAiAnalysisPolling";
 
-const PROVIDER_LABEL: Record<Provider, string> = {
-  codex: "Codex",
-  claude: "Claude",
+const PROVIDER_LABEL: Partial<Record<Provider, string>> = {
   deepseek: "DeepSeek",
 };
 
@@ -76,7 +74,7 @@ function stateLabel(state: ProviderState): string {
 export function FrameworkTab({ ticker }: { ticker: string }) {
   const { latestForTicker, pendingIdsForTicker, runOne, unavailableForTicker } =
     useAiAnalysisPolling(ticker, "blast");
-  const [active, setActive] = useState<Provider>("codex");
+  const [active, setActive] = useState<Provider>("deepseek");
 
   const stateFor = (provider: Provider): ProviderState => {
     const pending = pendingIdsForTicker[provider];
@@ -105,33 +103,6 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
 
   const activeState = stateFor(active);
 
-  // Consensus across providers that produced a framework (need >= 2).
-  const frameworks = PROVIDERS.map((p) => stateFor(p)).filter(
-    (
-      s,
-    ): s is {
-      kind: "framework";
-      framework: Framework;
-      entryState: string | null;
-      missingData: string[];
-    } => s.kind === "framework",
-  );
-  let consensusBanner: string;
-  if (frameworks.length < 2) {
-    consensusBanner = "single provider — no cross-model consensus yet";
-  } else {
-    const positions = new Set(
-      frameworks.map((s) => s.framework.header.position_type),
-    );
-    const structures = new Set(
-      frameworks.map((s) => s.framework.best_setup.structure),
-    );
-    consensusBanner =
-      positions.size === 1 && structures.size === 1
-        ? `consensus: ${[...positions][0]} · ${[...structures][0]}`
-        : `divergent: ${frameworks.length} providers disagree on position/structure`;
-  }
-
   return (
     <div style={{ padding: "16px 20px", maxWidth: 920 }}>
       <div
@@ -152,20 +123,6 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
           Trade Insights AI is disabled on the server.
         </p>
       ) : null}
-
-      <div
-        style={{
-          padding: "8px 12px",
-          marginBottom: 14,
-          border: "1px solid var(--border-dim)",
-          borderRadius: 4,
-          background: "var(--bg-panel)",
-          color: "var(--text-secondary)",
-          fontSize: 13,
-        }}
-      >
-        {consensusBanner}
-      </div>
 
       {/* Provider toggle with per-provider run buttons + state badges */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -192,14 +149,14 @@ export function FrameworkTab({ ticker }: { ticker: string }) {
                   cursor: "pointer",
                 }}
               >
-                <span>{PROVIDER_LABEL[p]}</span>
+                <span>{PROVIDER_LABEL[p] ?? p}</span>
                 <Pill text={stateLabel(s)} color={stateColor(s.kind)} />
               </button>
               <button
                 type="button"
                 onClick={() => runOne(p, true)}
                 disabled={pending}
-                title={`Run ${PROVIDER_LABEL[p]}`}
+                title={`Run ${PROVIDER_LABEL[p] ?? p}`}
                 style={{
                   borderTop: `1px solid ${
                     isActive ? "var(--text-secondary)" : "var(--border-dim)"

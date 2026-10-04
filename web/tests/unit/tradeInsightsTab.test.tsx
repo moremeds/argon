@@ -84,6 +84,7 @@ describe("TradeInsightsTab", () => {
       current_prompt_label: "v5.3",
       codex: null,
       claude: null,
+      deepseek: null,
     });
   });
 

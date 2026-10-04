@@ -40,8 +40,8 @@ function baseResponse(
     run_id: 123,
     trade_insights_input_hash: "ti-hash",
     analysis_input_hash: "ai-hash",
-    model: "codex-default",
-    provider: "codex",
+    model: "deepseek-v4-pro",
+    provider: "deepseek",
     prompt_version: "trade-insights-ai-v5.3",
     status: "queued",
     produced_at: null,
@@ -68,7 +68,7 @@ function queuedStub(provider: Provider, analysisId: string) {
     analysis_id: analysisId,
     status: "queued" as const,
     reused: false,
-    model: provider === "codex" ? "codex-default" : "claude-opus-4-7",
+    model: "deepseek-v4-pro",
   };
 }
 
@@ -88,7 +88,9 @@ describe("useAiAnalysisPolling", () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue(EMPTY_PAIR);
   });
 
-  it("tracks all three providers (codex, claude, deepseek)", async () => {
+  it("keeps the API pair shape on the local latest/pending maps", async () => {
+    // Option A: the API still returns the 3-slot pair, so the local maps keep
+    // all three keys; PROVIDERS only scopes what we run and poll.
     const { result } = renderHook(() => useAiAnalysisPolling("TSLA"));
     await waitFor(() => expect(result.current.canRun).toBe(true));
     expect(Object.keys(result.current.latestForTicker).sort()).toEqual([
@@ -106,25 +108,24 @@ describe("useAiAnalysisPolling", () => {
   it("hydrates latest pair on mount", async () => {
     vi.mocked(api.tradeInsightsAiAnalysisLatest).mockResolvedValue({
       ...EMPTY_PAIR,
-      codex: baseResponse({ status: "succeeded" }),
+      deepseek: baseResponse({ status: "succeeded" }),
     });
 
     const { result } = renderHook(() => useAiAnalysisPolling("TSLA"));
 
     await waitFor(() => {
-      expect(result.current.latestForTicker.codex?.status).toBe("succeeded");
+      expect(result.current.latestForTicker.deepseek?.status).toBe(
+        "succeeded",
+      );
     });
     expect(result.current.promptMetadataForTicker.current_prompt_label).toBe(
       "v5.3",
     );
   });
 
-  it("posts a run request and records pending providers", async () => {
+  it("posts a run request and records the pending provider", async () => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
-      enqueueResp([
-        queuedStub("codex", "codex-1"),
-        queuedStub("claude", "claude-1"),
-      ]),
+      enqueueResp([queuedStub("deepseek", "deepseek-1")]),
     );
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValue(
       new Promise<TradeInsightsAiAnalysisResponse>(() => undefined),
@@ -142,37 +143,12 @@ describe("useAiAnalysisPolling", () => {
       {},
       "insights",
     );
-    expect(result.current.pendingIdsForTicker.codex).toBe("codex-1");
-    expect(result.current.pendingIdsForTicker.claude).toBe("claude-1");
+    expect(result.current.pendingIdsForTicker.deepseek).toBe("deepseek-1");
   });
 
-  it("reruns only the providers that are not already pending", async () => {
-    // codex hangs (stays pending); claude + deepseek finish (reused). The
-    // second run must skip the still-pending codex and rerun the other two.
+  it("does not re-POST while the provider is still pending", async () => {
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
-      enqueueResp([
-        queuedStub("codex", "codex-hung"),
-        {
-          provider: "claude",
-          analysis_id: "claude-cached",
-          status: "succeeded",
-          reused: true,
-          model: "claude-opus-4-7",
-        },
-        {
-          provider: "deepseek",
-          analysis_id: "deepseek-cached",
-          status: "succeeded",
-          reused: true,
-          model: "deepseek-v4-pro",
-        },
-      ]),
-    );
-    vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
-      enqueueResp([
-        queuedStub("claude", "claude-rerun"),
-        queuedStub("deepseek", "deepseek-rerun"),
-      ]),
+      enqueueResp([queuedStub("deepseek", "deepseek-hung")]),
     );
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValue(
       new Promise<TradeInsightsAiAnalysisResponse>(() => undefined),
@@ -185,51 +161,36 @@ describe("useAiAnalysisPolling", () => {
       await result.current.run(false);
     });
     await waitFor(() => {
-      expect(result.current.pendingIdsForTicker.codex).toBe("codex-hung");
+      expect(result.current.pendingIdsForTicker.deepseek).toBe(
+        "deepseek-hung",
+      );
     });
 
     await act(async () => {
       await result.current.run(false);
     });
 
-    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith(
-      "TSLA",
-      {
-        providers: ["claude", "deepseek"],
-      },
-      "insights",
-    );
+    // deepseek is still pending → the rerun is filtered out before the POST.
+    expect(api.tradeInsightsAiAnalysis).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps polling an existing provider when a partial rerun fails", async () => {
-    const codexStatus = deferred<TradeInsightsAiAnalysisResponse>();
-    const codexSucceeded = baseResponse({
-      analysis_id: "codex-hung",
+  it("keeps polling the pending provider until it resolves", async () => {
+    const deepseekStatus = deferred<TradeInsightsAiAnalysisResponse>();
+    const deepseekSucceeded = baseResponse({
+      analysis_id: "deepseek-hung",
       status: "succeeded",
     });
 
     vi.mocked(api.tradeInsightsAiAnalysis).mockResolvedValueOnce(
-      enqueueResp([
-        queuedStub("codex", "codex-hung"),
-        {
-          provider: "claude",
-          analysis_id: "claude-cached",
-          status: "succeeded",
-          reused: true,
-          model: "claude-opus-4-7",
-        },
-      ]),
-    );
-    vi.mocked(api.tradeInsightsAiAnalysis).mockRejectedValueOnce(
-      new Error("API 503 for /ai-analysis: disabled"),
+      enqueueResp([queuedStub("deepseek", "deepseek-hung")]),
     );
     vi.mocked(api.tradeInsightsAiAnalysisStatus).mockReturnValueOnce(
-      codexStatus.promise,
+      deepseekStatus.promise,
     );
     vi.mocked(api.tradeInsightsAiAnalysisLatest)
       .mockResolvedValueOnce(EMPTY_PAIR)
       .mockResolvedValueOnce(EMPTY_PAIR)
-      .mockResolvedValueOnce({ ...EMPTY_PAIR, codex: codexSucceeded });
+      .mockResolvedValueOnce({ ...EMPTY_PAIR, deepseek: deepseekSucceeded });
 
     const { result } = renderHook(() => useAiAnalysisPolling("TSLA"));
     await waitFor(() => expect(result.current.canRun).toBe(true));
@@ -238,29 +199,21 @@ describe("useAiAnalysisPolling", () => {
       await result.current.run(false);
     });
     await waitFor(() => {
-      expect(result.current.pendingIdsForTicker.codex).toBe("codex-hung");
+      expect(result.current.pendingIdsForTicker.deepseek).toBe(
+        "deepseek-hung",
+      );
     });
 
     await act(async () => {
-      await result.current.run(false);
-    });
-    // codex is still pending → rerun targets the other two providers.
-    expect(api.tradeInsightsAiAnalysis).toHaveBeenLastCalledWith(
-      "TSLA",
-      {
-        providers: ["claude", "deepseek"],
-      },
-      "insights",
-    );
-
-    await act(async () => {
-      codexStatus.resolve(codexSucceeded);
-      await codexStatus.promise;
+      deepseekStatus.resolve(deepseekSucceeded);
+      await deepseekStatus.promise;
     });
 
     await waitFor(() => {
-      expect(result.current.latestForTicker.codex?.status).toBe("succeeded");
-      expect(result.current.pendingIdsForTicker.codex).toBeNull();
+      expect(result.current.latestForTicker.deepseek?.status).toBe(
+        "succeeded",
+      );
+      expect(result.current.pendingIdsForTicker.deepseek).toBeNull();
     });
   });
 
