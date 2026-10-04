@@ -134,6 +134,7 @@ jobs:
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           echo "tag=ghcr.io/${OWNER}/${IMAGE_NAME}:${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "cache=ghcr.io/${OWNER}/${IMAGE_NAME}:buildcache" >> "$GITHUB_OUTPUT"
 
       # Push only the immutable version here. Neither matrix leg can move :latest
       # until both legs have succeeded and the promotion job has preflighted them.
@@ -149,8 +150,12 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.verify.outputs.version }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+          # Registry cache, not gha: a gha cache written by tag vX is invisible
+          # to the run for tag vX+1 (Actions scopes caches by ref), so every
+          # release built cold and shipped a new 220 MB .venv layer to the mini.
+          # :buildcache is never deployed; Watchtower follows :latest only.
+          cache-from: type=registry,ref=${{ steps.meta.outputs.cache }}
+          cache-to: type=registry,ref=${{ steps.meta.outputs.cache }},mode=max,image-manifest=true,oci-mediatypes=true
 
       - name: Record build-produced digest
         env:
