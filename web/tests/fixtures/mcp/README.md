@@ -20,3 +20,4 @@ Captured 2026-10-02T09:31Z from the argon FastAPI (main @ 18e25964) over the loc
 
 Do not hand-edit values. To refresh, re-capture all of them together.
 - `grg.json`: `GET /regime/grg`, read from prod through the argon MCP `read` tool on 2026-10-04 (`data_date` 2026-10-02). Trimmed: `history` keeps the last 5 of 190 rows and `events.bottoms` the first 2 of 5 (`events.stats` still describes all 5). Every kept row is unmodified.
+- `aapl_volatility_series.json`: `GET /api/stock/AAPL/volatility/series`, rendered on 2026-10-04 by the API code at main (FastAPI `TestClient`, read-only) over the local `option_wizard_local` DB (`as_of` 2026-10-04). Untrimmed; `hv_iv_history` carries 3 real null `rv` values.
