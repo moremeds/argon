@@ -60,11 +60,6 @@ class AiProviderRunner(Protocol):
     strip_lookaround_regex: bool
     requires_lenient_validation: bool
 
-    # Names of this provider's model-alias and timeout fields on Settings, read
-    # by the orchestrator for the run's model/timeout and the reclaim cut-off.
-    model_setting: str
-    timeout_setting: str
-
     def run(
         self,
         prompt: str,

@@ -139,8 +139,6 @@ class ClaudeRunner:
     schema_strict = False
     strip_lookaround_regex = False
     requires_lenient_validation = True
-    model_setting = "trade_insights_ai_claude_model"
-    timeout_setting = "trade_insights_ai_claude_timeout_seconds"
 
     def run(
         self,

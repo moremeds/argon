@@ -34,8 +34,6 @@ class _FakeCodexRunner:
     schema_strict = True
     strip_lookaround_regex = True
     requires_lenient_validation = False
-    model_setting = "trade_insights_ai_model"
-    timeout_setting = "trade_insights_ai_timeout_seconds"
 
     def __init__(self, side_effect, *, resolved_model: str = "codex-default"):
         self._side_effect = side_effect

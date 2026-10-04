@@ -24,14 +24,3 @@ def test_pinned_provider_uses_its_own_timeout():
 
 def test_any_provider_pool_waits_out_the_longest_timeout():
     assert _reclaim_after_seconds(_SETTINGS, None) == 660
-
-
-def test_every_runner_names_real_settings_fields():
-    # The lookup reads Settings by the runner-declared field names; a typo
-    # would only surface when that provider's first row is claimed.
-    from uw_scan.config import Settings
-    from uw_scan.worker.jobs.trade_insights_ai import RUNNERS
-
-    for runner in RUNNERS.values():
-        assert runner.model_setting in Settings.model_fields, runner.name
-        assert runner.timeout_setting in Settings.model_fields, runner.name

@@ -115,8 +115,6 @@ class DeepSeekRunner:
     schema_strict = True
     strip_lookaround_regex = True
     requires_lenient_validation = False
-    model_setting = "trade_insights_ai_deepseek_model"
-    timeout_setting = "trade_insights_ai_deepseek_timeout_seconds"
 
     def run(
         self,
