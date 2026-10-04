@@ -30,11 +30,11 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
 from datetime import datetime, timedelta
-from math import sqrt
 from statistics import fmean, pstdev
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from uw_scan.backtest.metrics import monthly_summary
 from uw_scan.reports.vrp_macro_drawdown import (
     SIGNAL_LOOKBACK_DAYS,
     _Loaded,
@@ -91,31 +91,6 @@ def size_weight(z: float | None, cfg: MacroSignalConfig = WINNER) -> float:
     if cfg.sizing == "ramp+":
         return min(1.0, max(0.0, z / cfg.ramp_full_z))
     raise ValueError(f"unknown sizing rule {cfg.sizing!r}")
-
-
-def _sharpe_maxdd(monthly: dict) -> tuple[float, float, float]:
-    """Zero-fill the contiguous month span; return (annualized Sharpe, maxDD of the
-    cumulative curve, annualized mean return). ROR excludes the risk-free rate (it is
-    earned on collateral), so monthly ROR is already an excess return."""
-    if not monthly:
-        return float("nan"), 0.0, 0.0
-    yms = sorted(monthly)
-    (y0, m0), (y1, m1) = yms[0], yms[-1]
-    series: list[float] = []
-    y, m = y0, m0
-    while (y, m) <= (y1, m1):
-        series.append(monthly.get((y, m), 0.0))
-        m += 1
-        if m == 13:
-            y, m = y + 1, 1
-    sd = pstdev(series)
-    sharpe = fmean(series) / sd * sqrt(12) if sd > 0 else float("nan")
-    cum = peak = mdd = 0.0
-    for x in series:
-        cum += x
-        peak = max(peak, cum)
-        mdd = min(mdd, cum - peak)
-    return sharpe, mdd, fmean(series) * 12
 
 
 def _cost_model(settings) -> CostModel:
@@ -180,7 +155,8 @@ def backtest_laddered(
         by_month[(exit_date.year, exit_date.month)] += w * ror
         nrung += 1
     monthly = {k: v / max_slots for k, v in by_month.items()}
-    sharpe, maxdd, annror = _sharpe_maxdd(monthly)
+    summary = monthly_summary(monthly)
+    sharpe, maxdd, annror = summary["sharpe"], summary["maxdd"], summary["annror"]
     return {
         "n": nrung,
         "sharpe": sharpe,

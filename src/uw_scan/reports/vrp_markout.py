@@ -19,7 +19,7 @@ from datetime import date as _date
 from datetime import timedelta
 from typing import Any
 
-from uw_scan.backtest.gates import quarter_gate, walkforward_gate
+from uw_scan.backtest.gates import walkforward_gate
 from uw_scan.cards.skew_first_principles import asset_class_baseline
 from uw_scan.reports.vrp_markout_core import (
     apply_split_adjustment,
@@ -162,16 +162,6 @@ HARVEST_THRESHOLD = 0.02  # full-sample floor: 2 vol points; decimal vols (iv/rv
 HOLDOUT_THRESHOLD = (
     0.01  # relaxed holdout floor (~half), mirrors skew's 0.003/0.005 ratio.
 )
-
-
-def _survives_quarter_gate(obs: list[dict], overall_mean: float) -> bool:
-    """Per-calendar-quarter catastrophic-degradation gate (standing rule:
-    feedback_per_regime_catastrophic_gate; mirrors skew_markout's window gate).
-    Fail if ANY quarter's mean realized_VRP reverses the aggregate sign with
-    LARGER magnitude — the aggregate is hiding a sub-window blowup. A near-zero
-    aggregate auto-fails (no stable edge to defend).
-    Canonical implementation: uw_scan.backtest.gates.quarter_gate."""
-    return quarter_gate(obs, overall_mean, value_key="realized_vrp")
 
 
 def _walkforward_harvest(
