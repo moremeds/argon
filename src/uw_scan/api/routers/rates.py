@@ -7,8 +7,8 @@ from datetime import UTC, date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.api.routers.macro import resolve_instant, state_summary_fields
 from uw_scan.config import Settings
+from uw_scan.macro.replay import resolve_instant, state_summary_fields
 from uw_scan.models import (
     MacroStateSummary,
     RatesSnapshotResponse,
