@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import StockLayout from "@/app/stock/[ticker]/layout";
 import TabPage from "@/app/stock/[ticker]/[tab]/page";
 import { api } from "@/lib/api";
+import { ApiError } from "@/lib/apiClient";
 
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
@@ -20,8 +21,10 @@ vi.mock("@/lib/api", () => ({
 }));
 
 function noRunsError(ticker: string) {
-  return new Error(
-    `API 404 for /api/stock/${ticker}: {"detail":"no runs for ${ticker}"}`,
+  return new ApiError(
+    404,
+    `/api/stock/${ticker}`,
+    `{"detail":"no runs for ${ticker}"}`,
   );
 }
 

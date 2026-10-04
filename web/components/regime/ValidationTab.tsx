@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { components } from "@/lib/types";
 import { regimeApi } from "@/lib/regime/api";
+import { apiErrorMessage, apiFetch } from "@/lib/apiClient";
 
 import CanaryValidationPanel from "./CanaryValidationPanel";
 import CriValidationPanel from "./CriValidationPanel";
@@ -36,27 +37,18 @@ export default function ValidationTab() {
     const token = ++reqToken.current;
     const url =
       sub === "cri" ? regimeApi.validation() : regimeApi.vcgValidation();
-    fetch(url)
-      .then(async (r) => {
-        if (r.ok) return r.json();
-        // Surface the API detail string when available — better UX than
-        // "HTTP 503". The detail message points operators at the right
-        // script (e.g. "run scripts/backtest_vcg.py ...").
-        const body = await r.json().catch(() => null);
-        const detail =
-          body && typeof body.detail === "string"
-            ? body.detail
-            : `HTTP ${r.status}`;
-        throw new Error(detail);
-      })
+    // Surface the API detail string when available — better UX than
+    // "HTTP 503". The detail message points operators at the right
+    // script (e.g. "run scripts/backtest_vcg.py ...").
+    apiFetch<CriResp | VcgResp>(url)
       .then((d) => {
         if (cancelled || token !== reqToken.current) return;
-        if (sub === "cri") setCri(d);
-        else setVcg(d);
+        if (sub === "cri") setCri(d as CriResp);
+        else setVcg(d as VcgResp);
       })
       .catch((e: unknown) => {
         if (cancelled || token !== reqToken.current) return;
-        setErr(e instanceof Error ? e.message : String(e));
+        setErr(apiErrorMessage(e));
       });
     return () => {
       cancelled = true;

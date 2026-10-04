@@ -54,27 +54,26 @@ describe("ValidationTab switcher", () => {
     fetchMock.mockImplementation((url: string) => {
       const u = String(url);
       if (u.endsWith("/regime/validation")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => CRI_OK,
-        });
+        return Promise.resolve(
+          new Response(JSON.stringify(CRI_OK), { status: 200 }),
+        );
       }
       if (u.endsWith("/regime/vcg-validation")) {
-        return Promise.resolve({
-          ok: false,
-          status: 503,
-          json: async () => ({
-            detail:
-              "no completed VCG backtest run at the current COMPOSITE_VERSION; run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs",
-          }),
-        });
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              detail:
+                "no completed VCG backtest run at the current COMPOSITE_VERSION; run scripts/backtest_vcg.py to seed uw_scan.regime_backtest_runs",
+            }),
+            { status: 503 },
+          ),
+        );
       }
-      return Promise.resolve({
-        ok: false,
-        status: 500,
-        json: async () => ({ detail: "unexpected url" }),
-      });
+      return Promise.resolve(
+        new Response(JSON.stringify({ detail: "unexpected url" }), {
+          status: 500,
+        }),
+      );
     });
 
     render(<ValidationTab />);
@@ -106,17 +105,13 @@ describe("ValidationTab switcher", () => {
   it("renders VCG panel on happy path", async () => {
     fetchMock.mockImplementation((url: string) => {
       if (String(url).endsWith("/regime/vcg-validation")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => VCG_OK,
-        });
+        return Promise.resolve(
+          new Response(JSON.stringify(VCG_OK), { status: 200 }),
+        );
       }
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => CRI_OK,
-      });
+      return Promise.resolve(
+        new Response(JSON.stringify(CRI_OK), { status: 200 }),
+      );
     });
 
     render(<ValidationTab />);
@@ -141,11 +136,9 @@ describe("ValidationTab switcher", () => {
       const u = String(url);
       if (u.endsWith("/regime/vcg-validation")) return vcgPromise;
       // CRI resolves immediately on both calls.
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => CRI_OK,
-      });
+      return Promise.resolve(
+        new Response(JSON.stringify(CRI_OK), { status: 200 }),
+      );
     });
 
     render(<ValidationTab />);
@@ -171,11 +164,7 @@ describe("ValidationTab switcher", () => {
     // VCG visits would short-circuit with stale data. The stronger
     // assertion: the visible panel must remain the CRI one with no
     // intervening loading/error flicker.
-    resolveVcg({
-      ok: true,
-      status: 200,
-      json: async () => VCG_OK,
-    });
+    resolveVcg(new Response(JSON.stringify(VCG_OK), { status: 200 }));
     // Give the late microtask a chance to fire.
     await new Promise((r) => setTimeout(r, 10));
     expect(screen.queryByText("WARM-STORE BACKTEST")).not.toBeNull();

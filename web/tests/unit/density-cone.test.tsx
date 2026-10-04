@@ -89,7 +89,11 @@ const LATEST = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({ ok: true, json: async () => LATEST }),
+    vi
+      .fn()
+      .mockImplementation(
+        async () => new Response(JSON.stringify(LATEST), { status: 200 }),
+      ),
   );
 });
 
@@ -110,13 +114,16 @@ describe("DensityConePanel", () => {
   });
 
   it("shows the fallback warning when fallback_used", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...LATEST,
-        forecast: { ...LATEST.forecast, fallback_used: true, params: null },
-      }),
-    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...LATEST,
+            forecast: { ...LATEST.forecast, fallback_used: true, params: null },
+          }),
+          { status: 200 },
+        ),
+    );
     render(<DensityConePanel />);
     expect(
       await screen.findByText(/EWMA FALLBACK — GJR fit unavailable/),
@@ -141,18 +148,21 @@ describe("DensityConePanel", () => {
   });
 
   it("discloses a dropped wall rather than hiding the gap", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...LATEST,
-        gamma_levels: {
-          ...LATEST.gamma_levels,
-          call_wall: null,
-          source: "gex_snapshots",
-          dropped: ["call_wall"],
-        },
-      }),
-    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...LATEST,
+            gamma_levels: {
+              ...LATEST.gamma_levels,
+              call_wall: null,
+              source: "gex_snapshots",
+              dropped: ["call_wall"],
+            },
+          }),
+          { status: 200 },
+        ),
+    );
     render(<DensityConePanel />);
     const note = await screen.findByTestId("cone-levels-note");
     expect(note.textContent).toContain("call_wall");
@@ -165,17 +175,20 @@ describe("DensityConePanel", () => {
     // UW returned gamma_flip 8156.26 against a ~7490 spot — ~9% out. The API-side
     // distance guard nulls it and names it; the panel must say so rather than simply
     // rendering one fewer line.
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...LATEST,
-        gamma_levels: {
-          ...LATEST.gamma_levels,
-          gamma_flip: null,
-          dropped: ["gamma_flip"],
-        },
-      }),
-    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...LATEST,
+            gamma_levels: {
+              ...LATEST.gamma_levels,
+              gamma_flip: null,
+              dropped: ["gamma_flip"],
+            },
+          }),
+          { status: 200 },
+        ),
+    );
     render(<DensityConePanel />);
     const note = await screen.findByTestId("cone-levels-note");
     expect(note.textContent).toContain("gamma_flip");
@@ -198,29 +211,32 @@ describe("DensityConePanel", () => {
     // The lake sync keeps adding bars whether or not the nightly cone job ran. Those
     // extra sessions must not be handed to the chart — a fan drawn over bars whose
     // outcome is already known reads as a forecast of the past.
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...LATEST,
-        recent_path: [
-          ...LATEST.recent_path,
-          {
-            date: "2026-07-31",
-            close: 7455.2,
-            open: 7440,
-            high: 7460,
-            low: 7435,
-          },
-          {
-            date: "2026-08-03",
-            close: 7461.8,
-            open: 7456,
-            high: 7470,
-            low: 7450,
-          },
-        ],
-      }),
-    });
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...LATEST,
+            recent_path: [
+              ...LATEST.recent_path,
+              {
+                date: "2026-07-31",
+                close: 7455.2,
+                open: 7440,
+                high: 7460,
+                low: 7435,
+              },
+              {
+                date: "2026-08-03",
+                close: 7461.8,
+                open: 7456,
+                high: 7470,
+                low: 7450,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    );
     render(<DensityConePanel />);
     const note = await screen.findByTestId("cone-stale-note");
     expect(note.textContent).toMatch(/2 sessions behind the tape/);
