@@ -66,6 +66,18 @@ Feed: TypeAlias = Callable[
 DEFAULT_POSITIONING_LOOKBACK_DAYS = 120
 
 
+def positioning_window_start(seen_on: date, lookback_days: int) -> date:
+    """The scheduled run's request start: ``seen_on - lookback_days``, floored to a Tuesday.
+
+    The start date goes into the request URL.  A URL that moved daily while the bytes stayed
+    the same raised an artifact identity collision on five days of every week.  Reports are
+    dated Tuesday, so the floored start moves on the same day it drops a report.
+    """
+    raw = seen_on - timedelta(days=lookback_days)
+    # URL changes only when content does, because artifact source_url is immutable per hash.
+    return raw - timedelta(days=(raw.weekday() - 1) % 7)
+
+
 @dataclass(frozen=True)
 class MacroMarketLayerIngestResult:
     status: str
@@ -96,8 +108,8 @@ def macro_market_layer_ingest_job(
 ) -> MacroMarketLayerIngestResult:
     """Fetch supply and positioning from their publishers and persist them as evidence."""
     seen_at = observed_at or datetime.now(UTC)
-    start = positioning_start or (
-        seen_at.date() - timedelta(days=positioning_lookback_days)
+    start = positioning_start or positioning_window_start(
+        seen_at.date(), positioning_lookback_days
     )
     supply_factory = supply_provider_factory or (
         lambda: TreasurySupplyProvider(
