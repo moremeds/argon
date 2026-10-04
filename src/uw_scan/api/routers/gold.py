@@ -18,8 +18,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.routers.macro import resolve_instant
 from uw_scan.cards.regime_gauge import compute_correlation_gauge
+from uw_scan.macro.replay import resolve_instant
 from uw_scan.models import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
