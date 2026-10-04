@@ -1,9 +1,8 @@
-"""Unified backtest harness: engine, splitters, gates, metrics, sweep runner.
+"""Unified backtest harness: splitters, gates, metrics, sweep runner.
 
 Design: docs/superpowers/plans/2026-07-03-backtest-walkforward-harness.md
 """
 
-from uw_scan.backtest.engine import SignalPoint, walk_forward_backtest
 from uw_scan.backtest.gates import quarter_gate, walkforward_gate
 from uw_scan.backtest.metrics import (
     additive_max_drawdown,
@@ -25,8 +24,6 @@ __all__ = [
     "holdout_cut_index",
     "quarter_gate",
     "walkforward_gate",
-    "SignalPoint",
-    "walk_forward_backtest",
     "json_safe",
     "run_sweep",
 ]

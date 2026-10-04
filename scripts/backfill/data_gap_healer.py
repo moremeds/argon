@@ -25,7 +25,8 @@ from datetime import date
 import psycopg
 
 from uw_scan.config import Settings
-from uw_scan.reports.data_gap_healer import REGISTRY, discover_unregistered_tables
+from uw_scan.reports.data_gap_healer import discover_unregistered_tables
+from uw_scan.reports.data_gap_registry import REGISTRY
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
 
@@ -88,16 +89,16 @@ def _print_summary(args, run_id, items, per_dataset, *, header) -> None:
 def _warn_if_spine_degraded(conn, schema: str, start: date, end: date) -> None:
     """Print a loud banner when the reference calendar lost sessions.
 
-    The union in `_calendar_dates` keeps THIS audit correct, but every other
+    The union in `calendar_dates` keeps THIS audit correct, but every other
     report that reads market_tide_sentiment_daily is still blind until the
     reference itself is rebuilt.
     """
-    from uw_scan.reports.data_gap_healer import _REFERENCE_CALENDAR, spine_health
+    from uw_scan.reports.data_gap_healer import REFERENCE_CALENDAR, spine_health
 
     health = spine_health(conn, schema, start, end)
     if not health.missing_from_ref:
         return
-    ref_name = _REFERENCE_CALENDAR[0]
+    ref_name = REFERENCE_CALENDAR[0]
     print(
         f"!! SPINE DEGRADED: {ref_name} is missing "
         f"{len(health.missing_from_ref)} session(s) the SPY witness has: "

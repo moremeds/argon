@@ -13,14 +13,14 @@ import psycopg
 import pytest
 
 from uw_scan.config import Settings
-from uw_scan.reports.data_gap_healer import GapItem
+from uw_scan.reports.data_gap_types import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.worker.jobs.data_gap_healer import (
     HealerBusy,
-    _another_run_active,
     _reap_stale_runs,
     _refresh_targets,
     _single_flight,
+    another_run_active,
     data_gap_healer_job,
 )
 from uw_scan.worker.scheduler import _should_schedule_data_gap_healer
@@ -112,13 +112,13 @@ def _killed_run(
     )
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE data_gap_runs SET started_at = now() - make_interval(hours => %s) "
+            f"UPDATE {gap._schema}.data_gap_runs SET started_at = now() - make_interval(hours => %s) "
             "WHERE id = %s",
             (started_hours_ago, run_id),
         )
         if verified_hours_ago is not None:
             cur.execute(
-                "UPDATE data_gap_items SET verified_at = now() - "
+                f"UPDATE {gap._schema}.data_gap_items SET verified_at = now() - "
                 "make_interval(hours => %s) WHERE run_id = %s",
                 (verified_hours_ago, run_id),
             )
@@ -128,12 +128,12 @@ def _killed_run(
 
 def test_stale_run_is_reaped_and_unwedges_the_guard(seeded_db_empty_cards):
     """The defect this fixes: nothing ever timed out a killed run, so
-    _another_run_active stayed True and the nightly job skipped itself forever."""
+    another_run_active stayed True and the nightly job skipped itself forever."""
     repo = seeded_db_empty_cards
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
     run_id = _killed_run(gap, repo.conn, started_hours_ago=48)
 
-    assert _another_run_active(gap) is True  # wedged
+    assert another_run_active(gap) is True  # wedged
     assert _reap_stale_runs(gap) == [run_id]
 
     run = gap.get_run(run_id)
@@ -142,7 +142,7 @@ def test_stale_run_is_reaped_and_unwedges_the_guard(seeded_db_empty_cards):
     assert "cancelled_reason" in run["summary_jsonb"]
     # the orphaned item is claimable again
     assert gap.count_items_by_status(run_id) == {"planned": 1}
-    assert _another_run_active(gap) is False
+    assert another_run_active(gap) is False
 
 
 def test_reaping_never_rolls_back_a_verdict(seeded_db_empty_cards):

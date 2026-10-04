@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from uw_scan.reports.data_gap_healer import BY_DESIGN_AUDIT_MODES, REGISTRY
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import BY_DESIGN_AUDIT_MODES
 
 
 def test_every_dataset_is_dispositioned() -> None:

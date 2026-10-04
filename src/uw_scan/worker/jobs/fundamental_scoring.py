@@ -76,7 +76,7 @@ CURRENT_VINTAGE_POLICY = "current_vintage"
 log = logging.getLogger(__name__)
 
 
-def _knowledge_date(per: dict[str, Any], period: str) -> tuple[date, bool]:
+def knowledge_date(per: dict[str, Any], period: str) -> tuple[date, bool]:
     """(knowledge date, whether it came from a real filing_date).
 
     The fallback is recorded rather than hidden. It errs EARLY for late filers,
@@ -117,7 +117,7 @@ def _build_buckets(
     competing.
 
     A period whose knowledge date has not ARRIVED is withheld. When a filer's
-    real filing date is still unknown, `_knowledge_date` estimates `period_end +
+    real filing date is still unknown, `knowledge_date` estimates `period_end +
     FALLBACK_LAG_DAYS`, and for a fresh quarter that estimate lands in the
     future — the name simply is not public yet. Admitting it breaks two things
     at once: it contributes to every other name's z-score using figures the
@@ -133,7 +133,7 @@ def _build_buckets(
     for ticker, per_period in feats.items():
         per = panel_raw[ticker]
         for period, values in per_period.items():
-            know, known = _knowledge_date(per, period)
+            know, known = knowledge_date(per, period)
             if availability_wins:
                 # A restated version became knowable when IT was published, not
                 # when the period's ORIGINAL filing was. Bucketing a 2023
