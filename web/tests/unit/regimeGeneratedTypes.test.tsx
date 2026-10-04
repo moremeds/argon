@@ -90,8 +90,8 @@ describe("I-103b markup snapshots (real SPX GEX and market-tide payloads)", () =
       "TideSentimentBanner",
       () => <TideSentimentBanner sentiment={tide.sentiment ?? null} />,
     ],
-    ["GexSubTab", () => <GexSubTab marketState={null} />],
-    ["MarketTideSubTab", () => <MarketTideSubTab marketState={null} />],
+    ["GexSubTab", () => <GexSubTab />],
+    ["MarketTideSubTab", () => <MarketTideSubTab />],
   ])("%s", (_name, el) => {
     expect(renderToStaticMarkup(el())).toMatchSnapshot();
   });

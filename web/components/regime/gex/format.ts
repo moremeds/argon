@@ -15,7 +15,7 @@ export function fmtPrice(v: number | null | undefined): string {
   });
 }
 
-export function biasColor(direction: string): string {
+export function biasColor(direction: string | null | undefined): string {
   switch (direction) {
     case "BULL":
       return "var(--signal-core)";

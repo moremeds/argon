@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import {
   useGex,
   type GexBucket,
+  type GexData,
   type GexLevel,
   type MqLevels,
   type SourceDelta,
@@ -115,7 +116,7 @@ function LevelCard({
   labelColor,
 }: {
   label: string;
-  level: GexLevel;
+  level: GexLevel | undefined;
   labelColor?: string;
 }) {
   if (!level) {
@@ -240,8 +241,10 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
     );
   }
 
-  const { bias, levels } = data;
-  const daysAbove = bias.days_above_flip;
+  // Type-only: the API always sends bias/levels (default_factory).
+  const { bias, levels } = data as GexData &
+    Required<Pick<GexData, "bias" | "levels">>;
+  const daysAbove = bias.days_above_flip as number;
   const daysSide = daysAbove > 0 ? "ABOVE" : daysAbove < 0 ? "BELOW" : "AT";
   const daysCount = Math.abs(daysAbove);
   // Freshness pill anchor: when the live splice is active, anchor on the
@@ -264,8 +267,10 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
     liveSpot,
   );
 
-  const netGexColor = data.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)";
-  const netDexColor = data.net_dex >= 0 ? "var(--signal-core)" : "var(--fault)";
+  const netGexColor =
+    data.net_gex! >= 0 ? "var(--signal-core)" : "var(--fault)";
+  const netDexColor =
+    data.net_dex! >= 0 ? "var(--signal-core)" : "var(--fault)";
 
   return (
     <div className="section gex-panel">
@@ -403,13 +408,13 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             sub={
               data.iv?.iv_rank != null
                 ? `rank ${data.iv.iv_rank.toFixed(0)}%${data.iv.hv30 != null ? `  HV ${(data.iv.hv30 * 100).toFixed(1)}%` : ""}`
-                : data.expected_range.iv_1d != null
-                  ? `±${data.expected_range.iv_1d.toFixed(2)}% 1d`
+                : data.expected_range!.iv_1d != null
+                  ? `±${data.expected_range!.iv_1d.toFixed(2)}% 1d`
                   : undefined
             }
             badge={
               data.iv?.source ? (
-                <SourceBadge source={data.iv.source} />
+                <SourceBadge source={data.iv.source as "uw" | "mq" | "both"} />
               ) : undefined
             }
           />
@@ -474,24 +479,26 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
               className="gex-bias-direction"
               style={{ color: biasColor(bias.direction) }}
             >
-              {biasLabel(bias.direction)}
-              {bias.direction.includes("BULL") ? (
+              {biasLabel(bias.direction!)}
+              {bias.direction!.includes("BULL") ? (
                 <TrendingUp size={24} style={{ marginLeft: 8 }} />
-              ) : bias.direction.includes("BEAR") ? (
+              ) : bias.direction!.includes("BEAR") ? (
                 <TrendingDown size={24} style={{ marginLeft: 8 }} />
               ) : null}
             </div>
             <div className="gex-bias-reasons">
-              {bias.reasons.map((r, i) => (
+              {(bias.reasons ?? []).map((r, i) => (
                 <div key={i} className="gex-bias-reason">
                   {r}
                 </div>
               ))}
             </div>
-            {bias.flip_migration.length > 1 && (
+            {(bias.flip_migration ?? []).length > 1 && (
               <div className="gex-flip-migration">
                 Flip migration:{" "}
-                {bias.flip_migration.map((f) => fmtPrice(f.flip)).join(" → ")}
+                {(bias.flip_migration ?? [])
+                  .map((f) => fmtPrice(f.flip))
+                  .join(" → ")}
               </div>
             )}
           </div>
@@ -502,16 +509,16 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <MacroShortVolEntryGuidance />
 
         {/* ── GEX Profile Chart ── */}
-        <GexCurvatureChart profile={liveProfile} spot={displaySpot} />
+        <GexCurvatureChart profile={liveProfile} spot={displaySpot!} />
 
         {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
         <GexIntradayChart data={intraday} ticker={data.ticker} />
 
         {/* ── 90-day Daily History Chart (net_gex / flip / spot) ── */}
-        <HistoryChart history={data.history} ticker={data.ticker} />
+        <HistoryChart history={data.history ?? []} ticker={data.ticker} />
 
         {/* ── History Table ── */}
-        <GexHistoryTable history={data.history} />
+        <GexHistoryTable history={data.history ?? []} />
       </div>
     </div>
   );

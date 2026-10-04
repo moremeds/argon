@@ -104,7 +104,7 @@ export function GexHistoryTable({ history }: { history: GexHistoryEntry[] }) {
                     className="text-right"
                     style={{
                       color:
-                        row.net_gex >= 0
+                        row.net_gex! >= 0
                           ? "var(--signal-core)"
                           : "var(--fault)",
                     }}

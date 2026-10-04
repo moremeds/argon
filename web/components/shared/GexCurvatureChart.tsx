@@ -43,23 +43,23 @@ export function curvatureField(buckets: GexBucket[]): (number | null)[] {
 
   const gaps: number[] = [];
   for (let i = 1; i < n; i++)
-    gaps.push(buckets[i].strike - buckets[i - 1].strike);
+    gaps.push(buckets[i].strike! - buckets[i - 1].strike!);
   const sorted = [...gaps].sort((a, b) => a - b);
   const hBar = sorted[Math.floor(sorted.length / 2)] || 1;
-  const maxAbs = Math.max(...buckets.map((b) => Math.abs(b.net_gex)), 1);
+  const maxAbs = Math.max(...buckets.map((b) => Math.abs(b.net_gex!)), 1);
   const scale = (hBar * hBar) / maxAbs;
 
   const out: (number | null)[] = new Array(n).fill(null);
   for (let i = 1; i < n - 1; i++) {
-    const h1 = buckets[i].strike - buckets[i - 1].strike;
-    const h2 = buckets[i + 1].strike - buckets[i].strike;
+    const h1 = buckets[i].strike! - buckets[i - 1].strike!;
+    const h2 = buckets[i + 1].strike! - buckets[i].strike!;
     const denom = h1 * h2 * (h1 + h2);
     if (denom === 0) continue;
     const d2 =
       (2 *
-        (h2 * buckets[i - 1].net_gex -
-          (h1 + h2) * buckets[i].net_gex +
-          h1 * buckets[i + 1].net_gex)) /
+        (h2 * buckets[i - 1].net_gex! -
+          (h1 + h2) * buckets[i].net_gex! +
+          h1 * buckets[i + 1].net_gex!)) /
       denom;
     out[i] = d2 * scale;
   }
@@ -101,16 +101,16 @@ export default function GexCurvatureChart({
     // a data point, and would dent the line and the curvature stencil.
     const buckets = profile
       .filter((b) => b.tag !== "SPOT")
-      .sort((a, b) => a.strike - b.strike);
+      .sort((a, b) => a.strike! - b.strike!);
     if (buckets.length < 2) return null;
 
-    const maxAbs = Math.max(...buckets.map((b) => Math.abs(b.net_gex)), 1);
+    const maxAbs = Math.max(...buckets.map((b) => Math.abs(b.net_gex!)), 1);
     const x = linearScale(
-      [buckets[0].strike, buckets[buckets.length - 1].strike],
+      [buckets[0].strike!, buckets[buckets.length - 1].strike!],
       [PAD.left, PAD.left + PLOT_W],
     );
     const y = linearScale([-maxAbs, maxAbs], [PAD.top + PLOT_H, PAD.top]);
-    const points: Point[] = buckets.map((b) => [x(b.strike), y(b.net_gex)]);
+    const points: Point[] = buckets.map((b) => [x(b.strike!), y(b.net_gex!)]);
     const flipStrike =
       buckets.find((b) => b.tag === "GEX FLIP")?.strike ?? null;
 
@@ -150,7 +150,7 @@ export default function GexCurvatureChart({
   // Readout defaults to the strike nearest spot when the pointer is away.
   const spotIdx = buckets.reduce(
     (best, b, i) =>
-      Math.abs(b.strike - spot) < Math.abs(buckets[best].strike - spot)
+      Math.abs(b.strike! - spot) < Math.abs(buckets[best].strike! - spot)
         ? i
         : best,
     0,
@@ -230,14 +230,14 @@ export default function GexCurvatureChart({
         <span>
           STRIKE{" "}
           <span style={{ color: "var(--text-primary)" }}>
-            {read.strike.toLocaleString()}
+            {read.strike!.toLocaleString()}
           </span>
         </span>
         <span>
           NET GEX{" "}
           <span
             style={{
-              color: read.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)",
+              color: read.net_gex! >= 0 ? "var(--signal-core)" : "var(--fault)",
             }}
           >
             {fmtGex(read.net_gex)}
@@ -384,7 +384,7 @@ export default function GexCurvatureChart({
           return buckets.map((b, i) => {
             const marker = b.tag ? TAG_MARKER[b.tag] : undefined;
             if (!marker) return null;
-            const cx = x(b.strike);
+            const cx = x(b.strike!);
             const base = PAD.top + PLOT_H;
             const labelY = base + (row++ % 2 === 0 ? 30 : 44);
             return (
