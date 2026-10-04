@@ -18,7 +18,6 @@ from __future__ import annotations
 import logging
 from datetime import date
 
-import psycopg
 from fastapi import APIRouter, Depends, Query
 
 from uw_scan.api.deps import get_repo, get_settings
@@ -40,6 +39,7 @@ from uw_scan.models import (
 from uw_scan.storage.fundamental_dimensions import FundamentalDimensionsRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+from uw_scan.storage.radar import ResearchRadarRepository
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 
 log = logging.getLogger(__name__)
@@ -75,16 +75,6 @@ def _dimension(row: dict) -> RadarDimension:
     )
 
 
-def _has_statements(conn: psycopg.Connection, schema: str, ticker: str) -> bool:
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""SELECT 1 FROM {schema}.fundamental_statement_obs
-                 WHERE ticker = %s LIMIT 1""",
-            (ticker.upper(),),
-        )
-        return cur.fetchone() is not None
-
-
 @router.get(
     "/stock/{ticker}/fundamentals/dimensions",
     response_model=CompanyDimensionsResponse,
@@ -118,7 +108,7 @@ def company_dimensions(
     if not rows:
         # The distinction that matters: is this a gap in ARGON or a fact about
         # the company? Answering both with an empty list makes the second claim.
-        if not _has_statements(conn, schema, symbol):
+        if not ResearchRadarRepository(conn, schema=schema).has_statements(symbol):
             return CompanyDimensionsResponse(
                 ticker=symbol,
                 state="no_coverage",
@@ -139,7 +129,9 @@ def company_dimensions(
     return CompanyDimensionsResponse(
         ticker=symbol,
         state="stale_run" if age > STALE_DAYS else "ok",
-        dimensions=[_dimension(r) for r in sorted(rows.values(), key=lambda r: r["dimension"])],
+        dimensions=[
+            _dimension(r) for r in sorted(rows.values(), key=lambda r: r["dimension"])
+        ],
         run=FundamentalRunRef(
             run_id=None,
             engine_version=engine,
@@ -207,54 +199,43 @@ def radar(
             reason="no active method version is seeded",
         )
 
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""SELECT count(*) FROM {schema}.fundamental_universe
-                 WHERE tier = %s AND removed_at IS NULL""",
-            (tier,),
-        )
-        scope.names = int(cur.fetchone()[0])
+    radar_repo = ResearchRadarRepository(conn, schema=schema)
+    scope.names = radar_repo.tier_size(tier)
 
-        # Newest as_of per (ticker, dimension) under this engine, restricted to
-        # the tier. DISTINCT ON rather than a window function: one index scan,
-        # and the ordering is the same one the index already provides.
-        cur.execute(
-            f"""
-            SELECT DISTINCT ON (d.ticker, d.dimension)
-                   d.ticker, d.dimension, d.value, d.inputs_present,
-                   d.inputs_expected, d.authority, d.detail_jsonb, d.as_of,
-                   t.company_type
-              FROM {schema}.fundamental_dimensions d
-              JOIN {schema}.fundamental_universe u
-                ON u.ticker = d.ticker AND u.tier = %s AND u.removed_at IS NULL
-              LEFT JOIN {schema}.fundamental_company_type t ON t.ticker = d.ticker
-             WHERE d.engine_version = %s
-             ORDER BY d.ticker, d.dimension, d.as_of DESC
-            """,
-            (tier, engine),
+    # Newest as_of per (ticker, dimension) under this engine, restricted to
+    # the tier.
+    by_ticker: dict[str, dict] = {}
+    for (
+        tkr,
+        dim,
+        value,
+        present,
+        expected,
+        authority,
+        detail,
+        as_of,
+        ctype,
+    ) in radar_repo.latest_tier_dimensions(tier, engine):
+        entry = by_ticker.setdefault(
+            tkr, {"company_type": ctype, "as_of": as_of, "dims": {}}
         )
-        by_ticker: dict[str, dict] = {}
-        for (
-            tkr, dim, value, present, expected, authority, detail, as_of, ctype,
-        ) in cur.fetchall():
-            entry = by_ticker.setdefault(
-                tkr, {"company_type": ctype, "as_of": as_of, "dims": {}}
-            )
-            entry["dims"][dim] = {
-                "dimension": dim,
-                "value": value,
-                "inputs_present": present,
-                "inputs_expected": expected,
-                "authority": authority,
-                "detail_jsonb": detail or {},
-            }
-            entry["as_of"] = max(entry["as_of"], as_of)
+        entry["dims"][dim] = {
+            "dimension": dim,
+            "value": value,
+            "inputs_present": present,
+            "inputs_expected": expected,
+            "authority": authority,
+            "detail_jsonb": detail or {},
+        }
+        entry["as_of"] = max(entry["as_of"], as_of)
 
     rows: list[RadarRow] = []
     for tkr, entry in by_ticker.items():
         dims = entry["dims"]
         priority = dims.get("priority")
-        present = [d for d in AGGREGATE_DIMENSIONS if dims.get(d, {}).get("value") is not None]
+        present = [
+            d for d in AGGREGATE_DIMENSIONS if dims.get(d, {}).get("value") is not None
+        ]
         if len(present) < min_dimensions:
             continue
         evidence = dims.get("evidence_quality", {})
@@ -361,9 +342,10 @@ def chain_matrix(
     schema = settings.db_schema
     tax = ResearchTaxonomyRepository(conn, schema=schema)
     version = taxonomy_version or tax.active_version()
-    engine = engine_version or FundamentalScoresRepository(
-        conn, schema=schema
-    ).active_version()
+    engine = (
+        engine_version
+        or FundamentalScoresRepository(conn, schema=schema).active_version()
+    )
 
     if version is None:
         return ChainMatrixResponse(
@@ -375,44 +357,9 @@ def chain_matrix(
             prohibited=CHAIN_PROHIBITED,
         )
 
-    params: list[object] = [engine, version]
-    domain_clause = ""
-    if domain:
-        domain_clause = " AND c.domain = %s"
-        params.append(domain)
-
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""
-            WITH latest AS (
-                SELECT DISTINCT ON (ticker) ticker, value
-                  FROM {schema}.fundamental_dimensions
-                 WHERE engine_version = %s AND dimension = 'priority'
-                 ORDER BY ticker, as_of DESC
-            )
-            SELECT c.domain, c.chain, c.layer, c.layer_rank,
-                   count(m.membership_id)                              AS members,
-                   count(l.ticker)                                     AS with_result,
-                   avg(l.value)                                        AS priority_mean,
-                   count(DISTINCT e.ticker) FILTER
-                        (WHERE e.magnitude IS NOT NULL)                AS with_magnitude
-              FROM {schema}.research_chains c
-              LEFT JOIN {schema}.chain_membership m
-                     ON m.taxonomy_version = c.taxonomy_version
-                    AND m.chain = c.chain AND m.layer = c.layer
-                    AND m.valid_to IS NULL
-              LEFT JOIN latest l ON l.ticker = m.ticker
-              LEFT JOIN {schema}.company_exposure e
-                     ON e.taxonomy_version = m.taxonomy_version
-                    AND e.chain = m.chain AND e.ticker = m.ticker
-                    AND e.valid_to IS NULL
-             WHERE c.taxonomy_version = %s{domain_clause}
-             GROUP BY c.domain, c.chain, c.layer, c.layer_rank
-             ORDER BY c.domain, c.chain, c.layer_rank, c.layer
-            """,
-            params,
-        )
-        rows = cur.fetchall()
+    rows = ResearchRadarRepository(conn, schema=schema).chain_matrix_cells(
+        engine, version, domain
+    )
 
     cells: list[ChainCell] = []
     for dom, chain, layer, rank, members, with_result, mean, with_mag in rows:
@@ -466,9 +413,10 @@ def chain_members(
     schema = settings.db_schema
     tax = ResearchTaxonomyRepository(conn, schema=schema)
     version = taxonomy_version or tax.active_version()
-    engine = engine_version or FundamentalScoresRepository(
-        conn, schema=schema
-    ).active_version()
+    engine = (
+        engine_version
+        or FundamentalScoresRepository(conn, schema=schema).active_version()
+    )
 
     if version is None:
         return ChainDrilldownResponse(
@@ -480,36 +428,9 @@ def chain_members(
             reason="no active taxonomy version is published",
         )
 
-    where = "m.taxonomy_version = %s AND m.chain = %s AND m.valid_to IS NULL"
-    params: list[object] = [engine, version, chain]
-    if layer:
-        where += " AND m.layer = %s"
-        params.append(layer)
-
-    with conn.cursor() as cur:
-        cur.execute(
-            f"""
-            WITH latest AS (
-                SELECT DISTINCT ON (ticker) ticker, value
-                  FROM {schema}.fundamental_dimensions
-                 WHERE engine_version = %s AND dimension = 'priority'
-                 ORDER BY ticker, as_of DESC
-            )
-            SELECT m.ticker, m.layer, m.evidence_class, m.approved_by,
-                   e.role, e.direction, e.magnitude, e.magnitude_basis,
-                   e.status, e.source_ref, l.value
-              FROM {schema}.chain_membership m
-              LEFT JOIN {schema}.company_exposure e
-                     ON e.taxonomy_version = m.taxonomy_version
-                    AND e.chain = m.chain AND e.ticker = m.ticker
-                    AND e.valid_to IS NULL
-              LEFT JOIN latest l ON l.ticker = m.ticker
-             WHERE {where}
-             ORDER BY m.layer, m.ticker
-            """,
-            params,
-        )
-        rows = cur.fetchall()
+    rows = ResearchRadarRepository(conn, schema=schema).chain_member_rows(
+        engine, version, chain, layer
+    )
 
     members = [
         ChainMember(

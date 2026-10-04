@@ -107,7 +107,7 @@ def test_regime_recovery_window_exceeds_time_to_detect() -> None:
     """A recovery window must outlast realistic time-to-detect, not the
     typical outage. The 2026-07-08 lake freeze ran 13 days; at the old value
     of 7 the first half could never have healed even after repair."""
-    from uw_scan.worker.scheduler import REGIME_RECOVERY_LOOKBACK_DAYS
+    from uw_scan.worker.schedule.regime import REGIME_RECOVERY_LOOKBACK_DAYS
 
     assert REGIME_RECOVERY_LOOKBACK_DAYS >= 21, (
         "lookback is in CALENDAR days; keep >= 21 so a two-week undetected "

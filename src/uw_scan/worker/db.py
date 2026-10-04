@@ -12,7 +12,10 @@ from contextlib import contextmanager
 
 import psycopg
 
+from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
+from uw_scan.sources.uw_budget import limits_from_settings, may_spend, read_snapshot
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 
@@ -39,3 +42,63 @@ def repo_session(settings: Settings) -> Iterator[Repository]:
     """
     with psycopg.connect(settings.db_dsn()) as conn:
         yield Repository(conn, schema=settings.db_schema)
+
+
+@contextmanager
+def external_api_recorder(settings: Settings) -> Iterator[ExternalApiRequestRecorder]:
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
+    try:
+        yield recorder
+    finally:
+        recorder.close()
+
+
+def uw_client(
+    settings: Settings,
+    *,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
+    job_name: str | None = None,
+) -> UwClient:
+    return UwClient(
+        api_key=settings.api_key.get_secret_value(),
+        base_url=settings.base_url,
+        timeout=settings.request_timeout_seconds,
+        telemetry_recorder=telemetry_recorder,
+        job_name=job_name,
+    )
+
+
+def research_budget_ok(settings: Settings, repo) -> bool:
+    """True if a research-pool job may still spend UW budget this tick.
+
+    Deliberately NOT applied to two classes of research job:
+    - ``rescan_tick`` — explicit user-requested rescans keep priority (silently
+      no-op'ing a click is bad UX); they're low-volume and self-limit via UW's
+      429 past the hard account cap anyway.
+    - the post-RTH durable nightly captures (``option_surface_capture``,
+      ``greek_exposure_daily_refresh``, discovery) — they run at 18:30-19:00 ET,
+      after the live RTH scans are done and near the 20:00 ET budget reset, so
+      they don't contend with live; gating them on the shared research ceiling
+      would risk starving high-value durable data. Among the recurring *intraday*
+      research spenders, only ``regime_gex_scan`` (the dominant one, ~4k
+      calls/day) gates here, so RTH research is effectively bounded.
+      ``regime_market_tide_scan`` is deliberately NOT gated: at ~78 calls/day
+      it's too cheap to be worth freezing the whole Market Tide tab when the
+      shared UW key crosses the guard (matches ``regime_top_net_impact_scan``).
+    """
+    if not settings.uw_budget_governor_enabled:
+        return True
+    snap = read_snapshot(repo.conn, settings.db_schema)
+    return may_spend("research", snap, limits_from_settings(settings))
+
+
+def fundamentals_provider(settings: Settings):
+    from uw_scan.sources.massive_fundamentals import MassiveFundamentalsProvider
+
+    if settings.massive_api_key is None:
+        return None
+    return MassiveFundamentalsProvider(
+        api_key=settings.massive_api_key.get_secret_value(),
+        base_url=settings.massive_base_url,
+        timeout=settings.request_timeout_seconds,
+    )

@@ -8,12 +8,9 @@ from pydantic import SecretStr
 from uw_scan.config import Settings
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
-from uw_scan.worker.scheduler import (
-    _rescan_worker_concurrency,
-    _ticker_shard_filter,
-    _worker_groups,
-    _worker_owns_ticker,
-)
+from uw_scan.worker.schedule.roles import _worker_owns_ticker
+from uw_scan.worker.schedule.scan_core import _rescan_worker_concurrency
+from uw_scan.worker.scheduler import _ticker_shard_filter, _worker_groups
 
 
 def _settings(**overrides):

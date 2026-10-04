@@ -10,16 +10,20 @@ from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.worker.market_session import current_market_date
-from uw_scan.worker.scheduler import (
-    RESCAN_WORKER_CONCURRENCY,
-    _ohlc_provider,
-    _record_worker_heartbeat,
+from uw_scan.worker.schedule.macro import (
     _run_rates_fred_ingest,
     _should_schedule_macro_policy_ingest,
-    _should_schedule_pipeline_benchmark,
     _should_schedule_rates_fred_ingest,
-    _should_schedule_skew_swing_greeks,
+)
+from uw_scan.worker.schedule.scan_core import (
+    RESCAN_WORKER_CONCURRENCY,
+    _ohlc_provider,
     _uw_auto_request_allowed,
+)
+from uw_scan.worker.scheduler import (
+    _record_worker_heartbeat,
+    _should_schedule_pipeline_benchmark,
+    _should_schedule_skew_swing_greeks,
     _worker_heartbeat_name,
 )
 
@@ -129,7 +133,7 @@ def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:
         def __init__(self, **kwargs) -> None:
             captured.update(kwargs)
 
-    monkeypatch.setattr("uw_scan.worker.scheduler.MassiveOhlcProvider", FakeProvider)
+    monkeypatch.setattr("uw_scan.worker.schedule.scan_core.MassiveOhlcProvider", FakeProvider)
 
     settings = Settings(
         api_key="uw",
@@ -160,9 +164,9 @@ def test_rates_fred_ingest_helper_uses_unwrapped_key_and_recorder(monkeypatch) -
         kwargs["record_request"]("fred", {"params": {"series_id": "DGS10"}})
 
     monkeypatch.setattr(
-        "uw_scan.worker.scheduler._external_api_recorder", fake_recorder
+        "uw_scan.worker.schedule.macro._external_api_recorder", fake_recorder
     )
-    monkeypatch.setattr("uw_scan.worker.scheduler.rates_fred_ingest_job", fake_job)
+    monkeypatch.setattr("uw_scan.worker.schedule.macro.rates_fred_ingest_job", fake_job)
 
     settings = Settings(api_key="uw", fred_api_key=SecretStr("fred-secret"))
 
@@ -181,7 +185,7 @@ def test_rates_fred_ingest_helper_skips_when_key_missing(monkeypatch) -> None:
     def fake_job(**kwargs) -> None:
         calls.append(kwargs)
 
-    monkeypatch.setattr("uw_scan.worker.scheduler.rates_fred_ingest_job", fake_job)
+    monkeypatch.setattr("uw_scan.worker.schedule.macro.rates_fred_ingest_job", fake_job)
 
     _run_rates_fred_ingest(Settings(api_key="uw", fred_api_key=None))
 
@@ -289,6 +293,7 @@ def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_rang
     production_sources = (
         repo_root / "src/uw_scan/config.py",
         repo_root / "src/uw_scan/worker/scheduler.py",
+        *sorted((repo_root / "src/uw_scan/worker/schedule").glob("*.py")),
     )
 
     offenders = [
@@ -382,7 +387,11 @@ def test_job_listener_records_every_non_tick_success(monkeypatch) -> None:
 def test_tick_job_ids_match_registered_interval_jobs() -> None:
     import uw_scan.worker.scheduler as scheduler
 
-    source = Path(scheduler.__file__).read_text()
+    worker = Path(scheduler.__file__).parent
+    source = "".join(
+        p.read_text()
+        for p in [worker / "scheduler.py", *sorted((worker / "schedule").glob("*.py"))]
+    )
     for job_id in scheduler._TICK_JOB_IDS:
         assert f'id="{job_id}"' in source, job_id
 

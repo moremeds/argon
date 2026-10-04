@@ -17,6 +17,8 @@ import pytest
 import uw_scan.scanners.gex as gex_scanner
 import uw_scan.scanners.grg as grg_scanner
 import uw_scan.worker.jobs.discovery_scan as discovery_mod
+import uw_scan.worker.schedule.regime as regime
+import uw_scan.worker.schedule.scan_core as scan_core
 import uw_scan.worker.scheduler as scheduler
 
 _JOB_IDS = ("regime_gex_scan", "regime_grg_scan", "discovery_scan")
@@ -97,11 +99,14 @@ def jobs(monkeypatch):
 
     monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
-    monkeypatch.setattr(scheduler, "datetime", _WeekdayDatetime)
-    monkeypatch.setattr(scheduler, "_repo", fake_repo)
-    monkeypatch.setattr(scheduler, "_external_api_recorder", fake_recorder)
-    monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _FakeUwClient())
-    monkeypatch.setattr(scheduler, "_research_budget_ok", lambda *a, **k: True)
+    monkeypatch.setattr(regime, "datetime", _WeekdayDatetime)
+    monkeypatch.setattr(scan_core, "_repo", fake_repo)
+    monkeypatch.setattr(regime, "_repo", fake_repo)
+    monkeypatch.setattr(scan_core, "_external_api_recorder", fake_recorder)
+    monkeypatch.setattr(regime, "_external_api_recorder", fake_recorder)
+    monkeypatch.setattr(scan_core, "_uw_client", lambda *a, **k: _FakeUwClient())
+    monkeypatch.setattr(regime, "_uw_client", lambda *a, **k: _FakeUwClient())
+    monkeypatch.setattr(regime, "_research_budget_ok", lambda *a, **k: True)
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
     monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
     monkeypatch.setenv("UW_SCAN_WORKER_COUNT", "1")
