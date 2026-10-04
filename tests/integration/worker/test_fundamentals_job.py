@@ -84,7 +84,7 @@ def test_job_persists_quarters_with_derived_fields(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     target = _first_active_ticker(repo)
     n = fundamentals_refresh_once(
-        repo, _FakeProvider(), ticker_filter=lambda t: t == target
+        repo=repo, provider=_FakeProvider(), ticker_filter=lambda t: t == target
     )
     assert n == 1
 
@@ -116,7 +116,7 @@ def test_corporate_action_summary_only_on_latest_row(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     target = _first_active_ticker(repo)
     fundamentals_refresh_once(
-        repo, _FakeProvider(), ticker_filter=lambda t: t == target
+        repo=repo, provider=_FakeProvider(), ticker_filter=lambda t: t == target
     )
     # an earlier (non-latest) quarter must NOT carry the dividend summary
     with repo._conn.cursor() as cur:
@@ -132,8 +132,8 @@ def test_job_idempotent_on_rerun(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     target = _first_active_ticker(repo)
     shard = lambda t: t == target  # noqa: E731
-    fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard)
-    fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard)
+    fundamentals_refresh_once(repo=repo, provider=_FakeProvider(), ticker_filter=shard)
+    fundamentals_refresh_once(repo=repo, provider=_FakeProvider(), ticker_filter=shard)
     with repo._conn.cursor() as cur:
         cur.execute(
             "SELECT count(*) FROM uw_scan.massive_fundamentals WHERE ticker = %s",
@@ -156,7 +156,12 @@ def test_job_commits_visible_from_a_fresh_connection(
     shard = lambda t: t == target  # noqa: E731
     assert _fetched_at(_migrated_settings, target) is None
 
-    assert fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard) == 1
+    assert (
+        fundamentals_refresh_once(
+            repo=repo, provider=_FakeProvider(), ticker_filter=shard
+        )
+        == 1
+    )
     first = _fetched_at(_migrated_settings, target)
     assert first is not None, "job did not commit — rows died with the connection"
 
@@ -164,7 +169,12 @@ def test_job_commits_visible_from_a_fresh_connection(
     # Compared against the previous DB value rather than a Python timestamp:
     # Postgres now() is transaction_timestamp(), pinned to the transaction's
     # first statement, so it can legitimately predate a wall clock sampled here.
-    assert fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard) == 1
+    assert (
+        fundamentals_refresh_once(
+            repo=repo, provider=_FakeProvider(), ticker_filter=shard
+        )
+        == 1
+    )
     second = _fetched_at(_migrated_settings, target)
     assert second > first
 
@@ -198,7 +208,7 @@ def test_one_ticker_failure_keeps_earlier_tickers(
 
     provider = _FailsOnSecond()
     completed = fundamentals_refresh_once(
-        repo, provider, ticker_filter=lambda t: t in tickers
+        repo=repo, provider=provider, ticker_filter=lambda t: t in tickers
     )
 
     # the failing ticker is skipped, the other two persist
@@ -209,12 +219,14 @@ def test_one_ticker_failure_keeps_earlier_tickers(
 
 
 def test_job_no_provider_is_noop(seeded_db_empty_cards):
-    assert fundamentals_refresh_once(seeded_db_empty_cards, None) == 0
+    assert fundamentals_refresh_once(repo=seeded_db_empty_cards, provider=None) == 0
 
 
 def test_job_skips_outside_shard(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     assert (
-        fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=lambda t: False)
+        fundamentals_refresh_once(
+            repo=repo, provider=_FakeProvider(), ticker_filter=lambda t: False
+        )
         == 0
     )

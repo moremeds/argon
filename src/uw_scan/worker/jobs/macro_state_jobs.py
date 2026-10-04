@@ -71,8 +71,8 @@ class MacroStateJobResult:
 
 
 def macro_inflation_state_job(
-    repo: Repository,
     *,
+    repo: Repository,
     as_of: datetime | None = None,
     computed_at: datetime | None = None,
 ) -> MacroStateJobResult:
@@ -91,8 +91,8 @@ def macro_inflation_state_job(
 
 
 def macro_rates_state_job(
-    repo: Repository,
     *,
+    repo: Repository,
     as_of: datetime | None = None,
     computed_at: datetime | None = None,
 ) -> MacroStateJobResult:
@@ -114,8 +114,8 @@ def macro_rates_state_job(
 
 
 def macro_usd_state_job(
-    repo: Repository,
     *,
+    repo: Repository,
     as_of: datetime | None = None,
     computed_at: datetime | None = None,
 ) -> MacroStateJobResult:
@@ -153,8 +153,8 @@ def macro_usd_state_job(
 
 
 def macro_gold_state_job(
-    repo: Repository,
     *,
+    repo: Repository,
     as_of: datetime | None = None,
     computed_at: datetime | None = None,
 ) -> MacroStateJobResult:

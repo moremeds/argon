@@ -43,7 +43,7 @@ def _seed_state(as_of: datetime = DISINFLATION_AS_OF) -> int:
     _ingest_scenario(settings, _golden_scenario())
     with psycopg.connect(settings.db_dsn()) as conn:
         result = macro_inflation_state_job(
-            Repository(conn, schema="uw_scan"), as_of=as_of
+            repo=Repository(conn, schema="uw_scan"), as_of=as_of
         )
     assert result.status == "ok", result.error_message
     return result.state_id
@@ -107,8 +107,8 @@ class TestReplay:
         later_as_of = DISINFLATION_AS_OF + timedelta(days=2)
         with psycopg.connect(settings.db_dsn()) as conn:
             repo = Repository(conn, schema="uw_scan")
-            first = macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
-            second = macro_inflation_state_job(repo, as_of=later_as_of)
+            first = macro_inflation_state_job(repo=repo, as_of=DISINFLATION_AS_OF)
+            second = macro_inflation_state_job(repo=repo, as_of=later_as_of)
         assert first.state_id != second.state_id
 
         body = client.get(

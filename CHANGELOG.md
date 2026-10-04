@@ -7,6 +7,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Job entries in the macro family take keyword-only arguments (I-52); no behaviour change.** `macro_context_snapshot_job` and the four domain-state jobs (`macro_{inflation,rates,usd,gold}_state_job`) now take `(*, repo, ...)`; the other macro entries were already `(*, dsn, ...)`. These five keep `repo` because their bodies drive `Repository` methods, and moving them to a `dsn` would change who owns the transaction.
+- **Job entries in the fundamentals family take keyword-only arguments (I-52); no behaviour change.** `derive_change_events`, `earnings_reactions_compute`, `implied_move_snapshot` and `fundamentals_desk_rollup` take `(*, conn, ...)`; `fundamentals_refresh_once` takes `(*, repo, provider, ...)` and keeps `repo` for the same transaction-ownership reason as the macro jobs. The healer registry's quoted call shape and the generated `docs/runbooks/data-gap-dataset-policy.md` row follow.
+- **Job entries in the regime family take keyword-only arguments (I-52); no behaviour change.** `refresh_eod_sentiment`, `regime_live_scan_once` and `validate_live_close_vs_lake` take `(*, repo, ...)`; the vol-index and credit-ETF lake syncs take `(*, conn, root, ...)`, keeping the raw connection their lake writes use.
+- **Job entries in the scan-core family take keyword-only arguments (I-52); no behaviour change.** `full_scan_once`, `full_scan_hot_once` and `rescan_tick` take `(*, repo, client, ohlc_provider, ...)` (the `uw_client` parameter is now `client`, matching `positioning_refresh_once` and the other UW jobs); `ohlc_pull_once` takes `(*, repo, provider, lookback_days=40, ...)` and `positioning_refresh_once` `(*, repo, client, ...)`. Every job entry in the macro, fundamentals, regime and scan-core families is now keyword-only; the jobs still in `scheduler.py` and the AI family are not yet.
+
 ## [0.13.20] — 2026-10-04
 
 

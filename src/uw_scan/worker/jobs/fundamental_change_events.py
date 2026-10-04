@@ -550,7 +550,7 @@ def _bucket_flip_events(
 
 
 def derive_change_events(
-    conn: psycopg.Connection, *, as_of: date, schema: str = "uw_scan"
+    *, conn: psycopg.Connection, as_of: date, schema: str = "uw_scan"
 ) -> dict[str, int]:
     """Turn tonight's ingested state into typed delta-rail events. Idempotent
     on each class's identity key — see the module docstring."""

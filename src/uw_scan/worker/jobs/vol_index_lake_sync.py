@@ -28,7 +28,7 @@ from uw_scan.storage.vol_index_repository import VolIndexRepository
 logger = logging.getLogger(__name__)
 
 
-def run_vol_index_lake_sync(conn: Connection, *, root: Path | LakeRoot) -> dict:
+def run_vol_index_lake_sync(*, conn: Connection, root: Path | LakeRoot) -> dict:
     """Sync all symbols under root into uw_scan.vol_index_daily.
 
     Returns a summary dict: {symbols: int, rows: int, gaps_filled: int}.

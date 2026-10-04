@@ -380,7 +380,7 @@ def test_the_job_seeds_the_class_registry_it_needs(conn):
         ]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
 
     # It wrote, rather than raising ValueError("event classes not live").
     assert result["bucket_flip"] == 1
@@ -428,7 +428,7 @@ def test_combined_run_emits_one_of_each_and_is_idempotent(conn):
         ]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["band_entry"] == 1
     assert result["implied_move_shift"] == 1
     assert result["bucket_flip"] == 1
@@ -456,7 +456,7 @@ def test_combined_run_emits_one_of_each_and_is_idempotent(conn):
         (13.1136232997271 + 12.6423544768043) / 2
     )
 
-    rerun = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert rerun == {
         "band_entry": 0,
         "band_exit": 0,
@@ -485,7 +485,7 @@ def test_band_entry_emits_nothing_when_entered_is_none(conn):
         ]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 5, 15), schema="uw_scan")
     assert result["band_entry"] == 0
     assert ResearchEventsRepository(conn, schema="uw_scan").events_for("A") == []
 
@@ -512,7 +512,7 @@ def test_band_exit_fires_when_zone_is_left_and_is_idempotent(conn):
         ]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 6, 1), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 6, 1), schema="uw_scan")
     assert result["band_exit"] == 1
     assert result["band_entry"] == 0
 
@@ -524,7 +524,7 @@ def test_band_exit_fires_when_zone_is_left_and_is_idempotent(conn):
     assert len(events) == 1
     assert events[0]["occurred_at"] == date(2026, 6, 1)
 
-    rerun = derive_change_events(conn, as_of=date(2026, 6, 1), schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=date(2026, 6, 1), schema="uw_scan")
     assert rerun["band_exit"] == 0
 
 
@@ -543,7 +543,7 @@ def test_band_exit_emits_nothing_when_never_in_zone(conn):
             ),
         ]
     )
-    result = derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 5, 15), schema="uw_scan")
     assert result["band_exit"] == 0
     assert result["band_entry"] == 0
 
@@ -563,7 +563,7 @@ def test_band_exit_emits_nothing_when_still_in_zone(conn):
             ),
         ]
     )
-    result = derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 5, 15), schema="uw_scan")
     assert result["band_exit"] == 0
 
 
@@ -610,7 +610,7 @@ def test_implied_move_shift_exact_boundary_fires(conn):
             },
         ]
     )
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["implied_move_shift"] == 1
 
 
@@ -646,7 +646,7 @@ def test_implied_move_shift_just_under_threshold_emits_nothing(conn):
             },
         ]
     )
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["implied_move_shift"] == 0
 
 
@@ -663,7 +663,7 @@ def test_coverage_change_gained_first_statement_and_is_idempotent(conn):
     )
 
     as_of = date(2026, 8, 26)
-    result = derive_change_events(conn, as_of=as_of, schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=as_of, schema="uw_scan")
     assert result["coverage_change"] == 1
 
     events = [
@@ -676,7 +676,7 @@ def test_coverage_change_gained_first_statement_and_is_idempotent(conn):
     assert events[0]["occurred_at"] == date(2026, 5, 21)  # filing_published_at
     assert events[0]["first_known_at"] >= events[0]["occurred_at"]
 
-    rerun = derive_change_events(conn, as_of=as_of, schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=as_of, schema="uw_scan")
     assert rerun["coverage_change"] == 0
 
 
@@ -688,7 +688,7 @@ def test_coverage_change_gained_coverage_needs_no_filing_date(conn):
     FundamentalObsRepository(conn, schema="uw_scan").record_statements(
         [_nvda_statement_row(filing_published_at=None)]
     )
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["coverage_change"] == 1
 
 
@@ -700,7 +700,7 @@ def test_coverage_change_ignores_non_chain_member_tickers(conn):
     FundamentalObsRepository(conn, schema="uw_scan").record_statements(
         [_nvda_statement_row()]
     )
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["coverage_change"] == 0
 
 
@@ -773,7 +773,7 @@ def test_coverage_change_ignores_a_retired_chain_member(conn):
         [_nvda_statement_row()]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["coverage_change"] == 0
 
 
@@ -804,14 +804,14 @@ def test_coverage_change_went_stale_boundary(conn):
 
     at_boundary = old_as_of + timedelta(days=STALE_DAYS)
     assert (
-        derive_change_events(conn, as_of=at_boundary, schema="uw_scan")[
+        derive_change_events(conn=conn, as_of=at_boundary, schema="uw_scan")[
             "coverage_change"
         ]
         == 0
     )
 
     just_past = old_as_of + timedelta(days=STALE_DAYS + 1)
-    result = derive_change_events(conn, as_of=just_past, schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=just_past, schema="uw_scan")
     assert result["coverage_change"] == 1
 
     events = [
@@ -823,7 +823,7 @@ def test_coverage_change_went_stale_boundary(conn):
     assert events[0]["detail_jsonb"]["direction"] == "went_stale"
     assert events[0]["occurred_at"] == old_as_of
 
-    rerun = derive_change_events(conn, as_of=just_past, schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=just_past, schema="uw_scan")
     assert rerun["coverage_change"] == 0
 
 
@@ -858,11 +858,11 @@ def test_coverage_change_went_stale_is_idempotent_at_a_later_as_of(conn):
     )
 
     just_past = old_as_of + timedelta(days=STALE_DAYS + 1)
-    first = derive_change_events(conn, as_of=just_past, schema="uw_scan")
+    first = derive_change_events(conn=conn, as_of=just_past, schema="uw_scan")
     assert first["coverage_change"] == 1
 
     much_later = just_past + timedelta(days=30)
-    rerun = derive_change_events(conn, as_of=much_later, schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=much_later, schema="uw_scan")
     assert rerun["coverage_change"] == 0
 
 
@@ -878,14 +878,14 @@ def test_coverage_change_gained_coverage_survives_a_late_filing_date_backfill(co
     obs = FundamentalObsRepository(conn, schema="uw_scan")
     obs.record_statements([_nvda_statement_row(filing_published_at=None)])
 
-    first = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    first = derive_change_events(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert first["coverage_change"] == 1
 
     # Late back-fill of the real filing date, same content_hash (payload is
     # unchanged) -- occurred_at would recompute to an EARLIER date on a
     # re-derive if this class trusted it as identity.
     obs.record_statements([_nvda_statement_row()])
-    rerun = derive_change_events(conn, as_of=date(2026, 8, 27), schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=date(2026, 8, 27), schema="uw_scan")
     assert rerun["coverage_change"] == 0
 
     events = [
@@ -909,7 +909,7 @@ def test_bucket_flip_first_appearance_is_not_a_flip(conn):
     FundamentalScoresRepository(conn, schema="uw_scan").insert_scores(
         [_score_row(ticker="PLTR", as_of=date(2026, 6, 30), ihash="h1")]
     )
-    result = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 7, 1), schema="uw_scan")
     assert result["bucket_flip"] == 0
 
 
@@ -926,13 +926,13 @@ def test_bucket_flip_fires_only_for_a_strictly_newer_bucket(conn):
             _score_row(ticker="PLTR", as_of=date(2026, 6, 30), ihash="h2"),
         ]
     )
-    first = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    first = derive_change_events(conn=conn, as_of=date(2026, 7, 1), schema="uw_scan")
     assert first["bucket_flip"] == 1
 
     scores.insert_scores(
         [_score_row(ticker="PLTR", as_of=date(2026, 9, 30), ihash="h3")]
     )
-    second = derive_change_events(conn, as_of=date(2026, 10, 1), schema="uw_scan")
+    second = derive_change_events(conn=conn, as_of=date(2026, 10, 1), schema="uw_scan")
     assert second["bucket_flip"] == 1
 
     events = [
@@ -960,7 +960,7 @@ def test_bucket_flip_first_known_at_never_precedes_occurred_at(conn):
             _score_row(ticker="PLTR", as_of=date(2026, 6, 30), ihash="h2"),
         ]
     )
-    result = derive_change_events(conn, as_of=date(2026, 5, 1), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 5, 1), schema="uw_scan")
     assert result["bucket_flip"] == 1
 
     events = [
@@ -1011,7 +1011,7 @@ def test_bucket_flip_scoped_to_active_engine_does_not_collide(conn):
         ]
     )
 
-    result = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    result = derive_change_events(conn=conn, as_of=date(2026, 7, 1), schema="uw_scan")
     assert result["bucket_flip"] == 1  # not 2 -- the retired engine never contributes
 
     events = [
@@ -1037,10 +1037,10 @@ def test_bucket_flip_is_idempotent_at_a_later_as_of(conn):
             _score_row(ticker="ORCL", as_of=date(2026, 6, 30), ihash="orcl2"),
         ]
     )
-    first = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    first = derive_change_events(conn=conn, as_of=date(2026, 7, 1), schema="uw_scan")
     assert first["bucket_flip"] == 1
 
-    rerun = derive_change_events(conn, as_of=date(2026, 8, 15), schema="uw_scan")
+    rerun = derive_change_events(conn=conn, as_of=date(2026, 8, 15), schema="uw_scan")
     assert rerun["bucket_flip"] == 0
 
 
@@ -1077,7 +1077,7 @@ def test_the_gate_binds_the_five_new_classes_with_an_explicit_status(conn):
             ),
         ]
     )
-    derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+    derive_change_events(conn=conn, as_of=date(2026, 5, 15), schema="uw_scan")
 
     with conn.cursor() as cur:
         cur.execute(

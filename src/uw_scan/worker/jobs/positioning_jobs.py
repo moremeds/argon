@@ -32,9 +32,9 @@ def _json_safe(data: dict) -> dict:
 
 
 def positioning_refresh_once(
+    *,
     repo,
     client,
-    *,
     ticker_filter: Callable[[str], bool] | None = None,
 ) -> int:
     completed = 0

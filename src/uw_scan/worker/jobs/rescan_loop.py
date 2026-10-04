@@ -14,7 +14,7 @@ STALE_RUNNING_AFTER = timedelta(minutes=30)
 
 
 def rescan_tick(
-    repo, uw_client, ohlc_provider: OhlcProvider, *, preserve_spot: bool = False
+    *, repo, client, ohlc_provider: OhlcProvider, preserve_spot: bool = False
 ) -> bool:
     """Process one queued rescan. Returns True if a job ran, False if the queue was empty.
 
@@ -33,7 +33,7 @@ def rescan_tick(
     if job is None:
         return False
     try:
-        report = run_single_stock(job.ticker, uw_client, repo)
+        report = run_single_stock(job.ticker, client, repo)
         history = repo.list_daily_ohlc(job.ticker, limit=40)
         intraday = repo.get_intraday_quote(job.ticker)
         prior_pcr = repo.get_pcr_history_30d_ago(

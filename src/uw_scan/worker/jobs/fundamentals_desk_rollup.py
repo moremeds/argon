@@ -108,7 +108,7 @@ def _checks_for(feature: str, violated: dict[str, list[str]]) -> list[str]:
 
 
 def fundamentals_desk_rollup(
-    conn: psycopg.Connection, *, schema: str = "uw_scan", dry_run: bool = False
+    *, conn: psycopg.Connection, schema: str = "uw_scan", dry_run: bool = False
 ) -> dict[str, int]:
     """One row per (ticker, period_end) across the full statement universe.
 
