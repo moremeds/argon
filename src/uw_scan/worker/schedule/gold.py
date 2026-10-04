@@ -12,6 +12,7 @@ from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from uw_scan.config import Settings
+from uw_scan.worker.db import external_api_recorder as _external_api_recorder
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
     gold_etf_holdings_ingest_job,
@@ -29,33 +30,45 @@ logger = logging.getLogger(__name__)
 
 def register(sched: BaseScheduler, settings: Settings) -> None:
     def _gold_fred_ingest() -> None:
-        gold_fred_ingest_job(dsn=settings.db_dsn())
+        with _external_api_recorder(settings) as recorder:
+            gold_fred_ingest_job(
+                dsn=settings.db_dsn(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_spot_ingest() -> None:
         if settings.massive_api_key is None:
             logger.warning("MASSIVE_API_KEY not set; skipping gold_spot_ingest")
             return
-        gold_spot_ingest_job(
-            dsn=settings.db_dsn(),
-            api_key=settings.massive_api_key.get_secret_value(),
-            base_url=settings.massive_base_url,
-        )
+        with _external_api_recorder(settings) as recorder:
+            gold_spot_ingest_job(
+                dsn=settings.db_dsn(),
+                api_key=settings.massive_api_key.get_secret_value(),
+                base_url=settings.massive_base_url,
+                telemetry_recorder=recorder,
+            )
 
     def _gold_gpr_ingest() -> None:
-        gold_gpr_ingest_job(dsn=settings.db_dsn())
+        with _external_api_recorder(settings) as recorder:
+            gold_gpr_ingest_job(
+                dsn=settings.db_dsn(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_etf_holdings_ingest() -> None:
-        gold_etf_holdings_ingest_job(
-            dsn=settings.db_dsn(),
-            uw_api_key=settings.api_key.get_secret_value(),
-            wgc_goldhub_cookie=(
-                settings.wgc_goldhub_cookie.get_secret_value()
-                if settings.wgc_goldhub_cookie is not None
-                else None
-            ),
-            wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
-            rth_tz=settings.rth_tz,
-        )
+        with _external_api_recorder(settings) as recorder:
+            gold_etf_holdings_ingest_job(
+                dsn=settings.db_dsn(),
+                uw_api_key=settings.api_key.get_secret_value(),
+                wgc_goldhub_cookie=(
+                    settings.wgc_goldhub_cookie.get_secret_value()
+                    if settings.wgc_goldhub_cookie is not None
+                    else None
+                ),
+                wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
+                rth_tz=settings.rth_tz,
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_uw_options_ingest() -> None:
         gold_uw_options_ingest_job(
@@ -66,21 +79,31 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         )
 
     def _gold_cftc_cot_ingest() -> None:
-        gold_cftc_cot_ingest_job(dsn=settings.db_dsn())
+        with _external_api_recorder(settings) as recorder:
+            gold_cftc_cot_ingest_job(
+                dsn=settings.db_dsn(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_lbma_vault_ingest() -> None:
-        gold_lbma_vault_ingest_job(dsn=settings.db_dsn())
+        with _external_api_recorder(settings) as recorder:
+            gold_lbma_vault_ingest_job(
+                dsn=settings.db_dsn(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_wgc_cb_ingest() -> None:
-        gold_wgc_cb_ingest_job(
-            dsn=settings.db_dsn(),
-            wgc_goldhub_cookie=(
-                settings.wgc_goldhub_cookie.get_secret_value()
-                if settings.wgc_goldhub_cookie is not None
-                else None
-            ),
-            wgc_workbook_path=settings.wgc_cb_reserves_workbook_path or None,
-        )
+        with _external_api_recorder(settings) as recorder:
+            gold_wgc_cb_ingest_job(
+                dsn=settings.db_dsn(),
+                wgc_goldhub_cookie=(
+                    settings.wgc_goldhub_cookie.get_secret_value()
+                    if settings.wgc_goldhub_cookie is not None
+                    else None
+                ),
+                wgc_workbook_path=settings.wgc_cb_reserves_workbook_path or None,
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _gold_posture_compute() -> None:
         gold_posture_compute_job(dsn=settings.db_dsn())

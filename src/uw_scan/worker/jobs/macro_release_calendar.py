@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 
 from uw_scan.reports.macro_releases import fill_actuals
-from uw_scan.sources.fred import FredProvider
+from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.sources.uw import UwClient, fetch_economic_calendar
 from uw_scan.storage.macro_release_calendar import MacroReleaseCalendarRepository
 from uw_scan.storage.repository import Repository
@@ -19,7 +19,11 @@ _RUN_TICKER = "_MACRO_RELEASES"
 
 
 def macro_release_calendar_capture(
-    repo: Repository, client: UwClient, fred_api_key: str | None
+    repo: Repository,
+    client: UwClient,
+    fred_api_key: str | None,
+    *,
+    record_request: RecordHook | None = None,
 ) -> dict[str, int]:
     """One UW call (current + next week) upserted, then a FRED fill pass over
     every past, unfilled, mapped row. Returns `{"captured": n, "filled": n}`.
@@ -40,7 +44,9 @@ def macro_release_calendar_capture(
     filled = 0
     if fred_api_key:
         with FredProvider(
-            api_key=fred_api_key, job_name="macro_release_calendar"
+            api_key=fred_api_key,
+            job_name="macro_release_calendar",
+            record_request=record_request,
         ) as fred:
             filled = fill_actuals(releases_repo, fred)
     else:
