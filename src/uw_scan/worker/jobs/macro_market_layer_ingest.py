@@ -42,6 +42,7 @@ from uw_scan.macro.rates_market import (
     supply_artifact,
 )
 from uw_scan.models.macro import MacroSourceArtifact
+from uw_scan.sources._http import RecordHook
 from uw_scan.sources.cftc_tff import CftcTffProvider
 from uw_scan.sources.treasury_supply import TreasurySupplyProvider
 from uw_scan.storage.repository import Repository
@@ -91,14 +92,25 @@ def macro_market_layer_ingest_job(
     max_attempts: int = 3,
     backoff_base_seconds: float = 1.0,
     sleep_fn: Callable[[float], None] = time.sleep,
+    record_request: RecordHook | None = None,
 ) -> MacroMarketLayerIngestResult:
     """Fetch supply and positioning from their publishers and persist them as evidence."""
     seen_at = observed_at or datetime.now(UTC)
     start = positioning_start or (
         seen_at.date() - timedelta(days=positioning_lookback_days)
     )
-    supply_factory = supply_provider_factory or TreasurySupplyProvider
-    positioning_factory = positioning_provider_factory or CftcTffProvider
+    supply_factory = supply_provider_factory or (
+        lambda: TreasurySupplyProvider(
+            record_request=record_request,
+            job_name="macro_market_layer_ingest",
+        )
+    )
+    positioning_factory = positioning_provider_factory or (
+        lambda: CftcTffProvider(
+            record_request=record_request,
+            job_name="macro_market_layer_ingest",
+        )
+    )
 
     feeds: list[tuple[str, str, Feed]] = [
         (

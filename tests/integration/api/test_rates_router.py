@@ -324,7 +324,7 @@ def _seed_policy_rates_state(settings: Settings) -> None:
     )
     with psycopg.connect(settings.db_dsn()) as conn:
         result = macro_rates_state_job(
-            Repository(conn, schema=settings.db_schema), as_of=POLICY_AS_OF
+            repo=Repository(conn, schema=settings.db_schema), as_of=POLICY_AS_OF
         )
     assert result.status == "ok", result.error_message
 

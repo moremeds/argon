@@ -92,7 +92,9 @@ def test_job_persists_aggregated_row_for_shard(seeded_db_empty_cards):
     target = _first_active_ticker(repo)
     client = _MultiFakeUwClient()
 
-    n = positioning_refresh_once(repo, client, ticker_filter=lambda t: t == target)
+    n = positioning_refresh_once(
+        repo=repo, client=client, ticker_filter=lambda t: t == target
+    )
     assert n == 1  # only the one shard ticker processed
 
     row = repo.get_uw_positioning(target)
@@ -116,8 +118,8 @@ def test_job_is_idempotent_on_rerun(seeded_db_empty_cards):
     client = _MultiFakeUwClient()
     shard = lambda t: t == target  # noqa: E731
 
-    positioning_refresh_once(repo, client, ticker_filter=shard)
-    positioning_refresh_once(repo, client, ticker_filter=shard)
+    positioning_refresh_once(repo=repo, client=client, ticker_filter=shard)
+    positioning_refresh_once(repo=repo, client=client, ticker_filter=shard)
 
     with repo._conn.cursor() as cur:
         cur.execute(
@@ -130,5 +132,7 @@ def test_job_is_idempotent_on_rerun(seeded_db_empty_cards):
 def test_job_skips_tickers_outside_shard(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     client = _MultiFakeUwClient()
-    n = positioning_refresh_once(repo, client, ticker_filter=lambda t: False)
+    n = positioning_refresh_once(
+        repo=repo, client=client, ticker_filter=lambda t: False
+    )
     assert n == 0

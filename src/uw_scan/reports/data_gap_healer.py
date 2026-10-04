@@ -1422,8 +1422,8 @@ REGISTRY.extend(
             healer_adapter="massive_fundamentals",
             source_system="massive",
             reason=(
-                "worker/jobs/fundamentals_jobs.fundamentals_refresh_once(repo, "
-                "provider) re-pulls the current statement set per watchlist "
+                "worker/jobs/fundamentals_jobs.fundamentals_refresh_once(repo=..., "
+                "provider=...) re-pulls the current statement set per watchlist "
                 "ticker and upserts idempotently."
             ),
             reason_verified_on=date(2026, 8, 16),

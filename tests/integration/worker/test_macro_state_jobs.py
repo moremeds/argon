@@ -348,7 +348,9 @@ class TestInflationStateJob:
         _ingest_scenario(settings, scenario)
 
         with psycopg.connect(settings.db_dsn()) as conn:
-            result = macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
+            result = macro_inflation_state_job(
+                repo=_repo(conn), as_of=DISINFLATION_AS_OF
+            )
 
         expected = scenario["expect"]
         assert result.status == "ok", result.error_message
@@ -364,8 +366,12 @@ class TestInflationStateJob:
         _ingest_scenario(settings, _golden_scenario())
 
         with psycopg.connect(settings.db_dsn()) as conn:
-            first = macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
-            second = macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
+            first = macro_inflation_state_job(
+                repo=_repo(conn), as_of=DISINFLATION_AS_OF
+            )
+            second = macro_inflation_state_job(
+                repo=_repo(conn), as_of=DISINFLATION_AS_OF
+            )
 
         assert first.state_id == second.state_id
         with psycopg.connect(settings.db_dsn()) as conn:
@@ -381,7 +387,9 @@ class TestInflationStateJob:
         _ingest_scenario(settings, _golden_scenario())
 
         with psycopg.connect(settings.db_dsn()) as conn:
-            result = macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
+            result = macro_inflation_state_job(
+                repo=_repo(conn), as_of=DISINFLATION_AS_OF
+            )
             evidence = _repo(conn).fetch_macro_domain_state_evidence(result.state_id)
 
         assert result.evidence_count == len(evidence) == 8 * 16
@@ -394,7 +402,9 @@ class TestInflationStateJob:
     ) -> None:
         settings = _settings()
         with psycopg.connect(settings.db_dsn()) as conn:
-            result = macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
+            result = macro_inflation_state_job(
+                repo=_repo(conn), as_of=DISINFLATION_AS_OF
+            )
             stored = conn.execute(
                 "SELECT count(*) FROM uw_scan.macro_domain_states"
             ).fetchone()[0]
@@ -412,7 +422,7 @@ class TestInflationStateJob:
         scenario = _golden_scenario()
         _ingest_scenario(settings, scenario)
         with psycopg.connect(settings.db_dsn()) as conn:
-            macro_inflation_state_job(_repo(conn), as_of=DISINFLATION_AS_OF)
+            macro_inflation_state_job(repo=_repo(conn), as_of=DISINFLATION_AS_OF)
 
         # The publisher restates the latest core PCE month the prior state stood on.
         history = scenario["observation_history"]["PCEPILFE"]["observations"]
@@ -443,7 +453,7 @@ class TestInflationStateJob:
 
         with psycopg.connect(settings.db_dsn()) as conn:
             later = macro_inflation_state_job(
-                _repo(conn), as_of=datetime(2023, 7, 30, 12, tzinfo=UTC)
+                repo=_repo(conn), as_of=datetime(2023, 7, 30, 12, tzinfo=UTC)
             )
             row = _repo(conn).fetch_macro_domain_state(later.state_id)
 
@@ -478,7 +488,7 @@ class TestRatesStateJob:
         )
 
         with psycopg.connect(settings.db_dsn()) as conn:
-            result = macro_rates_state_job(_repo(conn), as_of=POLICY_AS_OF)
+            result = macro_rates_state_job(repo=_repo(conn), as_of=POLICY_AS_OF)
             evidence = _repo(conn).fetch_macro_domain_state_evidence(result.state_id)
 
         assert result.status == "ok", result.error_message
@@ -497,7 +507,7 @@ class TestRatesStateJob:
         )
 
         with psycopg.connect(settings.db_dsn()) as conn:
-            result = macro_rates_state_job(_repo(conn), as_of=POLICY_AS_OF)
+            result = macro_rates_state_job(repo=_repo(conn), as_of=POLICY_AS_OF)
             evidence = _repo(conn).fetch_macro_domain_state_evidence(result.state_id)
 
         roles = {row["causal_role"] for row in evidence}
@@ -595,7 +605,7 @@ class TestTheThreeDomainPass:
         with psycopg.connect(settings.db_dsn()) as conn:
             repo = _repo(conn)
             results = [
-                job(repo, as_of=self.SHARED_AS_OF)
+                job(repo=repo, as_of=self.SHARED_AS_OF)
                 for job in (
                     macro_inflation_state_job,
                     macro_rates_state_job,
@@ -613,8 +623,8 @@ class TestTheThreeDomainPass:
 
         with psycopg.connect(settings.db_dsn()) as conn:
             repo = _repo(conn)
-            rates = macro_rates_state_job(repo, as_of=self.SHARED_AS_OF)
-            usd = macro_usd_state_job(repo, as_of=self.SHARED_AS_OF)
+            rates = macro_rates_state_job(repo=repo, as_of=self.SHARED_AS_OF)
+            usd = macro_usd_state_job(repo=repo, as_of=self.SHARED_AS_OF)
             deps = repo.fetch_macro_domain_state_dependencies(usd.state_id)
 
         assert rates.status == "ok", rates.error_message
@@ -644,7 +654,7 @@ class TestTheThreeDomainPass:
 
         with psycopg.connect(settings.db_dsn()) as conn:
             repo = _repo(conn)
-            usd = macro_usd_state_job(repo, as_of=self.SHARED_AS_OF)
+            usd = macro_usd_state_job(repo=repo, as_of=self.SHARED_AS_OF)
             deps = repo.fetch_macro_domain_state_dependencies(usd.state_id)
             row = repo.fetch_macro_domain_state(usd.state_id)
 
@@ -679,7 +689,7 @@ class TestTheSchedulerPathPersistsWhatItComputes:
         _ingest_scenario(settings, _golden_scenario())
 
         with scheduler_repo(settings) as repo:
-            result = macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
+            result = macro_inflation_state_job(repo=repo, as_of=DISINFLATION_AS_OF)
         assert result.status == "ok", result.error_message
 
         # A NEW connection: the point is what survived the helper, not what the writing
@@ -715,7 +725,7 @@ class TestTheSchedulerPathPersistsWhatItComputes:
 
         with pytest.raises(RuntimeError, match="deliberate"):
             with scheduler_repo(settings) as repo:
-                macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
+                macro_inflation_state_job(repo=repo, as_of=DISINFLATION_AS_OF)
                 raise RuntimeError("deliberate failure after the write")
 
         with psycopg.connect(settings.db_dsn()) as conn:

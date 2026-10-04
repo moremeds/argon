@@ -120,7 +120,7 @@ def main() -> int:
         for d in _dates(args.start, args.end):
             if args.execute:
                 result = earnings_reactions_compute(
-                    conn,
+                    conn=conn,
                     as_of=d,
                     lookback_days=0,
                     schema=settings.db_schema,

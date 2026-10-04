@@ -194,6 +194,19 @@ class HealSpec:
 # --- real adapters (thin wrappers over production writers) -----------------
 
 
+def _recorder_hook(ctx: HealContext):
+    """The ``record_request`` hook bound to the healer's recorder, or None.
+
+    The healer's recorder fails open (``data_gap_healer._make_recorder``
+    returns None when it cannot connect), so the adapters pass None rather
+    than a hook that would raise on first use.
+    """
+    recorder = ctx.recorder
+    if recorder is None:
+        return None
+    return lambda _provider, event: recorder.record(event)
+
+
 def _run_option_surface(ctx: HealContext, ticker: str, market_date: date) -> int:
     from uw_scan.worker.jobs.option_surface_capture import _build_ticker_rows
 
@@ -216,8 +229,8 @@ def _run_daily_ohlc(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
     provider = ctx.massive_provider()
     lookback = max(1, (ctx.today - lo).days + 2)
     return ohlc_pull_once(
-        ctx.repo,
-        provider,
+        repo=ctx.repo,
+        provider=provider,
         lookback_days=lookback,
         ticker_filter=lambda t: t.upper() == ticker.upper(),
     )
@@ -343,7 +356,7 @@ def _run_volatility_stats(ctx: HealContext, ticker: str, market_date: date) -> i
 def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
 
-    return refresh_eod_sentiment(ctx.repo, sessions=max(1, lookback_days))
+    return refresh_eod_sentiment(repo=ctx.repo, sessions=max(1, lookback_days))
 
 
 # macro/FRED/rates/gold: re-run an idempotent ingest over a lookback window.
@@ -353,7 +366,11 @@ def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
 def _run_macro_fred(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.gold_jobs import gold_fred_ingest_job
 
-    gold_fred_ingest_job(dsn=ctx.settings.db_dsn(), lookback_days=lookback_days)
+    gold_fred_ingest_job(
+        dsn=ctx.settings.db_dsn(),
+        lookback_days=lookback_days,
+        record_request=_recorder_hook(ctx),
+    )
     return 0
 
 
@@ -366,7 +383,10 @@ def _run_rates_fred(ctx: HealContext, lookback_days: int) -> int:
         else None
     )
     rates_fred_ingest_job(
-        dsn=ctx.settings.db_dsn(), fred_api_key=key, lookback_days=lookback_days
+        dsn=ctx.settings.db_dsn(),
+        fred_api_key=key,
+        lookback_days=lookback_days,
+        record_request=_recorder_hook(ctx),
     )
     return 0
 
@@ -389,14 +409,18 @@ def _run_gold_posture(ctx: HealContext) -> int:
 def _run_gold_lbma(ctx: HealContext) -> int:
     from uw_scan.worker.jobs.gold_jobs import gold_lbma_vault_ingest_job
 
-    gold_lbma_vault_ingest_job(dsn=ctx.settings.db_dsn())
+    gold_lbma_vault_ingest_job(
+        dsn=ctx.settings.db_dsn(), record_request=_recorder_hook(ctx)
+    )
     return 0
 
 
 def _run_gold_cot(ctx: HealContext) -> int:
     from uw_scan.worker.jobs.gold_jobs import gold_cftc_cot_ingest_job
 
-    gold_cftc_cot_ingest_job(dsn=ctx.settings.db_dsn())
+    gold_cftc_cot_ingest_job(
+        dsn=ctx.settings.db_dsn(), record_request=_recorder_hook(ctx)
+    )
     return 0
 
 
@@ -494,7 +518,7 @@ def _run_corporate_actions(ctx: HealContext, lookback_days: int) -> int:
 def _run_massive_fundamentals(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 
-    return fundamentals_refresh_once(ctx.repo, ctx.massive_provider())
+    return fundamentals_refresh_once(repo=ctx.repo, provider=ctx.massive_provider())
 
 
 def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:
@@ -528,11 +552,11 @@ def _run_vol_index_lake(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs import credit_etf_lake_sync, vol_index_lake_sync
 
     vol = vol_index_lake_sync.run_vol_index_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="volatility"),
     )
     credit = credit_etf_lake_sync.run_credit_etf_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="equity"),
         symbols=ctx.settings.credit_etf_symbols,
     )
@@ -553,6 +577,7 @@ def _run_index_ohlc(ctx: HealContext, lookback_days: int) -> int:
         repo=ctx.repo,
         api_key=ctx.settings.massive_api_key.get_secret_value(),
         lookback_days=max(2, lookback_days),
+        telemetry_recorder=ctx.recorder,
     )
     return 0
 

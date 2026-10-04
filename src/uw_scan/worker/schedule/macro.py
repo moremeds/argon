@@ -69,7 +69,12 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         _run_rates_fred_ingest(settings)
 
     def _regime_fred_ingest() -> None:
-        regime_fred_ingest_job(dsn=settings.db_dsn(), schema=settings.db_schema)
+        with _external_api_recorder(settings) as recorder:
+            regime_fred_ingest_job(
+                dsn=settings.db_dsn(),
+                schema=settings.db_schema,
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _macro_fomc_ingest() -> None:
         macro_fomc_statement_ingest_job(dsn=settings.db_dsn())
@@ -81,25 +86,34 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         macro_sme_ingest_job(dsn=settings.db_dsn())
 
     def _macro_market_shadow_ingest() -> None:
-        macro_market_implied_ingest_job(
-            dsn=settings.db_dsn(),
-            current_target_range=None,
-            provider_factory=lambda: FedFundsFuturesPathProvider(
-                base_url=settings.rates_policy_path_url
-            ),
-        )
+        with _external_api_recorder(settings) as recorder:
+            macro_market_implied_ingest_job(
+                dsn=settings.db_dsn(),
+                current_target_range=None,
+                provider_factory=lambda: FedFundsFuturesPathProvider(
+                    base_url=settings.rates_policy_path_url,
+                    record_request=lambda _provider, event: recorder.record(event),
+                ),
+            )
 
     def _macro_series_ingest() -> None:
         key = settings.fred_api_key
         if key is None:
             logger.warning("macro series ingest skipped: FRED_API_KEY is not set")
             return
-        macro_fred_series_ingest_job(
-            dsn=settings.db_dsn(), api_key=key.get_secret_value()
-        )
+        with _external_api_recorder(settings) as recorder:
+            macro_fred_series_ingest_job(
+                dsn=settings.db_dsn(),
+                api_key=key.get_secret_value(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
 
     def _macro_market_layer_ingest() -> None:
-        result = macro_market_layer_ingest_job(dsn=settings.db_dsn())
+        with _external_api_recorder(settings) as recorder:
+            result = macro_market_layer_ingest_job(
+                dsn=settings.db_dsn(),
+                record_request=lambda _provider, event: recorder.record(event),
+            )
         logger.info(
             "macro market layer ingest: %s feeds=%d/%d created=%d unchanged=%d%s",
             result.status,
@@ -114,11 +128,13 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         if settings.massive_api_key is None:
             logger.info("macro gold ingest skipped: no massive api key configured")
             return
-        result = macro_gold_ingest_job(
-            dsn=settings.db_dsn(),
-            massive_api_key=settings.massive_api_key.get_secret_value(),
-            schema=settings.db_schema,
-        )
+        with _external_api_recorder(settings) as recorder:
+            result = macro_gold_ingest_job(
+                dsn=settings.db_dsn(),
+                massive_api_key=settings.massive_api_key.get_secret_value(),
+                schema=settings.db_schema,
+                telemetry_recorder=recorder,
+            )
         logger.info(
             "macro gold ingest: %d/%d feeds, %d artifacts, %d created, %d unchanged%s",
             result.feeds_succeeded,
@@ -151,7 +167,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
                 macro_usd_state_job,
                 macro_gold_state_job,
             ):
-                result = job(repo, as_of=instant)
+                result = job(repo=repo, as_of=instant)
                 logger.info(
                     "macro state %s: %s state=%s confidence=%s evidence=%d",
                     result.domain,
@@ -166,7 +182,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
             # rather than anything this pass holds in memory, so tonight's assembly and a
             # replay of a past instant run the identical code.
             macro_context_snapshot_job(
-                repo, as_of=instant, assembled_at=datetime.now(UTC)
+                repo=repo, as_of=instant, assembled_at=datetime.now(UTC)
             )
 
     # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the

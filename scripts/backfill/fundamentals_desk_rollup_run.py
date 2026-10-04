@@ -43,7 +43,7 @@ def main() -> int:
     settings = Settings.from_env()
     with psycopg.connect(settings.db_dsn()) as conn:
         result = fundamentals_desk_rollup(
-            conn, schema=settings.db_schema, dry_run=not args.execute
+            conn=conn, schema=settings.db_schema, dry_run=not args.execute
         )
 
     mode = "executed" if args.execute else "dry-run"

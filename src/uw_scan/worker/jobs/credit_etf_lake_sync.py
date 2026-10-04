@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 def run_credit_etf_lake_sync(
-    conn: Connection,
     *,
+    conn: Connection,
     root: Path | LakeRoot,
     symbols: Sequence[str],
 ) -> dict:

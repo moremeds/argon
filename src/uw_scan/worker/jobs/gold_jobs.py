@@ -38,6 +38,7 @@ import psycopg
 from uw_scan.api.client import UwClient
 from uw_scan.reports.gold_posture import compute_and_persist_gold_posture
 from uw_scan.sources import uw as uw_sources
+from uw_scan.sources._http import RecordHook
 from uw_scan.sources.cftc_cot import CftcCotProvider
 from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 from uw_scan.sources.fred import FredProvider
@@ -50,6 +51,7 @@ from uw_scan.sources.uw_gold_options import (
 )
 from uw_scan.sources.wgc_cb import WgcCbProvider
 from uw_scan.sources.wgc_etf import TROY_OZ_PER_TONNE, WgcEtfProvider
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -100,6 +102,7 @@ def gold_fred_ingest_job(
     series_ids: list[str] | None = None,
     lookback_days: int = 45,
     monthly_lookback_days: int = 400,
+    record_request: RecordHook | None = None,
 ) -> None:
     """FRED refresh. Schedule: 17:00 ET daily with the default 45-day window.
 
@@ -110,7 +113,10 @@ def gold_fred_ingest_job(
     monthly_ids = FRED_SERIES_MONTHLY
     now = datetime.now(UTC)
     failures: list[str] = []
-    with psycopg.connect(dsn) as conn, FredProvider() as fred:
+    with (
+        psycopg.connect(dsn) as conn,
+        FredProvider(record_request=record_request) as fred,
+    ):
         repo = Repository(conn, schema="uw_scan")
         for sid in ids:
             stored_sid = FRED_SERIES_ALIASES.get(sid, sid)
@@ -155,14 +161,22 @@ def gold_fred_ingest_job(
     _raise_if_failed("gold_fred_ingest", failures)
 
 
-def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
+def gold_gpr_ingest_job(
+    *,
+    dsn: str,
+    lookback_days: int = 45,
+    record_request: RecordHook | None = None,
+) -> None:
     """GPR refresh. Schedule: 18:35 ET Mon-Fri with the default 45-day window.
 
     Warmup CLI overrides lookback_days for the initial backfill. Idempotent
     via ON CONFLICT."""
     now = datetime.now(UTC)
     failures: list[str] = []
-    with psycopg.connect(dsn) as conn, GprProvider() as gpr:
+    with (
+        psycopg.connect(dsn) as conn,
+        GprProvider(record_request=record_request) as gpr,
+    ):
         repo = Repository(conn, schema="uw_scan")
         try:
             rows = [
@@ -194,6 +208,7 @@ def gold_etf_holdings_ingest_job(
     lookback_days: int = 45,
     holdings_lookback_days: int = 400,
     rth_tz: str = "America/New_York",
+    record_request: RecordHook | None = None,
 ) -> None:
     """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET.
 
@@ -207,7 +222,10 @@ def gold_etf_holdings_ingest_job(
     today_et = datetime.now(ZoneInfo(rth_tz)).date()
     holdings_start = today_et - timedelta(days=holdings_lookback_days)
     failures: list[str] = []
-    with psycopg.connect(dsn) as conn, EtfHoldingsProvider() as etf:
+    with (
+        psycopg.connect(dsn) as conn,
+        EtfHoldingsProvider(record_request=record_request) as etf,
+    ):
         repo = Repository(conn, schema="uw_scan")
         for ticker, fetch_fn, source in [
             ("GLD", etf.fetch_gld, "SPDR"),
@@ -235,7 +253,10 @@ def gold_etf_holdings_ingest_job(
                 failures.append(f"{ticker}: {repr(exc)[:200]}")
         if wgc_goldhub_cookie or wgc_workbook_path:
             try:
-                with WgcEtfProvider(cookie_header=wgc_goldhub_cookie) as wgc:
+                with WgcEtfProvider(
+                    cookie_header=wgc_goldhub_cookie,
+                    record_request=record_request,
+                ) as wgc:
                     if wgc_workbook_path:
                         monthly_rows = []
                         for workbook_path in _wgc_workbook_paths(wgc_workbook_path):
@@ -353,6 +374,7 @@ def gold_spot_ingest_job(
     ticker: str = GOLD_SPOT_TICKER,
     series_id: str = GOLD_SPOT_SERIES_ID,
     lookback_days: int = 400,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
 ) -> None:
     """Daily gold-spot ingest via massive OHLC. Schedule: 17:05 ET.
 
@@ -368,7 +390,12 @@ def gold_spot_ingest_job(
     failures: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
-        MassiveOhlcProvider(api_key=api_key, base_url=base_url, timeout=60.0) as ohlc,
+        MassiveOhlcProvider(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=60.0,
+            telemetry_recorder=telemetry_recorder,
+        ) as ohlc,
     ):
         repo = Repository(conn, schema="uw_scan")
         try:
@@ -465,11 +492,18 @@ def gold_uw_options_ingest_job(
 # --- Weekly + monthly jobs ----------------------------------------------------
 
 
-def gold_cftc_cot_ingest_job(*, dsn: str) -> None:
+def gold_cftc_cot_ingest_job(
+    *,
+    dsn: str,
+    record_request: RecordHook | None = None,
+) -> None:
     """Weekly CFTC COT (Friday after release)."""
     now = datetime.now(UTC)
     failures: list[str] = []
-    with psycopg.connect(dsn) as conn, CftcCotProvider() as cot:
+    with (
+        psycopg.connect(dsn) as conn,
+        CftcCotProvider(record_request=record_request) as cot,
+    ):
         repo = Repository(conn, schema="uw_scan")
         try:
             for row in cot.fetch_weekly(start=date.today() - timedelta(days=400)):
@@ -493,11 +527,18 @@ def gold_cftc_cot_ingest_job(*, dsn: str) -> None:
     _raise_if_failed("gold_cftc_cot_ingest", failures)
 
 
-def gold_lbma_vault_ingest_job(*, dsn: str) -> None:
+def gold_lbma_vault_ingest_job(
+    *,
+    dsn: str,
+    record_request: RecordHook | None = None,
+) -> None:
     """Monthly LBMA vault (6th business day of month)."""
     now = datetime.now(UTC)
     failures: list[str] = []
-    with psycopg.connect(dsn) as conn, LbmaProvider() as lbma:
+    with (
+        psycopg.connect(dsn) as conn,
+        LbmaProvider(record_request=record_request) as lbma,
+    ):
         repo = Repository(conn, schema="uw_scan")
         try:
             for row in lbma.fetch_monthly(start=date.today() - timedelta(days=400)):
@@ -523,6 +564,7 @@ def gold_wgc_cb_ingest_job(
     wgc_goldhub_cookie: str | None = None,
     wgc_workbook_path: str | None = None,
     lookback_days: int | None = 400,
+    record_request: RecordHook | None = None,
 ) -> None:
     """Monthly WGC CB reserves (8th business day of month).
 
@@ -546,6 +588,7 @@ def gold_wgc_cb_ingest_job(
         WgcCbProvider(
             cookie_header=wgc_goldhub_cookie,
             workbook_path=wgc_workbook_path,
+            record_request=record_request,
         ) as wgc,
     ):
         repo = Repository(conn, schema="uw_scan")

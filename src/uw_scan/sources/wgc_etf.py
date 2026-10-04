@@ -18,6 +18,7 @@ from openpyxl import load_workbook
 
 from uw_scan.sources._http import (
     BROWSER_UA,
+    RecordHook,
     RequestOutcome,
     get_with_telemetry,
     record_or_log,
@@ -79,7 +80,7 @@ class WgcEtfProvider:
         *,
         cookie_header: str | None = None,
         timeout_s: float | None = None,
-        record_request: Any | None = None,
+        record_request: RecordHook | None = None,
     ) -> None:
         headers = {"User-Agent": BROWSER_UA}
         if cookie_header:

@@ -57,8 +57,8 @@ def load_domain_candidates(
 
 
 def macro_context_snapshot_job(
-    repo: Repository,
     *,
+    repo: Repository,
     as_of: datetime | None = None,
     assembled_at: datetime | None = None,
 ) -> MacroContextSnapshot | None:
