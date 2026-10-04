@@ -90,3 +90,15 @@ def research_budget_ok(settings: Settings, repo) -> bool:
         return True
     snap = read_snapshot(repo.conn, settings.db_schema)
     return may_spend("research", snap, limits_from_settings(settings))
+
+
+def fundamentals_provider(settings: Settings):
+    from uw_scan.sources.massive_fundamentals import MassiveFundamentalsProvider
+
+    if settings.massive_api_key is None:
+        return None
+    return MassiveFundamentalsProvider(
+        api_key=settings.massive_api_key.get_secret_value(),
+        base_url=settings.massive_base_url,
+        timeout=settings.request_timeout_seconds,
+    )

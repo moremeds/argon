@@ -331,7 +331,7 @@ def test_late_arriving_cash_flow_is_caught_on_the_next_full_reingest(conn):
     always does) and now finds the sign-flipped pair -- this is exactly what
     the monthly full-tier sweep guarantees for every ticker it revisits, since
     the sweep calls this same function unfiltered by calendar (see
-    scheduler.py's `_fundamental_ingest` and `fundamental_ingest`'s own module
+    schedule/fundamentals.py's `_fundamental_ingest` and `fundamental_ingest`'s own module
     docstring)."""
     data = _base_data()
     data["CVX"][EndpointSlug.CASH_FLOWS] = []  # not yet published
