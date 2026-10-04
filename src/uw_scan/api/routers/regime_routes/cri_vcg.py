@@ -11,7 +11,8 @@ from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.routers.regime_routes._shared import (
     _active_ws_source,
 )
-from uw_scan.api.schemas import (
+from uw_scan.config import Settings
+from uw_scan.models.regime_cri_vcg import (
     EMPTY_CRI_RESPONSE,
     EMPTY_VCG_RESPONSE,
     CriDailyEntry,
@@ -29,7 +30,6 @@ from uw_scan.api.schemas import (
     VcgResponse,
     VcgScanResponse,
 )
-from uw_scan.config import Settings
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import LiveQuote, live_or_eod

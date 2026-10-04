@@ -7,14 +7,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.models.canary import (
+from uw_scan.cards.canary_calibration import (
+    COMPOSITE_VERSION as CANARY_COMPOSITE_VERSION,
+)
+from uw_scan.models.regime_canary import (
     CanaryHistoryResponse,
     CanaryHistoryRow,
     CanaryLatestResponse,
     CanaryValidationResponse,
-)
-from uw_scan.cards.canary_calibration import (
-    COMPOSITE_VERSION as CANARY_COMPOSITE_VERSION,
 )
 from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository

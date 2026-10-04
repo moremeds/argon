@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.api.schemas import (
+from uw_scan.config import Settings
+from uw_scan.models.watchlist import (
     GammaBlock,
     PositioningBlock,
     QueueStatus,
@@ -24,7 +25,6 @@ from uw_scan.api.schemas import (
     WatchlistSpot,
     WatchlistSpotsResponse,
 )
-from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.rows import WatchlistCardRow
 from uw_scan.storage.watchlist_chain import WatchlistChainRepository

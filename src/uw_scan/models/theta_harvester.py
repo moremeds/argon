@@ -14,8 +14,9 @@ exists for some rows and not others is not comparable across the panel.
 from __future__ import annotations
 
 from datetime import date, datetime
+from datetime import date as _date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ThetaHarvesterCandidate(BaseModel):
@@ -71,3 +72,17 @@ class ThetaHarvesterScanResult(BaseModel):
 class ThetaHarvesterQuoteResult(BaseModel):
     quoted: int
     failed: int
+
+
+# Hard ceiling: 8 candidates x 2 legs = 16 SERIAL IB subprocess calls against a
+# ~100-line market-data cap shared with xenon and the spot WS feed. Over-large
+# requests are rejected rather than silently truncated — a caller who asked for
+# 50 and got 8 would think it had quoted 50.
+_QUOTE_MAX = 8
+
+
+class ThetaQuoteRequest(BaseModel):
+    # ge=1: a negative limit reaches read_candidates as a bare SQL LIMIT and
+    # 500s on a driver error rather than being rejected at the boundary.
+    limit: int = Field(default=_QUOTE_MAX, ge=1)
+    as_of: _date | None = None

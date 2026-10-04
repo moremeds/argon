@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.schemas import JobStatus
+from uw_scan.models.watchlist import JobStatus, RescanAllRequest
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
-
-
-class RescanAllRequest(BaseModel):
-    confirmed: bool = False
 
 
 def _to_status(job) -> JobStatus:
