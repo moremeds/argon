@@ -2,13 +2,7 @@
 
 import { Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { useMemo } from "react";
-import {
-  useGex,
-  type GexBucket,
-  type GexLevel,
-  type MqLevels,
-  type SourceDelta,
-} from "@/lib/regime/useGex";
+import { useGex, type GexBucket, type GexLevel } from "@/lib/regime/useGex";
 import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
@@ -373,7 +367,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
               levels?.gex_flip
                 ? fmtPrice(levels.gex_flip.strike)
                 : data.mq?.hvl
-                  ? fmtPrice(data.mq.hvl as number)
+                  ? fmtPrice(data.mq.hvl)
                   : "---"
             }
             sub={
@@ -475,10 +469,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
 
         {/* ── MenthorQ Levels + Delta ── */}
         {data.mq && (
-          <MqLevelsPanel
-            mq={data.mq as MqLevels}
-            sourceDelta={data.source_delta as SourceDelta | null}
-          />
+          <MqLevelsPanel mq={data.mq} sourceDelta={data.source_delta ?? null} />
         )}
 
         {/* ── Row: Expected Range (wider) + Bias + Macro Short-Vol action ── */}
