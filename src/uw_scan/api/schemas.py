@@ -79,7 +79,7 @@ def _to_float(v):
         return None
 
 
-class GexLevel(BaseModel):
+class RegimeGexLevel(BaseModel):
     strike: float | None = None
     gamma: float | None = None
     distance: float | None = None
@@ -91,12 +91,12 @@ class GexLevel(BaseModel):
 
 
 class GexLevels(BaseModel):
-    gex_flip: GexLevel | None = None
-    max_magnet: GexLevel | None = None
-    second_magnet: GexLevel | None = None
-    max_accelerator: GexLevel | None = None
-    put_wall: GexLevel | None = None
-    call_wall: GexLevel | None = None
+    gex_flip: RegimeGexLevel | None = None
+    max_magnet: RegimeGexLevel | None = None
+    second_magnet: RegimeGexLevel | None = None
+    max_accelerator: RegimeGexLevel | None = None
+    put_wall: RegimeGexLevel | None = None
+    call_wall: RegimeGexLevel | None = None
 
 
 class GexBucket(BaseModel):

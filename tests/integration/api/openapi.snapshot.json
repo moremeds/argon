@@ -7524,12 +7524,63 @@
         "title": "GexIvData",
         "type": "object"
       },
+      "GexLevel": {
+        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
+        "properties": {
+          "gamma_per_dollar": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Per Dollar"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "pct_from_spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct From Spot"
+          },
+          "strike": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Strike",
+            "type": "string"
+          }
+        },
+        "required": [
+          "strike"
+        ],
+        "title": "GexLevel",
+        "type": "object"
+      },
       "GexLevels": {
         "properties": {
           "call_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -7539,7 +7590,7 @@
           "gex_flip": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -7549,7 +7600,7 @@
           "max_accelerator": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -7559,7 +7610,7 @@
           "max_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -7569,7 +7620,7 @@
           "put_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -7579,7 +7630,7 @@
           "second_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__api__schemas__GexLevel"
+                "$ref": "#/components/schemas/RegimeGexLevel"
               },
               {
                 "type": "null"
@@ -12862,7 +12913,7 @@
           "call_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -12872,7 +12923,7 @@
           "gex_flip": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -12882,7 +12933,7 @@
           "max_accel": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -12892,7 +12943,7 @@
           "max_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -12902,7 +12953,7 @@
           "put_wall": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -12912,7 +12963,7 @@
           "second_magnet": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/uw_scan__models__GexLevel"
+                "$ref": "#/components/schemas/GexLevel"
               },
               {
                 "type": "null"
@@ -18692,6 +18743,56 @@
           "ok"
         ],
         "title": "RecordHealthCheck",
+        "type": "object"
+      },
+      "RegimeGexLevel": {
+        "properties": {
+          "distance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance"
+          },
+          "distance_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance Pct"
+          },
+          "gamma": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma"
+          },
+          "strike": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike"
+          }
+        },
+        "title": "RegimeGexLevel",
         "type": "object"
       },
       "RegimeLiveQuote": {
@@ -30160,107 +30261,6 @@
           "healthy"
         ],
         "title": "WsConsumerHealth",
-        "type": "object"
-      },
-      "uw_scan__api__schemas__GexLevel": {
-        "properties": {
-          "distance": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Distance"
-          },
-          "distance_pct": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Distance Pct"
-          },
-          "gamma": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Gamma"
-          },
-          "strike": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strike"
-          }
-        },
-        "title": "GexLevel",
-        "type": "object"
-      },
-      "uw_scan__models__GexLevel": {
-        "description": "One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).\n\n`gamma_per_dollar` is the per-strike net_gex used as the \"$N per $1\" sensitivity\nfigure on the tile \u2014 the dollar value of dealer hedging triggered by a $1 move.",
-        "properties": {
-          "gamma_per_dollar": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Gamma Per Dollar"
-          },
-          "net_gex": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Net Gex"
-          },
-          "pct_from_spot": {
-            "anyOf": [
-              {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pct From Spot"
-          },
-          "strike": {
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
-            "title": "Strike",
-            "type": "string"
-          }
-        },
-        "required": [
-          "strike"
-        ],
-        "title": "GexLevel",
         "type": "object"
       }
     }
