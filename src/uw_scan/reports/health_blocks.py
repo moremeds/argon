@@ -8,7 +8,6 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Literal
 
-from fastapi import HTTPException
 
 from uw_scan.config import Settings
 from uw_scan.models.health import (
@@ -31,6 +30,12 @@ ExpectedFires = Callable[..., list[datetime]]
 _RECORD_HEALTH_SNAPSHOT_MAX_AGE = timedelta(minutes=45)
 
 
+class UnknownRecordTables(ValueError):
+    """``record_tables`` named a table the snapshot does not hold. The router
+    answers it as a 400 with this message as ``detail``, so this module stays
+    free of the web framework."""
+
+
 def _snapshot_record_health(
     repo: Repository,
     *,
@@ -49,9 +54,8 @@ def _snapshot_record_health(
     if selected_tables is not None and snapshot:
         unknown = sorted(set(selected_tables) - {row.table for row in snapshot})
         if unknown:
-            raise HTTPException(
-                status_code=400,
-                detail=f"unknown record health table(s): {', '.join(unknown)}",
+            raise UnknownRecordTables(
+                f"unknown record health table(s): {', '.join(unknown)}"
             )
     computed = [row.computed_at for row in snapshot if row.computed_at is not None]
     newest = max(computed, default=None)

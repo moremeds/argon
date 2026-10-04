@@ -51,7 +51,7 @@ def build_health(
     repo: Repository,
     settings: Settings,
     *,
-    now: datetime,
+    clock: Callable[[], datetime],
     source: HealthSource,
     record_window_hours: float | None,
     record_min_coverage: float,
@@ -156,7 +156,7 @@ def build_health(
 
     # Sidebar fields — always populated when DB is up so the panel renders
     # correctly even before the first full scan has fired.
-    now_utc = now
+    now_utc = clock()
     latest_heartbeat = repo.get_latest_heartbeat()
     scheduler_heartbeat_name = latest_heartbeat[0] if latest_heartbeat else None
     scheduler_heartbeat_lag = (
