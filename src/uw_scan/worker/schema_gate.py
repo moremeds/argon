@@ -78,7 +78,7 @@ def wait_for_schema(
             with psycopg.connect(dsn) as conn:
                 have = applied_migration(conn)
         except psycopg.OperationalError as exc:
-            have, why = None, f"database unreachable: {exc!r}"
+            have, why = None, f"database unreachable: {repr(exc)}"
         else:
             if schema_is_ready(have, want):
                 logger.info("schema gate: schema at %s (code needs %s)", have, want)
