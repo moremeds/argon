@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Web: split the largest components (I-108; no visual or behavior change).** `VcgSubTab.tsx` 883→158 lines (helpers and section components in `components/regime/vcg/`), `GrgSubTab.tsx` 740→160 (`components/regime/grg/`), `HealthPanel.tsx` 753→415 (helpers, styles and the benchmark view in `components/shared/healthPanel/`; the polling effect is unchanged), `TechnicalsPriceChart.tsx` 1491→1196 (pure chart-data helpers, storage readers and legends in `technicalsPriceChart/`; the component body is unchanged), and the `/flash` doorway's day/phase choice moved to `lib/flash/doorway.ts`. Every previously exported name is still exported from its old path. Markup snapshots (VCG, GRG on a trimmed real prod payload `tests/fixtures/mcp/grg.json`, HealthPanel, MACD legend) and `/flash` redirect cases were committed before the split and are unchanged after it.
+
 ## [0.13.19] — 2026-10-04
 
 
