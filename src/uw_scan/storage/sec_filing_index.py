@@ -11,7 +11,7 @@ from collections.abc import Sequence
 
 import psycopg
 
-from uw_scan.sources.sec_submissions import SecFiling
+from uw_scan.models.sec import SecFiling
 
 
 class SecFilingIndexRepository:
@@ -45,7 +45,9 @@ class SecFilingIndexRepository:
     def cik_for(self, tickers: Sequence[str]) -> dict[str, str]:
         if not tickers:
             return {}
-        sql = f"SELECT ticker, cik FROM {self._schema}.sec_cik_map WHERE ticker = ANY(%s)"
+        sql = (
+            f"SELECT ticker, cik FROM {self._schema}.sec_cik_map WHERE ticker = ANY(%s)"
+        )
         with self.conn.cursor() as cur:
             cur.execute(sql, ([t.upper() for t in tickers],))
             return {t: c for t, c in cur.fetchall()}

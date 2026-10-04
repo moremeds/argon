@@ -21,7 +21,7 @@ import httpx
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 from uw_scan.storage.repository import status_family_for
 
@@ -401,7 +401,7 @@ def _parse_decimal(raw: object) -> Decimal | None:
 
 
 def _best_probability_bucket(
-    probabilities: dict[str, Decimal]
+    probabilities: dict[str, Decimal],
 ) -> tuple[str, Decimal] | None:
     if not probabilities:
         return None

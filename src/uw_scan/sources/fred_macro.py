@@ -24,7 +24,7 @@ from typing import Any, Final, Literal
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroDomain, MacroFrequency, MacroSourceArtifact
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 
 SOURCE: Final = "fred"
 PARSER_VERSION: Final = "fred_macro/1"
@@ -152,7 +152,9 @@ SERIES_CONTRACT: Final[dict[str, FredSeriesContract]] = {
         # mark the anchor stale every Monday through Thursday of a normal week.  Measured
         # in docs/research/2026-08-12-usd-source-probe/VERDICT.md.
         _contract("DTWEXBGS", "usd", "daily", "index_jan_2006_100", "index_level", 7),
-        _contract("RTWEXBGS", "usd", "monthly", "index_jan_2006_100", "index_level", 31),
+        _contract(
+            "RTWEXBGS", "usd", "monthly", "index_jan_2006_100", "index_level", 31
+        ),
     )
 }
 

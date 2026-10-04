@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from uw_scan.api.client import UwClient
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 
 log = logging.getLogger(__name__)
 
