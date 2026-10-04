@@ -18,8 +18,6 @@ class MarketTideSnapshotRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_bars(self, bars: list[dict]) -> int:
         """Upsert premium/volume for each bar. Leaves `spot` untouched on
@@ -27,8 +25,8 @@ class MarketTideSnapshotRepository:
         later full-day re-fetch."""
         if not bars:
             return 0
-        sql = """
-            INSERT INTO market_tide_snapshots
+        sql = f"""
+            INSERT INTO {self._schema}.market_tide_snapshots
                 (data_date, ts, net_call_premium, net_put_premium, net_volume)
             VALUES (%(data_date)s, %(ts)s, %(net_call_premium)s,
                     %(net_put_premium)s, %(net_volume)s)
@@ -53,8 +51,8 @@ class MarketTideSnapshotRepository:
     ) -> bool:
         """Attach a live spot reading to one already-inserted bar. Returns
         True when a row matched (the bar must already exist)."""
-        sql = """
-            UPDATE market_tide_snapshots
+        sql = f"""
+            UPDATE {self._schema}.market_tide_snapshots
                SET spot = %s, spot_ticker = %s, spot_quoted_at = %s
              WHERE data_date = %s AND ts = %s
         """
@@ -67,10 +65,10 @@ class MarketTideSnapshotRepository:
     def fetch_sessions(self, *, sessions: int = 5) -> list[dict]:
         """Last N session-dates of bars, grouped into sessions ASC by date,
         points ASC by ts. Empty list when no rows exist."""
-        sql = """
+        sql = f"""
             WITH recent AS (
                 SELECT DISTINCT data_date
-                  FROM market_tide_snapshots
+                  FROM {self._schema}.market_tide_snapshots
                  ORDER BY data_date DESC
                  LIMIT %s
             )
@@ -81,7 +79,7 @@ class MarketTideSnapshotRepository:
                    m.net_volume,
                    m.spot::float8             AS spot,
                    m.spot_ticker
-              FROM market_tide_snapshots m
+              FROM {self._schema}.market_tide_snapshots m
               JOIN recent r ON m.data_date = r.data_date
              ORDER BY m.ts ASC
         """

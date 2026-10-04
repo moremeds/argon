@@ -17,14 +17,12 @@ class GrgSnapshotRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def insert_snapshot(
         self, *, payload: dict, data_date: date | None = None, basis: str = "eod"
     ) -> int:
-        sql = """
-            INSERT INTO grg_snapshots (data_date, payload, basis)
+        sql = f"""
+            INSERT INTO {self._schema}.grg_snapshots (data_date, payload, basis)
             VALUES (%s, %s, %s)
             RETURNING id
         """
@@ -37,9 +35,9 @@ class GrgSnapshotRepository:
 
     def fetch_latest(self, *, basis: str = "eod") -> dict | None:
         """Most-recent payload for ``basis`` (full self-contained snapshot)."""
-        sql = """
+        sql = f"""
             SELECT payload, scanned_at
-              FROM grg_snapshots
+              FROM {self._schema}.grg_snapshots
              WHERE basis = %s
              ORDER BY scanned_at DESC
              LIMIT 1

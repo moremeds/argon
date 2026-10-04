@@ -91,9 +91,9 @@ def chanlun_lifecycle_scan(
 
     fetch = fetch_bars or partial(apex.fetch_bars, base_url=settings.apex_api_url)
     cs_repo = ChanlunSignalRepository(repo.conn, schema=settings.db_schema)
-    # Commit the repository's SET search_path now, and each ticker's
-    # transitions as it finishes (below): a per-ticker rollback on failure then
-    # discards only that ticker, not the earlier tickers' work or the path.
+    # Commit any pending state now, and each ticker's transitions as it
+    # finishes (below): a per-ticker rollback on failure then discards only
+    # that ticker, not the earlier tickers' work.
     repo.conn.commit()
     promotable = frozenset(
         t.strip()

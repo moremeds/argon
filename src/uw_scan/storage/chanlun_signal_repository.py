@@ -28,8 +28,6 @@ class ChanlunSignalRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_transition(
         self,
@@ -48,8 +46,8 @@ class ChanlunSignalRepository:
         with self._conn.cursor() as cur:
             if first_entered_at is None:
                 cur.execute(
-                    """
-                    INSERT INTO chanlun_signal_events
+                    f"""
+                    INSERT INTO {self._schema}.chanlun_signal_events
                         (ticker, category, kind, extreme_date, extreme_price,
                          state, reason, as_of, details_jsonb)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -70,8 +68,8 @@ class ChanlunSignalRepository:
                 )
             else:
                 cur.execute(
-                    """
-                    INSERT INTO chanlun_signal_events
+                    f"""
+                    INSERT INTO {self._schema}.chanlun_signal_events
                         (ticker, category, kind, extreme_date, extreme_price,
                          state, reason, first_entered_at, as_of, details_jsonb)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -98,10 +96,10 @@ class ChanlunSignalRepository:
     def _rows_for(self, ticker: str) -> list[dict]:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT category, kind, extreme_date, extreme_price, state,
                        reason, first_entered_at, as_of
-                FROM chanlun_signal_events
+                FROM {self._schema}.chanlun_signal_events
                 WHERE ticker = %s
                 ORDER BY as_of ASC, id ASC
                 """,

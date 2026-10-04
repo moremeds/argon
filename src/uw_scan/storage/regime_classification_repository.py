@@ -39,8 +39,6 @@ class RegimeClassificationRepository:
     def __init__(self, conn: Connection, *, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     # ----- Non-atomic helpers (each commits; safe outside transactions) -----
 

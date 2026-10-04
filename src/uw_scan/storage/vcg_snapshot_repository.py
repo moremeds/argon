@@ -16,14 +16,12 @@ class VcgSnapshotRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def insert_snapshot(
         self, *, payload: dict, data_date: date | None = None, basis: str = "eod"
     ) -> int:
-        sql = """
-            INSERT INTO vcg_snapshots (data_date, payload, basis)
+        sql = f"""
+            INSERT INTO {self._schema}.vcg_snapshots (data_date, payload, basis)
             VALUES (%s, %s, %s)
             RETURNING id
         """
@@ -44,18 +42,18 @@ class VcgSnapshotRepository:
         share a ``scanned_at`` microsecond (manual scan racing the cron tick).
         """
         if proxy is None:
-            sql = """
+            sql = f"""
                 SELECT payload, scanned_at
-                  FROM vcg_snapshots
+                  FROM {self._schema}.vcg_snapshots
                  WHERE basis = %s
                  ORDER BY scanned_at DESC, id DESC
                  LIMIT 1
             """
             params: tuple = (basis,)
         else:
-            sql = """
+            sql = f"""
                 SELECT payload, scanned_at
-                  FROM vcg_snapshots
+                  FROM {self._schema}.vcg_snapshots
                  WHERE credit_proxy = %s AND basis = %s
                  ORDER BY scanned_at DESC, id DESC
                  LIMIT 1
@@ -78,7 +76,7 @@ class VcgSnapshotRepository:
         Output rows expose the indexable scalars plus scan_time.
         """
         if proxy is None:
-            sql = """
+            sql = f"""
                 SELECT scanned_at,
                        credit_proxy,
                        vcg_score::float8,
@@ -93,14 +91,14 @@ class VcgSnapshotRepository:
                        vvix::float8,
                        credit_price::float8,
                        vvix_severity
-                  FROM vcg_snapshots
+                  FROM {self._schema}.vcg_snapshots
                  WHERE basis = 'eod'
                  ORDER BY scanned_at DESC, id DESC
                  LIMIT %s
             """
             params: tuple = (limit,)
         else:
-            sql = """
+            sql = f"""
                 SELECT scanned_at,
                        credit_proxy,
                        vcg_score::float8,
@@ -115,7 +113,7 @@ class VcgSnapshotRepository:
                        vvix::float8,
                        credit_price::float8,
                        vvix_severity
-                  FROM vcg_snapshots
+                  FROM {self._schema}.vcg_snapshots
                  WHERE credit_proxy = %s AND basis = 'eod'
                  ORDER BY scanned_at DESC, id DESC
                  LIMIT %s
@@ -160,7 +158,7 @@ class VcgSnapshotRepository:
             WITH recent_sessions AS (
                 SELECT DISTINCT
                        (scanned_at AT TIME ZONE 'America/New_York')::date AS et_date
-                  FROM vcg_snapshots
+                  FROM {self._schema}.vcg_snapshots
                  WHERE basis = 'live' AND credit_proxy = %s
                    {rth_filter}
                  ORDER BY et_date DESC
@@ -169,7 +167,7 @@ class VcgSnapshotRepository:
             SELECT (v.scanned_at AT TIME ZONE 'America/New_York')::date AS et_date,
                    v.scanned_at,
                    {self._POINT_COLS}
-              FROM vcg_snapshots v
+              FROM {self._schema}.vcg_snapshots v
               JOIN recent_sessions rs
                 ON (v.scanned_at AT TIME ZONE 'America/New_York')::date = rs.et_date
              WHERE v.basis = 'live' AND v.credit_proxy = %s
@@ -193,7 +191,7 @@ class VcgSnapshotRepository:
             SELECT DISTINCT ON (data_date)
                    data_date AS date,
                    {self._POINT_COLS}
-              FROM vcg_snapshots
+              FROM {self._schema}.vcg_snapshots
              WHERE basis = 'eod' AND credit_proxy = %s AND data_date IS NOT NULL
              ORDER BY data_date DESC, scanned_at DESC
              LIMIT %s

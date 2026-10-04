@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Standalone storage repositories no longer change the caller's `search_path` (I-60); no behaviour change.** 21 standalone repositories ran `SET search_path TO <schema>, public` in `__init__` on a connection the caller owns. Pooled API connections and the worker's `repo.conn` therefore carried that session state into whatever borrowed them next. No role or database default puts `uw_scan` on the path. Every one of them now schema-qualifies its tables with `{self._schema}.` and leaves the session alone. `DataGapHealerRepository` was dropped last, after the healer split qualified the raw healer SQL that leaned on it. `tests/integration/storage/test_repos_keep_caller_search_path.py` sets the path to `public`, calls one read per repository and asserts the path is unchanged; with the path at `public`, an unqualified table would also fail. `tests/unit/storage/test_no_set_search_path.py` fails if a storage module adds a `SET search_path`. Two storage tests whose raw SQL leaned on the old `SET` now qualify their table, and two stale worker-job comments are reworded (code unchanged).
+
 ### Changed
 
 - **`storage/repository.py` exports only `Repository` (I-63); no behaviour change.** The compatibility re-exports are removed: the 16 row dataclasses (now imported from `storage/rows.py`), `provider_day_bounds` / `redact_params` / `status_family_for` (from `storage/_helpers.py`), `ClassificationRunAlreadyExists` / `RegimeClassificationRepository` (from `storage/regime_classification_repository.py`), and the private `_aggressor_label_confidence` / `_flow_footprint_label` (from `storage/flow.py`). 13 callers in `src/`, `scripts/` and `tests/` change only their import lines. `tests/unit/test_import_boundaries.py` re-keys the frozen `cards/derive.py` entry from `uw_scan.storage.repository` to `uw_scan.storage.rows`, because that file's import now names the defining module. The `rows.py` and `_helpers.py` docstrings no longer promise the re-exports.

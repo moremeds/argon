@@ -16,14 +16,12 @@ class CriSnapshotRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def insert_snapshot(
         self, *, payload: dict, data_date: date | None = None, basis: str = "eod"
     ) -> int:
-        sql = """
-            INSERT INTO cri_snapshots (data_date, payload, basis)
+        sql = f"""
+            INSERT INTO {self._schema}.cri_snapshots (data_date, payload, basis)
             VALUES (%s, %s, %s)
             RETURNING id
         """
@@ -37,9 +35,9 @@ class CriSnapshotRepository:
     def fetch_latest(self, *, basis: str = "eod") -> dict | None:
         """Most-recent payload for ``basis`` ('eod' default keeps the
         pre-live /api/regime contract: full payload with history arrays)."""
-        sql = """
+        sql = f"""
             SELECT payload, scanned_at
-              FROM cri_snapshots
+              FROM {self._schema}.cri_snapshots
              WHERE basis = %s
              ORDER BY scanned_at DESC
              LIMIT 1
@@ -62,7 +60,7 @@ class CriSnapshotRepository:
         trigger_fired, vix, vvix, cor1m, spx_distance_pct, realized_vol)
         plus scan_time.
         """
-        sql = """
+        sql = f"""
             SELECT scanned_at,
                    cri_score::float8,
                    cri_level,
@@ -72,7 +70,7 @@ class CriSnapshotRepository:
                    cor1m::float8,
                    spx_distance_pct::float8,
                    realized_vol::float8
-              FROM cri_snapshots
+              FROM {self._schema}.cri_snapshots
              WHERE basis = 'eod'
              ORDER BY scanned_at DESC
              LIMIT %s
@@ -118,7 +116,7 @@ class CriSnapshotRepository:
             WITH recent_sessions AS (
                 SELECT DISTINCT
                        (scanned_at AT TIME ZONE 'America/New_York')::date AS et_date
-                  FROM cri_snapshots
+                  FROM {self._schema}.cri_snapshots
                  WHERE basis = 'live'
                    {rth_filter}
                  ORDER BY et_date DESC
@@ -127,7 +125,7 @@ class CriSnapshotRepository:
             SELECT (c.scanned_at AT TIME ZONE 'America/New_York')::date AS et_date,
                    c.scanned_at,
                    {self._POINT_COLS}
-              FROM cri_snapshots c
+              FROM {self._schema}.cri_snapshots c
               JOIN recent_sessions rs
                 ON (c.scanned_at AT TIME ZONE 'America/New_York')::date = rs.et_date
              WHERE c.basis = 'live'
@@ -151,7 +149,7 @@ class CriSnapshotRepository:
             SELECT DISTINCT ON (data_date)
                    data_date AS date,
                    {self._POINT_COLS}
-              FROM cri_snapshots
+              FROM {self._schema}.cri_snapshots
              WHERE basis = 'eod' AND data_date IS NOT NULL
              ORDER BY data_date DESC, scanned_at DESC
              LIMIT %s
