@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi import HTTPException
 
-from uw_scan.api.routers.health import _snapshot_record_health
+from uw_scan.reports.health_blocks import _snapshot_record_health
 from uw_scan.storage.rows import RecordHealthRawRow
 
 NOW = datetime(2026, 9, 24, 15, 0, tzinfo=UTC)

@@ -10,8 +10,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from uw_scan.api.routers.health import _record_window_scans_expected
 from uw_scan.config import Settings
+from uw_scan.reports.health_blocks import _record_window_scans_expected
+from uw_scan.worker.schedule_expectations import expected_market_cron_fires_between
 
 # Exercise the real configured crons + tz without constructing a full Settings
 # (which requires api_key / DB env). The helper only reads these two attributes.
@@ -22,13 +23,17 @@ _SETTINGS = SimpleNamespace(
     rth_tz=Settings.model_fields["rth_tz"].get_default(call_default_factory=True),
 )
 
+_FIRES = expected_market_cron_fires_between
+
 
 def test_scans_expected_during_rth_weekday():
     # Wed 2026-05-13 14:00 ET (18:00 UTC): the 8h window (06:00-14:00 ET) spans
     # the premarket + open + RTH crons, all on a regular market day.
     now = datetime(2026, 5, 13, 18, 0, tzinfo=UTC)
     assert (
-        _record_window_scans_expected(_SETTINGS, now_utc=now, record_window_hours=8)
+        _record_window_scans_expected(
+            _SETTINGS, now_utc=now, record_window_hours=8, expected_fires=_FIRES
+        )
         is True
     )
 
@@ -37,7 +42,9 @@ def test_no_scans_expected_on_weekend():
     # Sat 2026-07-04 14:00 ET: market closed, no crons fire.
     now = datetime(2026, 7, 4, 18, 0, tzinfo=UTC)
     assert (
-        _record_window_scans_expected(_SETTINGS, now_utc=now, record_window_hours=8)
+        _record_window_scans_expected(
+            _SETTINGS, now_utc=now, record_window_hours=8, expected_fires=_FIRES
+        )
         is False
     )
 
@@ -47,7 +54,9 @@ def test_no_scans_expected_on_observed_holiday():
     # even though it is a weekday, so is_us_equity_market_day() excludes it.
     now = datetime(2026, 7, 3, 18, 0, tzinfo=UTC)
     assert (
-        _record_window_scans_expected(_SETTINGS, now_utc=now, record_window_hours=8)
+        _record_window_scans_expected(
+            _SETTINGS, now_utc=now, record_window_hours=8, expected_fires=_FIRES
+        )
         is False
     )
 
@@ -55,6 +64,8 @@ def test_no_scans_expected_on_observed_holiday():
 def test_none_window_is_not_expected():
     now = datetime(2026, 5, 13, 18, 0, tzinfo=UTC)
     assert (
-        _record_window_scans_expected(_SETTINGS, now_utc=now, record_window_hours=None)
+        _record_window_scans_expected(
+            _SETTINGS, now_utc=now, record_window_hours=None, expected_fires=_FIRES
+        )
         is False
     )
