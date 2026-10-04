@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **VRP macro entry quotes no longer store a fake underlying spot.** When a mark had no live SPX spot and IB returned no `undPrice`, `worker/jobs/vrp_macro_entry.py` substituted the cohort's `spot_at_birth` and wrote it to `vrp_macro_entry_quote.und_spot`. `quote_leg` also computed BS greeks from that substituted spot. Now `und_spot` is NULL in that case and BS greeks are skipped (`greeks_source='none'`); the real NBBO and IV are still stored. No migration (the column was already nullable), no OpenAPI change, and no existing row is changed. Historical rows that carry the substituted spot match this read-only predicate: `vrp_macro_entry_quote q JOIN vrp_macro_entry e USING (entry_id) WHERE q.source = 'uw' AND q.und_spot = e.spot_at_birth` (8428 rows on prod on 2026-10-04: 8399 auto, 29 button; 7444 of them have `greeks_source='bs'`). The predicate is an upper bound: 65 of the rows are on a cohort's first mark, where a live spot can equal the birth spot.
+
 ## [0.13.23] — 2026-10-04
 
 

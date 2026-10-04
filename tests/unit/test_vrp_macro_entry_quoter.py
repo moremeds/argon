@@ -128,3 +128,21 @@ def test_iv_absent_tags_greeks_none(monkeypatch, settings):
     )
     assert q.source == "xenon_ib" and q.greeks_source == "none"
     assert float(q.delta) == 0.0 and float(q.gamma) == 0.0
+
+
+def test_uw_leg_without_live_spot_stores_null_spot_keeps_nbbo(settings):
+    # No live spot and no IB undPrice: und_spot must be NULL, never a substituted
+    # birth spot, and the real UW NBBO + IV must survive (greeks need a spot → 'none').
+    q = M.quote_leg(
+        strike=5800,
+        expiry="20260807",
+        as_of=_et(2026, 6, 24, 11, 0),
+        underlying_spot=None,
+        r=0.04,
+        settings=settings,
+        uw_row={"nbbo_bid": 12.0, "nbbo_ask": 12.4, "implied_volatility": 0.17},
+        try_xenon=False,
+    )
+    assert q.und_spot is None
+    assert q.source == "uw" and float(q.nbbo_bid) == 12.0 and float(q.iv) == 0.17
+    assert q.greeks_source == "none"
