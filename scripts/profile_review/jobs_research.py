@@ -41,7 +41,7 @@ def surface_membership() -> dict:
         def today(cls):
             return cls(2026, 9, 25)
 
-    with patch.object(surface, "_date", FrozenDate), patch.object(surface, "_build_ticker_rows") as fetch:
+    with patch.object(surface, "_date", FrozenDate), patch.object(surface, "build_ticker_rows") as fetch:
         result = surface.option_surface_backfill(repo=repo, client=MagicMock(), days_back=1)
     missing = sorted(set(expected) - set(done))
     assert missing == ["MOCK_MISSING"]

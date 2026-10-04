@@ -6,6 +6,7 @@ prompt promises. `validate_trade_insights_ai_outcome` is the public entry point.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any
 
@@ -55,11 +56,26 @@ def validate_trade_insights_ai_outcome(
     *,
     produced_at: datetime,
     lenient: bool = False,
+    soft: bool = False,
+    prompt_version: str = PROMPT_VERSION,
+    extra_volatile_keys: Iterable[str] = (),
+    extra_structural_checks: Iterable[Callable[[TradeInsightAiOutcome], None]] = (),
+    soft_autocorrect: Callable[[TradeInsightAiOutcome], str | None] | None = None,
+    lenient_coercer: Callable[..., dict[str, Any]] | None = None,
 ) -> TradeInsightAiOutcome:
     """Validate model output against immutable deterministic inputs.
 
+    `soft=True` (trade_blast lane only) downgrades the v5.3 structural
+    consistency checks to collected warnings (appended to ``missing_data`` as
+    ``soft-validation: ...``) so real framework output always renders. The
+    no-naked-shorts safety property stays HARD even in soft mode: any framework
+    candidate that is not ``defined_risk`` still raises. The lane also wires in
+    its own prompt version, hash exclusions, extra structural checks, and
+    entry-state autocorrection through the keyword hooks.
+
     `lenient=True` (Claude only — see issue #67) pre-processes the raw dict
-    through `_coerce_claude_outcome_dict` to capture partial/off-schema output,
+    through `lenient_coercer` (default `_coerce_claude_outcome_dict`) to
+    capture partial/off-schema output,
     then RELAXES only the equality checks that require provider-internal
     consistency:
 
@@ -86,11 +102,16 @@ def validate_trade_insights_ai_outcome(
     # so a module-level import here would deadlock at first-load. Deferring keeps
     # the dependency edge runtime-only and matches the pre-split single-file
     # behavior (which late-imported the same symbol at the bottom of the module).
-    from uw_scan.reports.trade_insights_ai_lenient import _coerce_claude_outcome_dict
+    if lenient_coercer is None:
+        from uw_scan.reports.trade_insights_ai_lenient import (
+            _coerce_claude_outcome_dict as lenient_coercer,
+        )
 
-    expected_hash = hash_trade_insights_ai_analysis_input(deterministic_payload)
+    expected_hash = hash_trade_insights_ai_analysis_input(
+        deterministic_payload, extra_volatile_keys=extra_volatile_keys
+    )
     if lenient and not isinstance(outcome, TradeInsightAiOutcome):
-        outcome = _coerce_claude_outcome_dict(
+        outcome = lenient_coercer(
             outcome,
             deterministic_payload,
             produced_at=produced_at,
@@ -107,7 +128,7 @@ def validate_trade_insights_ai_outcome(
         raise ValueError(
             "analysis_produced_at does not match worker-produced timestamp"
         )
-    if parsed.schema_version != PROMPT_VERSION:
+    if parsed.schema_version != prompt_version:
         raise ValueError("schema_version does not match prompt version")
     if parsed.headline.conviction not in FINAL_RATING_VALUES:
         raise ValueError("final rating must be one of A, B, C, D, or F")
@@ -234,28 +255,64 @@ def validate_trade_insights_ai_outcome(
     # attempt to normalize obvious mismatches, but any residual violation
     # must surface as an error rather than be silently captured (mirrors
     # the undefined-risk strategy-family check above).
-    _check_mode_structure_consistency(parsed)
-    _check_delta_match(parsed)
-    # v5.1 additions: trigger/strike consistency, DTE band consistency,
-    # conditional quote validity. Enforced in BOTH strict and lenient modes
-    # because they encode the core directional-correctness invariants the
-    # v5.1 reviewers (chatgpt + claude) flagged as v5 failure modes.
-    _check_trigger_strike_consistency(parsed, candidates)
-    _check_dte_band_consistency(parsed, candidates)
-    _check_conditional_quote_validity(parsed)
-    # v5.2 additions: enforced in BOTH strict and lenient modes.
-    _check_active_trigger_evidence(parsed)
-    _check_anti_pin_cap_scope(parsed)
-    _check_thesis_archetype_consistency(parsed)
-    _check_headline_title_length(parsed, lenient=lenient)
-    _check_min_rr_for_conditional_c(parsed)
-    # v5.3 additions: trigger-component state machine. Enforced in BOTH
-    # strict and lenient modes because they encode the v5.3 contract's
-    # core promise (ENTRY_STATE is mechanical; legs are explicit; the
-    # spread is tied to the trigger components).
-    _check_legs_match_strategy(parsed)
-    _check_legs_align_with_triggers(parsed)
-    _check_entry_state_derivation(parsed)
+    # v5.1 additions encode the core directional-correctness invariants the
+    # v5.1 reviewers (chatgpt + claude) flagged as v5 failure modes; the
+    # v5.3 trigger-component state machine encodes the v5.3 contract's core
+    # promise (ENTRY_STATE is mechanical; legs are explicit; the spread is
+    # tied to the trigger components). In strict/card mode each check raises
+    # on the first violation (run in declared order); in soft mode they are
+    # collected as warnings instead.
+    structural_checks: list[Callable[[TradeInsightAiOutcome], None]] = [
+        _check_mode_structure_consistency,
+        _check_delta_match,
+        lambda p: _check_trigger_strike_consistency(p, candidates),
+        lambda p: _check_dte_band_consistency(p, candidates),
+        _check_conditional_quote_validity,
+        _check_active_trigger_evidence,
+        _check_anti_pin_cap_scope,
+        _check_thesis_archetype_consistency,
+        lambda p: _check_headline_title_length(p, lenient=lenient),
+        _check_min_rr_for_conditional_c,
+        _check_legs_match_strategy,
+        _check_legs_align_with_triggers,
+        _check_entry_state_derivation,
+        *extra_structural_checks,
+    ]
+    if soft:
+        # HARD even in soft mode: every framework candidate must be
+        # defined-risk (the no-naked-shorts project rule). Naked shorts are
+        # never rendered.
+        if parsed.framework is not None:
+            for cand in parsed.framework.candidates:
+                if not cand.defined_risk:
+                    raise ValueError(
+                        f"framework candidate {cand.name!r} is not defined_risk "
+                        "(no naked shorts allowed)"
+                    )
+        # Auto-correct mechanically-determined entry_state BEFORE structural
+        # checks so _check_entry_state_derivation sees the corrected value
+        # and stays silent — we never log both an auto-correct AND a now-stale
+        # soft-validation warning for the same field.
+        autocorrect_notes: list[str] = []
+        if soft_autocorrect is not None:
+            ac_note = soft_autocorrect(parsed)
+            if ac_note:
+                autocorrect_notes.append(ac_note)
+
+        soft_warnings: list[str] = []
+        for check in structural_checks:
+            try:
+                check(parsed)
+            except ValueError as exc:
+                soft_warnings.append(repr(exc))
+        if autocorrect_notes or soft_warnings:
+            notes = list(parsed.missing_data)
+            notes.extend(autocorrect_notes)
+            notes.extend(f"soft-validation: {w}" for w in soft_warnings)
+            parsed.missing_data = notes
+    else:
+        for check in structural_checks:
+            check(parsed)
 
     # Strict: source_path validation raises on invalid prefixes.
     # Lenient: invalid prefixes are dropped to None with a missing_data note.

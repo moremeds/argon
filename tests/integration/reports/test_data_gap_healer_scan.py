@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
     audit,
     discover_unregistered_tables,
     registered_table_names,
 )
+from uw_scan.reports.data_gap_registry import REGISTRY
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 
 

@@ -25,13 +25,9 @@ import psycopg
 
 from uw_scan.config import Settings
 from uw_scan.reports.data_gap_evidence import build_evidence, write_evidence
-from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
-    CoverageSummary,
-    GapItem,
-    audit,
-    discover_unregistered_tables,
-)
+from uw_scan.reports.data_gap_healer import audit, discover_unregistered_tables
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import CoverageSummary, GapItem
 from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
@@ -339,17 +335,17 @@ def verify_all(
 # --- nightly scheduled job --------------------------------------------------
 
 
-def _another_run_active(gap: DataGapHealerRepository) -> bool:
+def another_run_active(gap: DataGapHealerRepository) -> bool:
     with gap._conn.cursor() as cur:
         cur.execute(
-            "SELECT 1 FROM data_gap_runs "
+            f"SELECT 1 FROM {gap._schema}.data_gap_runs "
             "WHERE status = 'running' AND mode = 'execute' LIMIT 1"
         )
         return cur.fetchone() is not None
 
 
 # A run killed mid-flight (SSH drop, container recreate, OOM) never reaches
-# finish_run, so its row stays status='running' forever and _another_run_active
+# finish_run, so its row stays status='running' forever and another_run_active
 # above skips every later nightly job -- silently, with no alert. Four such runs
 # disabled the healer for a week in 2026-08 while the flag, cron and adapters
 # were all correct. See docs/research/2026-08-16-outage-replay-heal-record.md.
@@ -394,29 +390,30 @@ def _reap_stale_runs(gap: DataGapHealerRepository) -> list[int]:
     # requeue would leave items stranded 'running' inside a run the reaper no
     # longer matches (it only looks at status='running' RUNS), so nothing would
     # ever free them again.
+    s = gap._schema
     with gap._conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             WITH stale AS (
                 SELECT r.id
-                  FROM data_gap_runs r
+                  FROM {s}.data_gap_runs r
                  WHERE r.status = 'running'
                    AND r.mode = 'execute'
                    -- heartbeat: last item driven to a verdict, else the run's start
                    AND COALESCE(
-                         (SELECT max(i.verified_at) FROM data_gap_items i
+                         (SELECT max(i.verified_at) FROM {s}.data_gap_items i
                            WHERE i.run_id = r.id),
                          r.started_at
                        ) < now() - make_interval(hours => %s)
             ),
             requeued AS (
-                UPDATE data_gap_items SET status = 'planned'
+                UPDATE {s}.data_gap_items SET status = 'planned'
                  WHERE run_id IN (SELECT id FROM stale)
                    AND status = 'running'
              RETURNING run_id
             ),
             cancelled AS (
-                UPDATE data_gap_runs
+                UPDATE {s}.data_gap_runs
                    SET status = 'cancelled',
                        finished_at = now(),
                        summary_jsonb = summary_jsonb
@@ -492,7 +489,7 @@ def data_gap_healer_job(
                 logger.info("data_gap_healer: lock held; skipping")
                 return {"skipped": "locked"}
             _reap_stale_runs(gap)
-            if _another_run_active(gap):
+            if another_run_active(gap):
                 logger.info("data_gap_healer: a prior run is active; skipping")
                 return {"skipped": "run_active"}
             # Built here, not above: on a night the lock is held or a prior run is

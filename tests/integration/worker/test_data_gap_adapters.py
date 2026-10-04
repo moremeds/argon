@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from uw_scan.reports.data_gap_healer import GapItem
+from uw_scan.reports.data_gap_types import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.worker.jobs.data_gap_adapters import (
     HealContext,
