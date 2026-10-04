@@ -20,6 +20,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Callers apply one rule: interchangeable units fail the run only when none succeeded.** `technical_daily_refresh` counts a per-ticker outage as `source_unavailable` (a 2xx with no bars is now the separate `no_data`), and an unavailable SPY benchmark fails the run instead of writing RS columns against an empty series. `chanlun_lifecycle_scan` counts per-ticker outages and now commits each ticker as it finishes, so a later failure no longer rolls back earlier tickers' transitions. Both raise when every ticker was source-unavailable. `POST /stock/{t}/technicals/refresh` keeps its documented `200` (`backfill_status='empty'`) on an apex outage — never a bare 500.
 - **Behavior change: sector RS fails on any failed apex chunk.** `fetch_bulk_daily_closes` used to skip a failed chunk, silently dropping up to 200 symbols from the breadth denominator; it now raises, so `sector_rs_daily` fails that night and its trailing-week recompute heals on the next run.
 
+### Fixed
+
+- **Web: missing GEX values render as missing, never as 0 or a crash (13 pre-existing display bugs from I-103b).** A null `bias.direction` no longer crashes the GEX tab, and null MQ source deltas no longer crash the MQ panel; the curvature chart drops buckets with a null strike or net GEX instead of plotting them at 0 (which drew a GEX value the API never sent and stretched the axis to strike 0), and a null spot no longer throws; a null net GEX/DEX shows "---" in a neutral colour instead of green; absent `bias`/`levels`/`expected_range` render their missing state; `retagProfileForSpot` never picks a null-strike bucket as nearest and gives it `pct_from_spot: null` instead of -100. Real-payload snapshots are unchanged; `web/tests/unit/regimeNullRendering.test.tsx` (written first, 18 of its 21 cases failed on the old code) covers each case.
+
 ## [0.13.19] — 2026-10-04
 
 
