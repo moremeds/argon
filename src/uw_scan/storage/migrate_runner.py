@@ -169,10 +169,42 @@ def apply_migrations(
             "apply_migrations requires conn.autocommit=True "
             "(CONCURRENTLY index ops cannot run inside a transaction)"
         )
-    for f in discover_migrations(migrations_dir):
+    files = discover_migrations(migrations_dir)
+    for f in files:
         log(f"Applying {f.name}...")
         for stmt in split_sql_statements(f.read_text()):
             conn.execute(stmt)
+    if files:
+        record_schema_version(conn, files[-1].name)
+
+
+def record_schema_version(conn: psycopg.Connection, last_migration: str) -> None:
+    """Mark the schema as migrated through ``last_migration`` (worker/schema_gate.py).
+
+    Only after a FULL apply, and never backwards: an older image re-running its
+    shorter chain (a rollback) leaves the newer objects in place, so the marker
+    keeps the greatest name. ``COLLATE "C"`` matches ``discover_migrations``'
+    code-point sort. A chain without 158 (an archived copy in a test) has no table
+    to write to and is skipped.
+    """
+    if (
+        conn.execute("SELECT to_regclass('uw_scan.schema_version')").fetchone()[0]
+        is None
+    ):
+        return
+    conn.execute(
+        """
+        INSERT INTO uw_scan.schema_version (id, last_migration, applied_at)
+        VALUES (TRUE, %s, now())
+        ON CONFLICT (id) DO UPDATE SET
+          last_migration = GREATEST(
+            uw_scan.schema_version.last_migration COLLATE "C",
+            EXCLUDED.last_migration COLLATE "C"
+          ),
+          applied_at = now()
+        """,
+        (last_migration,),
+    )
 
 
 def main() -> int:
