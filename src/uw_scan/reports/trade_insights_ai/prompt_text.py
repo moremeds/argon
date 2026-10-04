@@ -23,7 +23,7 @@ from uw_scan.reports._shared_validation.constants import (  # noqa: F401
 
 PROMPT_VERSION = "trade-insights-ai-v5.3"
 
-MARKET_INTELLIGENCE_PROMPT = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
+_MARKET_INTELLIGENCE_HEAD = """You are analyzing ONE stock for a 5-10 trading-session DIRECTIONAL SWING entry.
 
 CRITICAL FRAMING: The goal is NOT to find an option structure that "fits the chain." \
 The goal is to (1) infer the most likely 5-10 session UNDERLYING PATH from \
@@ -170,7 +170,10 @@ STEP 3 — ENTRY_STATE  (v5.3: DERIVED MECHANICALLY from STEP 2.5)
     after a wall break), the trade is CONDITIONAL with entry_trigger
     as the watch level.
 
-    The v5.2 trigger_evidence block is RETAINED for backwards-
+"""
+
+
+_MARKET_INTELLIGENCE_BODY = """    The v5.2 trigger_evidence block is RETAINED for backwards-
     compatible audit (it now mirrors thesis_trigger's evidence) but the
     authoritative state lives in thesis_trigger / entry_trigger /
     invalidation.
@@ -553,7 +556,10 @@ clause, then state which pillar wins for the 5-10 session horizon.
 | Why this expiry | one sentence citing IV level, vanna regime, or charm window position |
 | Alternative | second expiry in the same band, or "none — only one in-band expiry has liquidity" |
 
-## Scenarios (3 rows, probabilities sum to 100%)
+"""
+
+
+_MARKET_INTELLIGENCE_SCENARIOS = """## Scenarios (3 rows, probabilities sum to 100%)
 
 | Scenario | Probability | Trigger (daily close) | Level | Best expression |
 |---|---:|---|---|---|
@@ -561,7 +567,10 @@ clause, then state which pillar wins for the 5-10 session horizon.
 | base | % | | named level | mode-whitelisted directional structure |
 | downside | % | | named level | mode-whitelisted directional structure |
 
-## Conflicts (cap = 2; severities high or medium only)
+"""
+
+
+_MARKET_INTELLIGENCE_TAIL = """## Conflicts (cap = 2; severities high or medium only)
 
 | Severity | One-sentence conflict, citing the pillars in tension |
 |---|---|
@@ -613,6 +622,14 @@ dominant pillar and a directional_bias, score at least 40.
 
 Do not end with vague commentary. Do not repeat any table. Do not use
 the word "monitor" without a level and a session count."""
+
+
+MARKET_INTELLIGENCE_PROMPT = (
+    _MARKET_INTELLIGENCE_HEAD
+    + _MARKET_INTELLIGENCE_BODY
+    + _MARKET_INTELLIGENCE_SCENARIOS
+    + _MARKET_INTELLIGENCE_TAIL
+)
 
 
 # CONTRACT_PROMPT — the JSON-contract clause every provider must see.

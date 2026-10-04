@@ -60,6 +60,8 @@ def _coerce_claude_outcome_dict(
     *,
     produced_at: datetime,
     expected_analysis_input_hash: str,
+    prompt_version: str = PROMPT_VERSION,
+    framework_coercer: Any = None,
 ) -> dict[str, Any]:
     """Coerce Claude's free-form JSON into a TradeInsightAiOutcome-shaped dict.
 
@@ -242,7 +244,7 @@ def _coerce_claude_outcome_dict(
         missing_data = [_PARTIAL_OUTPUT_NOTE, *missing_data]
 
     coerced: dict[str, Any] = {
-        "schema_version": PROMPT_VERSION,
+        "schema_version": prompt_version,
         "analysis_produced_at": _iso_z(produced_at),
         "ticker": ticker,
         "underlying_price": data.get("underlying_price")
@@ -390,4 +392,9 @@ def _coerce_claude_outcome_dict(
         "rendering": rendering,
         "guardrails": guardrails,
     }
+    # v6.0: additive framework{} block. Only coerce when the model emitted one
+    # — absent => omitted entirely so the field defaults to None and the
+    # semantic validator skips it (graceful for providers that drop the block).
+    if framework_coercer is not None and isinstance(data.get("framework"), dict):
+        coerced["framework"] = framework_coercer(data["framework"], candidates)
     return coerced
