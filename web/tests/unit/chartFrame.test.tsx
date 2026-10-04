@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import { DivergenceOverlay } from "@/components/stock/panels/DivergenceOverlay";
 import { HvIvChart } from "@/components/stock/panels/HvIvChart";
+import { SmileChart } from "@/components/stock/panels/SmileChart";
 import { TermStructureChart } from "@/components/stock/panels/TermStructureChart";
 import type { components } from "@/lib/types";
 import fixture from "@/tests/fixtures/mcp/aapl_volatility_series.json";
@@ -34,6 +35,7 @@ describe("I-106 chart markup (real AAPL volatility series)", () => {
       "HvIvChart (too short)",
       () => <HvIvChart data={series.hv_iv_history.slice(0, 1)} />,
     ],
+    ["SmileChart", () => <SmileChart data={series.smile} spot={series.spot} />],
   ])("%s", (_name, el) => {
     expect(renderToStaticMarkup(el())).toMatchSnapshot();
   });
