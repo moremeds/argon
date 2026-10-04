@@ -9,6 +9,7 @@ uw_scan/
 ├── config.py            # plain pydantic BaseModel Settings, populated via Settings.from_env() — env → typed config
 ├── models/              # Pydantic v2 row/response contracts, split by domain
 ├── normalize.py         # raw UW JSON → typed models (NormalizationError on miss)
+├── errors.py            # shared exceptions (NormalizationError; normalize re-exports it)
 ├── pipeline.py          # legacy scan pipeline (still used by full_scan job)
 ├── scoring.py           # numerical scoring used only by the legacy pipeline.py scan path
 ├── alerts.py            # one-webhook ops alert sink (Discord/Pushover-compatible JSON POST)
@@ -37,6 +38,7 @@ uw_scan/
 
 - **Models** in `models/` are the contract — FastAPI serializes them, frontend consumes them via generated types. Keep `models/__init__.py` as the public export surface and put implementations in domain modules. Any new field surfaces in `web/lib/types.ts` after `npm run gen:types`.
 - **Model moves must be schema-neutral unless explicitly scoped otherwise.** Preserve `from uw_scan.models import X`, update `__all__`, avoid importing from `uw_scan.models` or `from . import X` inside domain modules, and preserve public Pydantic model `__module__` metadata so OpenAPI component names do not drift. Verify with `tests/unit/test_models_exports.py`, the OpenAPI snapshot, and a field-surface comparison for large moves.
+- **Layer boundaries are a ratchet.** `tests/unit/test_import_boundaries.py` forbids lower layers importing higher ones (`models`/`cards`/`storage`/`sources` upward, any domain into `worker`, non-UW code into `normalize`). A shared piece moves DOWN a layer instead (the SEC record went to `models/sec.py`, the UW slug registry to `sources/uw_endpoints.py`). Frozen exceptions live in its `KNOWN` dict and only shrink.
 - **`Decimal` over float** for prices, IV, RV, Greeks, scoring — see `_dec()` helpers in derivers.
 - **Logging:** `logger = logging.getLogger(__name__)` per module. Exception handlers log with `repr(exc)` or `.exception(...)` (CI Guardrail 2 enforces this — `if any(...): raise` is also fine).
 - **No fake cursors / mocked DB** in integration tests. Use `pytest-postgresql`.
@@ -44,7 +46,7 @@ uw_scan/
 
 ## When adding a new endpoint
 
-1. Add the slug to `api/endpoints.py`
+1. Add the slug to `sources/uw_endpoints.py`
 2. Add the typed model to the relevant `models/` domain module and re-export it from `models/__init__.py`
 3. Add the fetcher to `sources/uw.py` (writes audit + raw payload, returns model)
 4. Add the persistence method to the appropriate domain storage mixin or focused storage module; keep `storage/repository.py` as the aggregate compatibility shell

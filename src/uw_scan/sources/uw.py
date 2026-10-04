@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 from .. import normalize
 from ..api.client import UwClient, UwHTTPError
-from ..api.endpoints import EndpointSlug, build_path
+from .uw_endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
     EtfInOutflowRow,

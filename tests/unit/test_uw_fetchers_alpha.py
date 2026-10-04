@@ -3,7 +3,7 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.sources import uw
 
 FIX = Path("tests/fixtures/uw")
