@@ -23,7 +23,15 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.models.regime_validation import (
+from uw_scan.cards.regime_forward_returns import (
+    attach_forward_returns,
+    summarize_stress_returns,
+)
+from uw_scan.cards.regime_guidance import GUIDANCE_MD, parse_guidance_md
+from uw_scan.cards.regime_guidance import (
+    evaluate_condition as _evaluate_condition,
+)
+from uw_scan.models.regime_validation import (
     GuidanceResponse,
     OosSummary,
     ValidationResponse,
@@ -34,14 +42,6 @@ from uw_scan.api.models.regime_validation import (
     VcgStressHistorySummary,
     VcgStressHistorySummaryRow,
     VcgValidationResponse,
-)
-from uw_scan.cards.regime_forward_returns import (
-    attach_forward_returns,
-    summarize_stress_returns,
-)
-from uw_scan.cards.regime_guidance import GUIDANCE_MD, parse_guidance_md
-from uw_scan.cards.regime_guidance import (
-    evaluate_condition as _evaluate_condition,
 )
 from uw_scan.reports.regime_backtest_report import (
     NAMED_CRASH_DATES,

@@ -389,7 +389,7 @@ def main() -> int:
     # OosSummary.model_validate handles the API-modeled subset; the explicit
     # assertions pin versions[] (which is sidecar data — Pydantic v2 default
     # extra="ignore" silently drops it).
-    from uw_scan.api.models.regime_validation import OosSummary  # noqa: PLC0415
+    from uw_scan.models.regime_validation import OosSummary  # noqa: PLC0415
 
     OosSummary.model_validate(summary["oos"])
     _versions = summary["oos"].get("versions")

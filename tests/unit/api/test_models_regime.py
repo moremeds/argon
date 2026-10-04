@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from uw_scan.api.schemas import VcgSignal
+from uw_scan.models.regime_cri_vcg import VcgSignal
 
 
 def _v1_payload() -> dict:

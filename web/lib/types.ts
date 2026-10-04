@@ -5292,14 +5292,31 @@ export interface components {
             /** Source */
             source?: string | null;
         };
+        /**
+         * GexLevel
+         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
+         *
+         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
+         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
+         */
+        GexLevel: {
+            /** Strike */
+            strike: string;
+            /** Net Gex */
+            net_gex?: string | null;
+            /** Pct From Spot */
+            pct_from_spot?: string | null;
+            /** Gamma Per Dollar */
+            gamma_per_dollar?: string | null;
+        };
         /** GexLevels */
         GexLevels: {
-            gex_flip?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            max_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            second_magnet?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            max_accelerator?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            put_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
-            call_wall?: components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+            gex_flip?: components["schemas"]["RegimeGexLevel"] | null;
+            max_magnet?: components["schemas"]["RegimeGexLevel"] | null;
+            second_magnet?: components["schemas"]["RegimeGexLevel"] | null;
+            max_accelerator?: components["schemas"]["RegimeGexLevel"] | null;
+            put_wall?: components["schemas"]["RegimeGexLevel"] | null;
+            call_wall?: components["schemas"]["RegimeGexLevel"] | null;
         };
         /** GexMqLevels */
         GexMqLevels: {
@@ -7223,12 +7240,12 @@ export interface components {
          *       - max_accel: strike with most-negative net_gex below the flip (movement accelerator)
          */
         MarketStructureLevels: {
-            gex_flip?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            call_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            put_wall?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            max_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            second_magnet?: components["schemas"]["uw_scan__models__GexLevel"] | null;
-            max_accel?: components["schemas"]["uw_scan__models__GexLevel"] | null;
+            gex_flip?: components["schemas"]["GexLevel"] | null;
+            call_wall?: components["schemas"]["GexLevel"] | null;
+            put_wall?: components["schemas"]["GexLevel"] | null;
+            max_magnet?: components["schemas"]["GexLevel"] | null;
+            second_magnet?: components["schemas"]["GexLevel"] | null;
+            max_accel?: components["schemas"]["GexLevel"] | null;
         };
         /**
          * MarketTidePoint
@@ -8998,6 +9015,17 @@ export interface components {
             latest_at?: string | null;
             /** Ok */
             ok: boolean;
+        };
+        /** RegimeGexLevel */
+        RegimeGexLevel: {
+            /** Strike */
+            strike?: number | null;
+            /** Gamma */
+            gamma?: number | null;
+            /** Distance */
+            distance?: number | null;
+            /** Distance Pct */
+            distance_pct?: number | null;
         };
         /**
          * RegimeLiveQuote
@@ -13327,34 +13355,6 @@ export interface components {
             active_source?: string | null;
             /** Reason */
             reason?: string | null;
-        };
-        /** GexLevel */
-        uw_scan__api__schemas__GexLevel: {
-            /** Strike */
-            strike?: number | null;
-            /** Gamma */
-            gamma?: number | null;
-            /** Distance */
-            distance?: number | null;
-            /** Distance Pct */
-            distance_pct?: number | null;
-        };
-        /**
-         * GexLevel
-         * @description One labeled level on the GEX curve (e.g. CALL WALL, PUT WALL, MAX MAGNET).
-         *
-         *     `gamma_per_dollar` is the per-strike net_gex used as the "$N per $1" sensitivity
-         *     figure on the tile — the dollar value of dealer hedging triggered by a $1 move.
-         */
-        uw_scan__models__GexLevel: {
-            /** Strike */
-            strike: string;
-            /** Net Gex */
-            net_gex?: string | null;
-            /** Pct From Spot */
-            pct_from_spot?: string | null;
-            /** Gamma Per Dollar */
-            gamma_per_dollar?: string | null;
         };
     };
     responses: never;

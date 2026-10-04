@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.schemas import OhlcRow
+from uw_scan.models.watchlist import OhlcRow
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()

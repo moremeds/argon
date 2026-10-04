@@ -9,23 +9,23 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.api.models.vrp_macro_entry import (
-    VrpMacroEntryCaptureResponse,
-    VrpMacroEntryLeg,
-    VrpMacroEntryPreview,
-)
 from uw_scan.api.routers.regime_routes._shared import (
     _active_ws_source,
     _f,
     logger,
 )
-from uw_scan.api.schemas import (
-    RegimeLiveQuote,
+from uw_scan.config import Settings
+from uw_scan.models.regime_cri_vcg import RegimeLiveQuote
+from uw_scan.models.regime_vrp_macro import (
     VrpMacroSignalLiveResponse,
     VrpMacroSignalResponse,
     VrpMacroSignalRow,
 )
-from uw_scan.config import Settings
+from uw_scan.models.vrp_macro_entry import (
+    VrpMacroEntryCaptureResponse,
+    VrpMacroEntryLeg,
+    VrpMacroEntryPreview,
+)
 from uw_scan.reports.vrp_macro_signal import (
     WINNER,
     current_macro_signal,

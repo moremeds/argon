@@ -14,13 +14,13 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.api.models.scanner import (
+from uw_scan.config import Settings
+from uw_scan.models.scanner_feed import (
     DiscoveryCandidate as RespDiscoveryCandidate,
 )
-from uw_scan.api.models.scanner import (
+from uw_scan.models.scanner_feed import (
     DiscoveryResponse,
     ScannerCandidate,
     ScannerContextFlag,
@@ -31,13 +31,14 @@ from uw_scan.api.models.scanner import (
     ValueCandidate,
     ValueScanResponse,
 )
-from uw_scan.api.models.theta_harvester import (
+from uw_scan.models.theta_harvester import (
+    _QUOTE_MAX,
     ThetaHarvesterCandidate,
     ThetaHarvesterQuoteResult,
     ThetaHarvesterResponse,
     ThetaHarvesterScanResult,
+    ThetaQuoteRequest,
 )
-from uw_scan.config import Settings
 from uw_scan.scanner.models import (
     ContextFlag as DCContextFlag,
 )
@@ -309,25 +310,12 @@ def get_scanner_discover(
 # routers/stock.py. No parameter: both locks are global rather than per-ticker,
 # because both operations sweep the whole watchlist.
 
-# Hard ceiling: 8 candidates x 2 legs = 16 SERIAL IB subprocess calls against a
-# ~100-line market-data cap shared with xenon and the spot WS feed. Over-large
-# requests are rejected rather than silently truncated — a caller who asked for
-# 50 and got 8 would think it had quoted 50.
-_QUOTE_MAX = 8
-
 # Per-leg IB timeout. The default 8.0s would put the 16-call worst case at
 # ~128s, past most proxy and browser timeouts; 4.0s bounds it at ~64s. If that
 # is still slow in practice, move the quote to /jobs with polling rather than
 # raising the cap or parallelising — the shared IB line budget is the real
 # constraint, not the latency.
 _QUOTE_TIMEOUT_S = 4.0
-
-
-class ThetaQuoteRequest(BaseModel):
-    # ge=1: a negative limit reaches read_candidates as a bare SQL LIMIT and
-    # 500s on a driver error rather than being rejected at the boundary.
-    limit: int = Field(default=_QUOTE_MAX, ge=1)
-    as_of: _date | None = None
 
 
 @router.get("/theta-harvester", response_model=ThetaHarvesterResponse)

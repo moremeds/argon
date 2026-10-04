@@ -11,20 +11,21 @@ from uw_scan.api.deps import get_repo, get_settings, get_uw_client
 from uw_scan.api.routers.regime_routes._shared import (
     _active_ws_source,
 )
-from uw_scan.api.schemas import (
+from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
+from uw_scan.config import Settings
+from uw_scan.models.regime_cri_vcg import RegimeLiveQuote, RegimeQuotesResponse
+from uw_scan.models.regime_dealer import (
     EMPTY_DEALER_REGIME_RESPONSE,
-    EMPTY_GRG_RESPONSE,
     ClosestLevel,
     DealerRegimeResponse,
     DealerRegimeSignal,
     GammaDecayBucket,
+)
+from uw_scan.models.regime_grg import (
+    EMPTY_GRG_RESPONSE,
     GrgResponse,
     GrgScanResponse,
-    RegimeLiveQuote,
-    RegimeQuotesResponse,
 )
-from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
-from uw_scan.config import Settings
 from uw_scan.scanners import grg as grg_scanner
 from uw_scan.storage.grg_snapshot_repository import GrgSnapshotRepository
 from uw_scan.storage.repository import Repository
