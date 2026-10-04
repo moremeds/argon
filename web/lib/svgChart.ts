@@ -194,7 +194,7 @@ export type Margin = {
 
 /** The scaffold the small analytical SVG charts share (I-106): a W×H viewBox,
  *  a plot box inset by `M`, an x scale across the box and a y scale up it. */
-export type ChartFrame = {
+export type SvgFrame = {
   W: number;
   H: number;
   M: Margin;
@@ -210,7 +210,7 @@ export function chartFrame(
   W = 400,
   H = 220,
   M: Margin = { top: 8, right: 16, bottom: 24, left: 36 },
-): ChartFrame {
+): SvgFrame {
   return {
     W,
     H,

@@ -1,6 +1,7 @@
 import { toNum } from "@/lib/formatters";
-import { finiteDomain, linearScale, pathFromPoints } from "@/lib/svgChart";
+import { chartFrame, finiteDomain, pathFromPoints } from "@/lib/svgChart";
 import type { Point } from "@/lib/svgChart";
+import { FrameLabels } from "@/components/shared/FrameLabels";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type SmilePoint = {
@@ -63,14 +64,10 @@ export function SmileChart({
   const spotNum = toNum(spot);
   const spotInRange =
     spotNum != null && spotNum >= strikeDomain.lo && spotNum <= strikeDomain.hi;
-  const W = 400;
-  const H = 220;
-  const M = { top: 8, right: 16, bottom: 24, left: 36 };
-  const x = linearScale(
-    [strikeDomain.lo, strikeDomain.hi],
-    [M.left, W - M.right],
-  );
-  const y = linearScale([ivDomain.lo, ivDomain.hi], [H - M.bottom, M.top]);
+  const frame = chartFrame();
+  const { H, M } = frame;
+  const x = frame.x([strikeDomain.lo, strikeDomain.hi]);
+  const y = frame.y([ivDomain.lo, ivDomain.hi]);
 
   return (
     <AnalyticalSeriesPanel title="Smile" subtitle={SUBTITLE}>
@@ -81,7 +78,7 @@ export function SmileChart({
           </span>
         ))}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img">
+      <svg {...frame.svg}>
         {spotInRange && (
           <g>
             <line
@@ -121,36 +118,13 @@ export function SmileChart({
             />
           );
         })}
-        <text
-          x={M.left - 4}
-          y={H - M.bottom}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {(ivDomain.lo * 100).toFixed(1)}%
-        </text>
-        <text
-          x={M.left - 4}
-          y={M.top + 8}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {(ivDomain.hi * 100).toFixed(1)}%
-        </text>
-        <text x={M.left} y={H - 4} fontSize={9} fill="var(--text-muted)">
-          ${strikeDomain.lo.toFixed(0)}
-        </text>
-        <text
-          x={W - M.right}
-          y={H - 4}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          ${strikeDomain.hi.toFixed(0)}
-        </text>
+        <FrameLabels
+          frame={frame}
+          yLo={<>{(ivDomain.lo * 100).toFixed(1)}%</>}
+          yHi={<>{(ivDomain.hi * 100).toFixed(1)}%</>}
+          xFirst={<>${strikeDomain.lo.toFixed(0)}</>}
+          xLast={<>${strikeDomain.hi.toFixed(0)}</>}
+        />
       </svg>
     </AnalyticalSeriesPanel>
   );

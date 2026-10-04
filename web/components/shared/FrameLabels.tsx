@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ChartFrame } from "@/lib/svgChart";
+import type { SvgFrame } from "@/lib/svgChart";
 
 /** The four corner labels a chartFrame() chart carries: the y range on the
  *  left edge, the first and last x values along the bottom (I-106). */
@@ -10,7 +10,7 @@ export function FrameLabels({
   xFirst,
   xLast,
 }: {
-  frame: ChartFrame;
+  frame: SvgFrame;
   yLo: ReactNode;
   yHi: ReactNode;
   xFirst: ReactNode;
