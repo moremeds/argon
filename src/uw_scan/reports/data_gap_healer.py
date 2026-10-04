@@ -724,6 +724,15 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal",
     ),
+    # Schema-ready marker (migration 158, I-05): one row written by migrate_runner
+    # after a full apply; workers gate on it. Not a time series.
+    DatasetRegistryEntry(
+        "schema_version",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="one-row schema-ready marker written by migrate_runner after a full apply; nothing to backfill/heal",
+    ),
     DatasetRegistryEntry(
         "record_health_snapshot",
         "operational_provenance",
