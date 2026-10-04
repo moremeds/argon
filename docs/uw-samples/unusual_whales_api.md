@@ -36,7 +36,7 @@ Machine-readable evidence: `uw_api_capability_audit.json` / `uw_api_capability_a
 
 ## Integrated Endpoints
 
-Endpoints with a slug in `api/endpoints.py` and a fetcher in `sources/uw.py`.
+Endpoints with a slug in `sources/uw_endpoints.py` and a fetcher in `sources/uw.py`.
 
 ### Options Flow
 
@@ -367,7 +367,7 @@ Accessible endpoints not yet integrated, ranked by value-to-effort for argon's v
 
 ## Adding a New Endpoint
 
-1. Add slug to `EndpointSlug` in `api/endpoints.py` + register in `REGISTRY`
+1. Add slug to `EndpointSlug` in `sources/uw_endpoints.py` + register in `REGISTRY`
 2. Add typed model to the appropriate `models/` domain module + re-export from `models/__init__.py`
 3. Add fetcher to `sources/uw.py` (audit + raw payload persist before return)
 4. Add persistence method to the appropriate `storage/<domain>_repository.py`

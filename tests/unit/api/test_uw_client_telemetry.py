@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from uw_scan.api.client import LiveDataUnavailable, UwClient, UwHTTPError
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 
 
 class Recorder:

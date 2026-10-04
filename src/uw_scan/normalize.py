@@ -10,6 +10,8 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from uw_scan.errors import NormalizationError  # re-exported (I-58)
+
 from .models import (
     BulkScreenerRow,
     DarkLitPrint,
@@ -43,10 +45,6 @@ from .models import (
     VolumesByExchangeRow,
     VolVrpRow,
 )
-
-
-class NormalizationError(Exception):
-    """Raised when a payload cannot be normalized."""
 
 
 def _data_list(payload: dict) -> list[dict]:

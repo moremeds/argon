@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime
 import httpx
 
 from uw_scan.models.macro import MacroSourceArtifact
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 
 from .fed_sep import SepSourceBundle, _artifact, optional_release_timestamp
 from .fomc_release_contracts import (

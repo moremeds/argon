@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 from uw_scan.sources._http import (
     RequestOutcome,
     get_with_telemetry,

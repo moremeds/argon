@@ -28,7 +28,7 @@ import json
 from pathlib import Path
 
 from uw_scan.api.client import UwClient
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.config import Settings
 from uw_scan.watchlist_taxonomy import AI, LAYERS
 
