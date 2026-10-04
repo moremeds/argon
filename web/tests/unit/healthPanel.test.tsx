@@ -128,6 +128,8 @@ describe("HealthPanel", () => {
     expect(
       screen.getByText("2 record-health tables below expected coverage"),
     ).toBeTruthy();
+    // I-108: markup written before HealthPanel was split.
+    expect(document.body.innerHTML).toMatchSnapshot();
   });
 
   it("renders a compact benchmark fallback when the request fails", async () => {
@@ -266,6 +268,8 @@ describe("HealthPanel", () => {
     expect(screen.getByText("120")).toBeTruthy();
     expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByText("1")).toBeTruthy();
+    // I-108: markup written before HealthPanel was split.
+    expect(document.body.innerHTML).toMatchSnapshot();
   });
 
   it("keeps the last-good status on a transient failed poll, then goes OFFLINE after repeated failures", async () => {
@@ -366,6 +370,8 @@ describe("HealthPanel", () => {
       expect(screen.getAllByText("UNKNOWN").length).toBeGreaterThanOrEqual(2),
     );
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5);
+    // I-108: markup written before HealthPanel was split.
+    expect(document.body.innerHTML).toMatchSnapshot();
   });
 
   it("reloads stats when provider source changes", async () => {
@@ -505,6 +511,8 @@ describe("HealthPanel", () => {
     // ALERT appears twice when records are unhealthy: once in the always-on
     // summary chip at the top, once on the Query Coverage row.
     expect(screen.getAllByText("ALERT").length).toBeGreaterThanOrEqual(1);
+    // I-108: markup written before HealthPanel was split.
+    expect(document.body.innerHTML).toMatchSnapshot();
   });
 
   it("starts collapsed, hides the body, and toggles on click", async () => {

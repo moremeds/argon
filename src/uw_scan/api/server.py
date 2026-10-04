@@ -7,6 +7,7 @@ import os
 import time
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from uw_scan.api.routers import (
@@ -36,6 +37,7 @@ from uw_scan.api.routers import (
     vrp,
     watchlist,
 )
+from uw_scan.macro.replay import InvalidInstant
 from uw_scan.version import app_version
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,13 @@ def create_app() -> FastAPI:
     app.include_router(vrp.router, prefix="/api", tags=["vrp"])
     app.include_router(positions.router, prefix="/api", tags=["positions"])
     app.include_router(agent_runs.router, prefix="/api", tags=["agent-runs"])
+
+    @app.exception_handler(InvalidInstant)
+    async def _invalid_instant(_request: Request, exc: InvalidInstant) -> JSONResponse:
+        # The same body FastAPI gives HTTPException(422, detail=...), so moving
+        # resolve_instant out of the router layer changes no response (I-40).
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
+
     return app
 
 

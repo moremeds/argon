@@ -114,6 +114,8 @@ def test_market_tide_sentiment_failure_streak_then_success_clears(
             return None
 
     monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
+    # main() waits for the schema marker first; this DB is not the one it reads.
+    monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
     monkeypatch.setattr(scheduler, "_repo", test_repo)
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
@@ -210,6 +212,8 @@ def _capture_uw0_jobs(monkeypatch, repo, job_ids, env):
             return None
 
     monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
+    # main() waits for the schema marker first; this DB is not the one it reads.
+    monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
     monkeypatch.setattr(scheduler, "datetime", _Thursday)
     monkeypatch.setattr(scheduler, "_repo", test_repo)
