@@ -9,6 +9,7 @@ guard it had in ``main()`` (massive group, massive-0, uw-0, its own predicate).
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -24,7 +25,6 @@ from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.schedule.roles import (
     _is_primary_worker,
     _pinned,
-    _ticker_shard_filter,
     _worker_groups,
 )
 
@@ -107,9 +107,13 @@ def _should_schedule_fundamentals_desk_rollup(settings: Settings) -> bool:
     return _pinned(settings, "massive")
 
 
-def register(sched: BaseScheduler, settings: Settings) -> None:
+def register(
+    sched: BaseScheduler,
+    settings: Settings,
+    *,
+    ticker_filter: Callable[[str], bool],
+) -> None:
     groups = _worker_groups(settings)
-    ticker_filter = _ticker_shard_filter(settings)
 
     def _fundamentals_refresh() -> None:
         provider = _fundamentals_provider(settings)

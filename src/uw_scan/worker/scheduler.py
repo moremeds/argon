@@ -1496,7 +1496,7 @@ def main() -> int:
 
     register_macro_jobs(sched, settings)
     register_regime_jobs(sched, settings)
-    register_fundamentals_jobs(sched, settings)
+    register_fundamentals_jobs(sched, settings, ticker_filter=ticker_filter)
 
     if _owns_global_daily_jobs(settings):
         # VRP macro short-vol signal at 03:45 ET — AFTER vol_index_lake_sync
