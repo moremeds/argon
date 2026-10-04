@@ -128,3 +128,104 @@ def test_ragged_parallel_arrays_do_not_misalign_rows():
     out = parse_submissions(payload)
     assert len(out) == 1
     assert out[0].accession == "a"
+
+
+# --- fetch path: the status contract (I-15/I-17) -----------------------------
+
+import httpx  # noqa: E402
+import pytest  # noqa: E402
+
+from uw_scan.sources.sec_submissions import (  # noqa: E402
+    fetch_cik_map,
+    fetch_filings,
+)
+from uw_scan.sources.source_errors import SourceUnavailable  # noqa: E402
+
+# NVDA's real CIK; the archive file name below is a labeled stand-in.
+_NVDA_CIK = "0001045810"
+_ARCHIVE = "CIK0001045810-submissions-001.json"
+
+
+def _client(routes):
+    """routes: url path -> httpx.Response | callable(request)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        r = routes[request.url.path]
+        return r(request) if callable(r) else r
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def _with_archive(payload):
+    out = {**payload, "filings": {**payload["filings"], "files": [{"name": _ARCHIVE}]}}
+    return out
+
+
+def test_cik_map_pads_and_skips_a_malformed_entry():
+    routes = {
+        "/files/company_tickers.json": httpx.Response(
+            200,
+            json={
+                "0": {"cik_str": 1045810, "ticker": "NVDA", "title": "NVIDIA"},
+                "1": {"cik_str": "not-a-number", "ticker": "BAD", "title": "x"},
+            },
+        )
+    }
+    assert fetch_cik_map(_client(routes)) == {"NVDA": _NVDA_CIK}
+
+
+@pytest.mark.parametrize(
+    "resp",
+    [
+        httpx.Response(503, text="busy"),
+        httpx.Response(200, text="<html>throttled</html>"),
+        httpx.Response(200, json=["not", "an", "object"]),
+    ],
+)
+def test_cik_map_failure_raises(resp):
+    with pytest.raises(SourceUnavailable):
+        fetch_cik_map(_client({"/files/company_tickers.json": resp}))
+
+
+def test_filings_include_archive_pages():
+    routes = {
+        f"/submissions/CIK{_NVDA_CIK}.json": httpx.Response(
+            200, json=_with_archive(PAYLOAD)
+        ),
+        f"/submissions/{_ARCHIVE}": httpx.Response(
+            200, json=PAYLOAD["filings"]["recent"]
+        ),
+    }
+    filings = fetch_filings(_client(routes), _NVDA_CIK)
+    assert filings == sorted(
+        set(parse_submissions(PAYLOAD)),
+        key=lambda f: (f.report_date, f.filing_date, f.accession),
+    )
+    assert filings  # non-vacuity
+
+
+def test_submissions_failure_raises():
+    routes = {f"/submissions/CIK{_NVDA_CIK}.json": httpx.Response(404, json={})}
+    with pytest.raises(SourceUnavailable, match="404"):
+        fetch_filings(_client(routes), _NVDA_CIK)
+
+
+def test_a_failed_archive_page_raises_rather_than_under_reporting():
+    """It used to be skipped silently, returning an issuer's filings minus
+    everything on that archive page."""
+    routes = {
+        f"/submissions/CIK{_NVDA_CIK}.json": httpx.Response(
+            200, json=_with_archive(PAYLOAD)
+        ),
+        f"/submissions/{_ARCHIVE}": httpx.Response(500, text="oops"),
+    }
+    with pytest.raises(SourceUnavailable, match="500"):
+        fetch_filings(_client(routes), _NVDA_CIK)
+
+
+def test_programming_error_propagates():
+    def boom(request):
+        raise TypeError("bad handler")
+
+    with pytest.raises(TypeError, match="bad handler"):
+        fetch_filings(_client({f"/submissions/CIK{_NVDA_CIK}.json": boom}), _NVDA_CIK)
