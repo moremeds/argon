@@ -117,6 +117,7 @@ from uw_scan.worker.jobs.vrp_trading_jobs import (
     vrp_paper_mark,
     vrp_paper_open,
 )
+from uw_scan.worker.schema_gate import wait_for_schema
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
     nightly_vol_analytics_rollup,
@@ -800,6 +801,9 @@ def _handle_job_event(event) -> None:
 def main() -> int:
     settings = Settings.from_env()
     _validate_worker_settings(settings)
+    # Before any job exists: new code must not run against an unmigrated schema
+    # (Watchtower can start this image before the api has migrated).
+    wait_for_schema(settings.db_dsn())
     groups = _worker_groups(settings)
     ticker_filter = _ticker_shard_filter(settings)
     sched = BlockingScheduler(timezone=settings.rth_tz)
