@@ -471,7 +471,7 @@ def test_extract_json_from_text_stops_at_first_object_with_trailing_prose():
     # Live regression: a thinking model appends prose after the JSON object, and
     # the object's string values contain stray braces. A naive brace-depth
     # counter miscounts and returns trailing text -> json.loads "Extra data".
-    # The shared scan is string-aware and isolates exactly the first object.
+    # raw_decode is string-aware and isolates exactly the first object.
     from uw_scan.worker.jobs.trade_insights_deepseek_runner import (
         _extract_json_from_text,
     )

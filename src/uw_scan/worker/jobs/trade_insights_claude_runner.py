@@ -39,7 +39,6 @@ from uw_scan.worker.jobs.trade_insights_ai_runners import (
     TradeInsightsAiRunnerError,
     _format_runner_failure,
     _runner_child_env,
-    extract_first_json_object,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +67,47 @@ def _strip_markdown_fence(text: str) -> str:
     return body.rstrip()
 
 
+def _extract_first_balanced_json_object(text: str) -> str | None:
+    """Find the first balanced {...} substring in `text` and return it.
+
+    Walks the string tracking brace depth so a JSON object embedded in
+    prose ("Looking at TSLA, here's my analysis: {...} Hope this helps.")
+    can be recovered when the StructuredOutput tool didn't fire.
+
+    String literals (including escaped quotes) are skipped so braces
+    inside JSON string values don't confuse the depth counter.
+    Returns None if no balanced object is found.
+    """
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    i = start
+    n = len(text)
+    in_string = False
+    escape = False
+    while i < n:
+        ch = text[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+        else:
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
+        i += 1
+    return None
+
+
 def _try_parse_claude_text(text: str) -> Any:
     """Best-effort JSON recovery from a Claude result.text payload.
 
@@ -82,7 +122,7 @@ def _try_parse_claude_text(text: str) -> Any:
         return json.loads(candidate)
     except json.JSONDecodeError as exc:
         logger.debug("fenced parse miss: %s", repr(exc))
-    extracted = extract_first_json_object(text)
+    extracted = _extract_first_balanced_json_object(text)
     if extracted is None:
         return None
     try:
