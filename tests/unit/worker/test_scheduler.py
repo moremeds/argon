@@ -10,14 +10,16 @@ from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.worker.market_session import current_market_date
+from uw_scan.worker.schedule.macro import (
+    _run_rates_fred_ingest,
+    _should_schedule_macro_policy_ingest,
+    _should_schedule_rates_fred_ingest,
+)
 from uw_scan.worker.scheduler import (
     RESCAN_WORKER_CONCURRENCY,
     _ohlc_provider,
     _record_worker_heartbeat,
-    _run_rates_fred_ingest,
-    _should_schedule_macro_policy_ingest,
     _should_schedule_pipeline_benchmark,
-    _should_schedule_rates_fred_ingest,
     _should_schedule_skew_swing_greeks,
     _uw_auto_request_allowed,
     _worker_heartbeat_name,
@@ -160,9 +162,9 @@ def test_rates_fred_ingest_helper_uses_unwrapped_key_and_recorder(monkeypatch) -
         kwargs["record_request"]("fred", {"params": {"series_id": "DGS10"}})
 
     monkeypatch.setattr(
-        "uw_scan.worker.scheduler._external_api_recorder", fake_recorder
+        "uw_scan.worker.schedule.macro._external_api_recorder", fake_recorder
     )
-    monkeypatch.setattr("uw_scan.worker.scheduler.rates_fred_ingest_job", fake_job)
+    monkeypatch.setattr("uw_scan.worker.schedule.macro.rates_fred_ingest_job", fake_job)
 
     settings = Settings(api_key="uw", fred_api_key=SecretStr("fred-secret"))
 
@@ -181,7 +183,7 @@ def test_rates_fred_ingest_helper_skips_when_key_missing(monkeypatch) -> None:
     def fake_job(**kwargs) -> None:
         calls.append(kwargs)
 
-    monkeypatch.setattr("uw_scan.worker.scheduler.rates_fred_ingest_job", fake_job)
+    monkeypatch.setattr("uw_scan.worker.schedule.macro.rates_fred_ingest_job", fake_job)
 
     _run_rates_fred_ingest(Settings(api_key="uw", fred_api_key=None))
 
