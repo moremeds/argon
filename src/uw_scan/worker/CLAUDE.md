@@ -122,7 +122,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 ## Provider concurrency model
 
 The sharded worker design (`c6544cb`) splits ticker work across N UW workers,
-each holding its own per-worker advisory lock (`lock_key=91501 + worker_index`).
+each holding its own per-worker advisory lock (`worker_key("flow_data_refresh", worker_index)` = 91701 + index; every key lives in `storage/advisory_locks.py`, which asserts at import that no two collide).
 This is intentional and preserves single-worker semantics within each shard —
 but it has two implications operators should know:
 

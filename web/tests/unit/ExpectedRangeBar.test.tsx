@@ -6,7 +6,8 @@ import { ExpectedRangeBar } from "@/components/regime/gex/ExpectedRangeBar";
 import type { GexData } from "@/lib/regime/useGex";
 
 // Real SPX snapshot (2026-06-16): spot ± iv_1d band + dealer levels, frozen.
-const lvl = (strike: number) => ({ strike }) as GexData["levels"]["gex_flip"];
+const lvl = (strike: number) =>
+  ({ strike }) as NonNullable<GexData["levels"]>["gex_flip"];
 const data = {
   data_date: "2026-06-16",
   spot: 7554.29,

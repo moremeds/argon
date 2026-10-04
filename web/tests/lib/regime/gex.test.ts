@@ -89,15 +89,15 @@ function oracleRetag(
   let nearest: number | null = null;
   let minDist = Infinity;
   for (const b of profile) {
-    const d = Math.abs(b.strike - liveSpot);
+    const d = Math.abs(b.strike! - liveSpot);
     if (d < minDist) {
       minDist = d;
-      nearest = b.strike;
+      nearest = b.strike!;
     }
   }
   const tagMap = new Map<number, string>();
   if (nearest != null) tagMap.set(nearest, "SPOT");
-  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike, "GEX FLIP");
+  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike!, "GEX FLIP");
   const labelled: [GexLevel, string][] = [
     [levels?.max_magnet ?? null, "MAX MAGNET"],
     [levels?.second_magnet ?? null, "SECOND MAGNET"],
@@ -106,12 +106,12 @@ function oracleRetag(
     [levels?.call_wall ?? null, "CALL WALL"],
   ];
   for (const [level, label] of labelled) {
-    if (level && !tagMap.has(level.strike)) tagMap.set(level.strike, label);
+    if (level && !tagMap.has(level.strike!)) tagMap.set(level.strike!, label);
   }
   return profile.map((b) => ({
     ...b,
-    pct_from_spot: ((b.strike - liveSpot) / liveSpot) * 100,
-    tag: tagMap.get(b.strike) ?? null,
+    pct_from_spot: ((b.strike! - liveSpot) / liveSpot) * 100,
+    tag: tagMap.get(b.strike!) ?? null,
   }));
 }
 
@@ -190,13 +190,13 @@ describe("gexSpotRead", () => {
 
 describe("retagProfileForSpot", () => {
   it("matches the verbatim oracle across the fixture profile", () => {
-    expect(retagProfileForSpot(data.profile, 7575.39, data.levels)).toEqual(
-      oracleRetag(data.profile, 7575.39, data.levels),
+    expect(retagProfileForSpot(data.profile!, 7575.39, data.levels)).toEqual(
+      oracleRetag(data.profile!, 7575.39, data.levels),
     );
   });
 
   it("anchors: SPOT lands on 7575, GEX FLIP stays on 7725", () => {
-    const tagged = retagProfileForSpot(data.profile, 7575.39, data.levels);
+    const tagged = retagProfileForSpot(data.profile!, 7575.39, data.levels);
     expect(tagged).toHaveLength(62);
     expect(
       tagged.filter((b) => b.tag === "SPOT").map((b) => b.strike),

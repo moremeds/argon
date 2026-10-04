@@ -1,0 +1,1298 @@
+{
+ "cftc_cot": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_cot_disagg_csv",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "5000",
+     "$order": "report_date_as_yyyy_mm_dd ASC",
+     "$where": "cftc_contract_market_code=\"088691\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/dea/newcot/f_disagg.txt",
+    "path_template": "/dea/newcot/f_disagg.txt",
+    "provider": "cftc_cot",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_cot_disagg_csv",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "5000",
+     "$order": "report_date_as_yyyy_mm_dd ASC",
+     "$where": "cftc_contract_market_code=\"088691\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/dea/newcot/f_disagg.txt",
+    "path_template": "/dea/newcot/f_disagg.txt",
+    "provider": "cftc_cot",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_cot_disagg_csv",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "5000",
+     "$order": "report_date_as_yyyy_mm_dd ASC",
+     "$where": "cftc_contract_market_code=\"088691\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/dea/newcot/f_disagg.txt",
+    "path_template": "/dea/newcot/f_disagg.txt",
+    "provider": "cftc_cot",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_cot_disagg_csv",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "5000",
+     "$order": "report_date_as_yyyy_mm_dd ASC",
+     "$where": "cftc_contract_market_code=\"088691\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/dea/newcot/f_disagg.txt",
+    "path_template": "/dea/newcot/f_disagg.txt",
+    "provider": "cftc_cot",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "cftc_tff": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_tff_futures_only",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "50000",
+     "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
+     "$select": ":created_at,cftc_contract_market_code,contract_market_name,commodity_name,report_date_as_yyyy_mm_dd,open_interest_all,dealer_positions_long_all,dealer_positions_short_all,asset_mgr_positions_long,asset_mgr_positions_short,lev_money_positions_long,lev_mo...",
+     "$where": "commodity_subgroup_name=\"Interest Rates - U.S. Treasury\" AND futonly_or_combined=\"FutOnly\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/resource/gpe5-46if.json",
+    "path_template": "/resource/gpe5-46if.json",
+    "provider": "cftc_tff",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_tff_futures_only",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "50000",
+     "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
+     "$select": ":created_at,cftc_contract_market_code,contract_market_name,commodity_name,report_date_as_yyyy_mm_dd,open_interest_all,dealer_positions_long_all,dealer_positions_short_all,asset_mgr_positions_long,asset_mgr_positions_short,lev_money_positions_long,lev_mo...",
+     "$where": "commodity_subgroup_name=\"Interest Rates - U.S. Treasury\" AND futonly_or_combined=\"FutOnly\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/resource/gpe5-46if.json",
+    "path_template": "/resource/gpe5-46if.json",
+    "provider": "cftc_tff",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_tff_futures_only",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "50000",
+     "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
+     "$select": ":created_at,cftc_contract_market_code,contract_market_name,commodity_name,report_date_as_yyyy_mm_dd,open_interest_all,dealer_positions_long_all,dealer_positions_short_all,asset_mgr_positions_long,asset_mgr_positions_short,lev_money_positions_long,lev_mo...",
+     "$where": "commodity_subgroup_name=\"Interest Rates - U.S. Treasury\" AND futonly_or_combined=\"FutOnly\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/resource/gpe5-46if.json",
+    "path_template": "/resource/gpe5-46if.json",
+    "provider": "cftc_tff",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "cftc_tff_futures_only",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "$limit": "50000",
+     "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
+     "$select": ":created_at,cftc_contract_market_code,contract_market_name,commodity_name,report_date_as_yyyy_mm_dd,open_interest_all,dealer_positions_long_all,dealer_positions_short_all,asset_mgr_positions_long,asset_mgr_positions_short,lev_money_positions_long,lev_mo...",
+     "$where": "commodity_subgroup_name=\"Interest Rates - U.S. Treasury\" AND futonly_or_combined=\"FutOnly\" AND report_date_as_yyyy_mm_dd >= \"2026-09-01T00:00:00\""
+    },
+    "path": "/resource/gpe5-46if.json",
+    "path_template": "/resource/gpe5-46if.json",
+    "provider": "cftc_tff",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "cleveland_fed": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "inflation_expectations_csv",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "sc_lang": "en"
+    },
+    "path": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "path_template": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "provider": "cleveland_fed",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "inflation_expectations_csv",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "sc_lang": "en"
+    },
+    "path": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "path_template": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "provider": "cleveland_fed",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   },
+   {
+    "attempt": 0,
+    "endpoint_key": "inflation_expectations_csv",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "sc_lang": "en"
+    },
+    "path": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart2.csv",
+    "path_template": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart2.csv",
+    "provider": "cleveland_fed",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "inflation_expectations_csv",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "sc_lang": "en"
+    },
+    "path": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "path_template": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "provider": "cleveland_fed",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "inflation_expectations_csv",
+    "error_message": "connection refused",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "sc_lang": "en"
+    },
+    "path": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "path_template": "/-/media/files/webcharts/inflationexpectations/inflationexpectations_chart1.csv",
+    "provider": "cleveland_fed",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "etf_holdings_gld": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "spdr_gld_archive",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "exchange": "NYSE",
+     "lang": "en",
+     "product": "gld"
+    },
+    "path": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "path_template": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "provider": "etf_holdings",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "spdr_gld_archive",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "exchange": "NYSE",
+     "lang": "en",
+     "product": "gld"
+    },
+    "path": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "path_template": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "provider": "etf_holdings",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "spdr_gld_archive",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "exchange": "NYSE",
+     "lang": "en",
+     "product": "gld"
+    },
+    "path": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "path_template": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "provider": "etf_holdings",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "spdr_gld_archive",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "exchange": "NYSE",
+     "lang": "en",
+     "product": "gld"
+    },
+    "path": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "path_template": "https://api.spdrgoldshares.com/api/v1/historical-archive",
+    "provider": "etf_holdings",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "fed_funds_futures_path": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fed_funds_futures_path",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "",
+    "path_template": "",
+    "provider": "frenzy_capital",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fed_funds_futures_path",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "",
+    "path_template": "",
+    "provider": "frenzy_capital",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fed_funds_futures_path",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "",
+    "path_template": "",
+    "provider": "frenzy_capital",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fed_funds_futures_path",
+    "error_message": "connection refused",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "",
+    "path_template": "",
+    "provider": "frenzy_capital",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "fred": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fred_series_observations",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "file_type": "json",
+     "observation_end": "2026-09-01",
+     "observation_start": "2026-09-01",
+     "series_id": "DGS10"
+    },
+    "path": "/fred/series/observations",
+    "path_template": "/fred/series/observations",
+    "provider": "fred",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fred_series_observations",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "file_type": "json",
+     "observation_end": "2026-09-01",
+     "observation_start": "2026-09-01",
+     "series_id": "DGS10"
+    },
+    "path": "/fred/series/observations",
+    "path_template": "/fred/series/observations",
+    "provider": "fred",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fred_series_observations",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "file_type": "json",
+     "observation_end": "2026-09-01",
+     "observation_start": "2026-09-01",
+     "series_id": "DGS10"
+    },
+    "path": "/fred/series/observations",
+    "path_template": "/fred/series/observations",
+    "provider": "fred",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fred_series_observations",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "file_type": "json",
+     "observation_end": "2026-09-01",
+     "observation_start": "2026-09-01",
+     "series_id": "DGS10"
+    },
+    "path": "/fred/series/observations",
+    "path_template": "/fred/series/observations",
+    "provider": "fred",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "gpr": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "gpr_daily_xls",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/gpr_files/data_gpr_daily_recent.xls",
+    "path_template": "/gpr_files/data_gpr_daily_recent.xls",
+    "provider": "gpr",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "gpr_daily_xls",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/gpr_files/data_gpr_daily_recent.xls",
+    "path_template": "/gpr_files/data_gpr_daily_recent.xls",
+    "provider": "gpr",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "gpr_daily_xls",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/gpr_files/data_gpr_daily_recent.xls",
+    "path_template": "/gpr_files/data_gpr_daily_recent.xls",
+    "provider": "gpr",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "gpr_daily_xls",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/gpr_files/data_gpr_daily_recent.xls",
+    "path_template": "/gpr_files/data_gpr_daily_recent.xls",
+    "provider": "gpr",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "lbma": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "lbma_vault_xlsx",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/prices-and-data/london-vault-data",
+    "path_template": "/prices-and-data/london-vault-data",
+    "provider": "lbma",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "lbma_vault_xlsx",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/prices-and-data/london-vault-data",
+    "path_template": "/prices-and-data/london-vault-data",
+    "provider": "lbma",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "lbma_vault_xlsx",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/prices-and-data/london-vault-data",
+    "path_template": "/prices-and-data/london-vault-data",
+    "provider": "lbma",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "lbma_vault_xlsx",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/prices-and-data/london-vault-data",
+    "path_template": "/prices-and-data/london-vault-data",
+    "provider": "lbma",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "ohlc": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "daily_ohlc",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/v2/aggs/ticker/SPY/range/1/day/2026-09-01/2026-09-01",
+    "path_template": "/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}",
+    "provider": "massive",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": "SPY"
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "daily_ohlc",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/v2/aggs/ticker/SPY/range/1/day/2026-09-01/2026-09-01",
+    "path_template": "/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}",
+    "provider": "massive",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": "SPY"
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "daily_ohlc",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/v2/aggs/ticker/SPY/range/1/day/2026-09-01/2026-09-01",
+    "path_template": "/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}",
+    "provider": "massive",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": "SPY"
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "daily_ohlc",
+    "error_message": "connection refused",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/v2/aggs/ticker/SPY/range/1/day/2026-09-01/2026-09-01",
+    "path_template": "/v2/aggs/ticker/{ticker}/range/1/day/{from}/{to}",
+    "provider": "massive",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": "SPY"
+   }
+  ]
+ },
+ "treasury_supply_auctions": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "treasury_direct_auctioned",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "format": "json",
+     "type": "Bill"
+    },
+    "path": "/TA_WS/securities/auctioned",
+    "path_template": "/TA_WS/securities/auctioned",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "treasury_direct_auctioned",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "format": "json",
+     "type": "Bill"
+    },
+    "path": "/TA_WS/securities/auctioned",
+    "path_template": "/TA_WS/securities/auctioned",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "treasury_direct_auctioned",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "format": "json",
+     "type": "Bill"
+    },
+    "path": "/TA_WS/securities/auctioned",
+    "path_template": "/TA_WS/securities/auctioned",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "treasury_direct_auctioned",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "format": "json",
+     "type": "Bill"
+    },
+    "path": "/TA_WS/securities/auctioned",
+    "path_template": "/TA_WS/securities/auctioned",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "treasury_supply_debt": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fiscaldata_debt_to_penny",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "page[size]": "1",
+     "sort": "-record_date"
+    },
+    "path": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "path_template": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fiscaldata_debt_to_penny",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "page[size]": "1",
+     "sort": "-record_date"
+    },
+    "path": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "path_template": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fiscaldata_debt_to_penny",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "page[size]": "1",
+     "sort": "-record_date"
+    },
+    "path": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "path_template": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "fiscaldata_debt_to_penny",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {
+     "page[size]": "1",
+     "sort": "-record_date"
+    },
+    "path": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "path_template": "/services/api/fiscal_service/v2/accounting/od/debt_to_penny",
+    "provider": "treasury_supply",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "wgc_cb": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_cb_reserves_page",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/goldhub/data/gold-reserves-by-country",
+    "path_template": "/goldhub/data/gold-reserves-by-country",
+    "provider": "wgc_cb",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_cb_reserves_page",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/goldhub/data/gold-reserves-by-country",
+    "path_template": "/goldhub/data/gold-reserves-by-country",
+    "provider": "wgc_cb",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_cb_reserves_page",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/goldhub/data/gold-reserves-by-country",
+    "path_template": "/goldhub/data/gold-reserves-by-country",
+    "provider": "wgc_cb",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_cb_reserves_page",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "/goldhub/data/gold-reserves-by-country",
+    "path_template": "/goldhub/data/gold-reserves-by-country",
+    "provider": "wgc_cb",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ },
+ "wgc_etf": {
+  "not_found": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_etf_flows_xlsx",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "https://www.gold.org/download/file/1/x.xlsx",
+    "path_template": "https://www.gold.org/download/file/1/x.xlsx",
+    "provider": "wgc_etf",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 404,
+    "status_family": "4xx",
+    "ticker": null
+   }
+  ],
+  "ok": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_etf_flows_xlsx",
+    "error_message": null,
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "https://www.gold.org/download/file/1/x.xlsx",
+    "path_template": "https://www.gold.org/download/file/1/x.xlsx",
+    "provider": "wgc_etf",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 200,
+    "status_family": "2xx",
+    "ticker": null
+   }
+  ],
+  "server_error": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_etf_flows_xlsx",
+    "error_message": "payload",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "https://www.gold.org/download/file/1/x.xlsx",
+    "path_template": "https://www.gold.org/download/file/1/x.xlsx",
+    "provider": "wgc_etf",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": 500,
+    "status_family": "5xx",
+    "ticker": null
+   }
+  ],
+  "transport": [
+   {
+    "attempt": 0,
+    "endpoint_key": "wgc_etf_flows_xlsx",
+    "error_message": "ConnectError('connection refused')",
+    "job_name": null,
+    "method": "GET",
+    "official_daily_count": null,
+    "official_daily_limit": null,
+    "official_minute_remaining": null,
+    "official_minute_reset": null,
+    "params": {},
+    "path": "https://www.gold.org/download/file/1/x.xlsx",
+    "path_template": "https://www.gold.org/download/file/1/x.xlsx",
+    "provider": "wgc_etf",
+    "provider_request_id": null,
+    "run_id": null,
+    "status_code": null,
+    "status_family": "transport_error",
+    "ticker": null
+   }
+  ]
+ }
+}

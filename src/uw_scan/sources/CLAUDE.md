@@ -129,6 +129,7 @@ A support cluster backs the two PDF/HTML-scraping sources above: `fed_sep_provid
 - **No retry logic here.** Backoff/retry lives in `api/client.py` (UW) — sources stay thin.
 - **Never add a Yahoo Finance source.** Project-wide rule — yfinance is for radon/other projects, not this one.
 - **Telemetry hook.** Gold sources accept a `record_request` callable that emits `ExternalApiRequestEvent` rows via `ExternalApiRequestRecorder` (production wiring) — keep it injectable for tests.
+- **One copy of the request telemetry.** A hand-rolled client times its GET, builds its event and records it through `sources/_http.py` (`get_with_telemetry`, `request_event`, `record_or_log`, `BROWSER_UA`). The client passes in only what differs: provider, endpoint key, path, error wording, and its own retry loop. `tests/unit/sources/test_source_telemetry_golden.py` freezes every client's emitted events; it fails on any drift.
 - **Backtest lag rule for COT.** Always lag inputs to CFTC `release_date + 3 trading days`. Using `obs_date` (Tuesday position date) leaks look-ahead because the report is published Friday.
 - **Policy paths stay separate.** Actual decisions, anonymous SEP projections, Primary Dealer
   expectations, and market pricing are different populations and objects. Do not average them into

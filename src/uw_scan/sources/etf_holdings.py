@@ -13,19 +13,28 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 from openpyxl import load_workbook
 
+from uw_scan.sources._http import (
+    BROWSER_UA,
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
+
+_RETRYABLE = (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ReadError)
 
 
 @dataclass(frozen=True)
@@ -47,10 +56,6 @@ class EtfHoldingsProvider:
 
     DEFAULT_TIMEOUT_S = 60.0
     MAX_RETRIES = 3
-    BROWSER_UA = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    )
 
     def __init__(
         self,
@@ -61,7 +66,7 @@ class EtfHoldingsProvider:
     ):
         self._client = httpx.Client(
             timeout=timeout_s if timeout_s is not None else self.DEFAULT_TIMEOUT_S,
-            headers={"User-Agent": self.BROWSER_UA},
+            headers={"User-Agent": BROWSER_UA},
             trust_env=False,
         )
         self._max_retries = max_retries if max_retries is not None else self.MAX_RETRIES
@@ -184,96 +189,37 @@ class EtfHoldingsProvider:
     def _get_with_telemetry(
         self, url: str, params: dict[str, Any], *, endpoint_key: str
     ) -> httpx.Response:
-        import time
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key=endpoint_key,
+                path=url,
+                params=params,
+            )
+            record_or_log(self._record_request_fn, self, event, "etf_holdings")
 
-        last_exc: Exception | None = None
         for attempt in range(self._max_retries):
-            started_at = datetime.now(UTC)
+
+            def error_text(exc: httpx.HTTPError, attempt: int = attempt) -> str:
+                if isinstance(exc, _RETRYABLE):
+                    return f"attempt {attempt + 1}: {repr(exc)[:900]}"
+                return repr(exc)[:1000]
+
             try:
-                response = self._client.get(url, params=params)
-            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ReadError) as exc:
-                finished_at = datetime.now(UTC)
-                self._record_request(
-                    self._build_event(
-                        url,
-                        params,
-                        endpoint_key,
-                        started_at,
-                        finished_at,
-                        status_code=None,
-                        error_message=f"attempt {attempt + 1}: {repr(exc)[:900]}",
-                    )
+                return get_with_telemetry(
+                    self._client,
+                    url,
+                    params=params,
+                    record=record,
+                    transport_error_text=error_text,
                 )
-                last_exc = exc
+            except _RETRYABLE:
                 if attempt < self._max_retries - 1:
                     time.sleep(2**attempt)
                     continue
                 raise
-            except httpx.HTTPError as exc:
-                finished_at = datetime.now(UTC)
-                self._record_request(
-                    self._build_event(
-                        url,
-                        params,
-                        endpoint_key,
-                        started_at,
-                        finished_at,
-                        status_code=None,
-                        error_message=repr(exc)[:1000],
-                    )
-                )
-                raise
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._build_event(
-                    url,
-                    params,
-                    endpoint_key,
-                    started_at,
-                    finished_at,
-                    status_code=response.status_code,
-                    error_message=(
-                        response.text[:1000] if response.status_code >= 400 else None
-                    ),
-                )
-            )
-            return response
-        assert last_exc is not None
-        raise last_exc
-
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("etf_holdings telemetry %r", event)
-
-    def _build_event(
-        self,
-        url: str,
-        params: dict[str, Any],
-        endpoint_key: str,
-        started_at: datetime,
-        finished_at: datetime,
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=endpoint_key,
-            method="GET",
-            path=url,
-            path_template=url,
-            params=redact_params(params),
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            error_message=error_message,
-        )
+        raise AssertionError("max_retries must be at least 1")
 
 
 def _parse_date(raw: str | None) -> date | None:

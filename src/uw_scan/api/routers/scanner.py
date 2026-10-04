@@ -48,6 +48,7 @@ from uw_scan.scanner.models import (
     SignalHit as DCSignalHit,
 )
 from uw_scan.scanner.ranking import build_candidate, rank_candidates
+from uw_scan.storage.advisory_locks import hashed_key, single_flight
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.signals_repository import SignalsRepository
 from uw_scan.storage.theta_harvester_repository import ThetaHarvesterRepository
@@ -307,12 +308,6 @@ def get_scanner_discover(
 # Session advisory locks, same md5 shape as routers/volatility.py and
 # routers/stock.py. No parameter: both locks are global rather than per-ticker,
 # because both operations sweep the whole watchlist.
-_THETA_SCAN_LOCK_SQL = (
-    "('x' || substr(md5('theta_harvester_scan'), 1, 16))::bit(64)::bigint"
-)
-_THETA_QUOTE_LOCK_SQL = (
-    "('x' || substr(md5('theta_harvester_quote'), 1, 16))::bit(64)::bigint"
-)
 
 # Hard ceiling: 8 candidates x 2 legs = 16 SERIAL IB subprocess calls against a
 # ~100-line market-data cap shared with xenon and the spot WS feed. Over-large
@@ -326,25 +321,6 @@ _QUOTE_MAX = 8
 # raising the cap or parallelising — the shared IB line budget is the real
 # constraint, not the latency.
 _QUOTE_TIMEOUT_S = 4.0
-
-
-def _release(repo: Repository, lock_sql: str) -> None:
-    """Release a session advisory lock, even from an aborted transaction.
-
-    These are SESSION-scoped locks, which a ROLLBACK does not release. If the
-    body failed mid-write the transaction is aborted, so the bare unlock would
-    itself error with InFailedSqlTransaction and propagate out of `finally` —
-    leaving the lock held on a connection that api/deps.py then rolls back and
-    returns to the pool. Every later scan or quote 409s until that physical
-    connection is recycled. Rolling back FIRST clears the aborted state so the
-    unlock can actually run.
-    """
-    try:
-        repo.conn.rollback()
-        with repo.conn.cursor() as cur:
-            cur.execute(f"SELECT pg_advisory_unlock({lock_sql})")
-    except Exception as exc:  # never mask the original failure
-        logger.warning("theta lock release failed: %s", repr(exc))
 
 
 class ThetaQuoteRequest(BaseModel):
@@ -395,17 +371,14 @@ def theta_harvester_rescan(
     """
     from uw_scan.worker.jobs.theta_harvester import theta_harvester_scan
 
-    with repo.conn.cursor() as cur:
-        cur.execute(f"SELECT pg_try_advisory_lock({_THETA_SCAN_LOCK_SQL})")
-        acquired = bool(cur.fetchone()[0])
-    if not acquired:
-        raise HTTPException(status_code=409, detail="a theta scan is already running")
-    try:
+    with single_flight(repo.conn, hashed_key("theta_harvester_scan")) as acquired:
+        if not acquired:
+            raise HTTPException(
+                status_code=409, detail="a theta scan is already running"
+            )
         return ThetaHarvesterScanResult(
             **theta_harvester_scan(repo=repo, settings=settings)
         )
-    finally:
-        _release(repo, _THETA_SCAN_LOCK_SQL)
 
 
 @router.post("/theta-harvester/quote", response_model=ThetaHarvesterQuoteResult)
@@ -434,13 +407,11 @@ def theta_harvester_quote(
             detail=f"limit exceeds the IB line budget; max {_QUOTE_MAX} candidates",
         )
 
-    with repo.conn.cursor() as cur:
-        cur.execute(f"SELECT pg_try_advisory_lock({_THETA_QUOTE_LOCK_SQL})")
-        if not bool(cur.fetchone()[0]):
+    with single_flight(repo.conn, hashed_key("theta_harvester_quote")) as acquired:
+        if not acquired:
             raise HTTPException(
                 status_code=409, detail="a theta quote request is already running"
             )
-    try:
         th = ThetaHarvesterRepository(repo.conn, schema=settings.db_schema)
         target = req.as_of or th.latest_as_of()
         if target is None:
@@ -486,11 +457,6 @@ def theta_harvester_quote(
             else:
                 failed += 1
         return ThetaHarvesterQuoteResult(quoted=quoted, failed=failed)
-    finally:
-        # A xenon outage is caught per leg above, but set_ib_credit can fail on
-        # a DB error and a leaked session lock would block every later quote
-        # until the connection is recycled.
-        _release(repo, _THETA_QUOTE_LOCK_SQL)
 
 
 @router.get("/value", response_model=ValueScanResponse)

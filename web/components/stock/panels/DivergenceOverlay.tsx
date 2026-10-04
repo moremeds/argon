@@ -1,6 +1,7 @@
 import { toNum } from "@/lib/formatters";
-import { finiteDomain, linearScale, pathFromPoints } from "@/lib/svgChart";
+import { chartFrame, finiteDomain, pathFromPoints } from "@/lib/svgChart";
 import type { Point } from "@/lib/svgChart";
+import { FrameLabels } from "@/components/shared/FrameLabels";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type DivergencePoint = {
@@ -29,9 +30,8 @@ export function DivergenceOverlay({
       </AnalyticalSeriesPanel>
     );
   }
-  const W = 400;
-  const H = 220;
-  const M = { top: 8, right: 16, bottom: 24, left: 36 };
+  const frame = chartFrame();
+  const { W, M } = frame;
   const ivZ = data.map((d) => toNum(d.iv_z));
   const rvZ = data.map((d) => toNum(d.rv_z));
   const domain = finiteDomain([...ivZ, ...rvZ]);
@@ -48,8 +48,8 @@ export function DivergenceOverlay({
       </AnalyticalSeriesPanel>
     );
   }
-  const x = linearScale([0, data.length - 1], [M.left, W - M.right]);
-  const y = linearScale([domain.lo, domain.hi], [H - M.bottom, M.top]);
+  const x = frame.x([0, data.length - 1]);
+  const y = frame.y([domain.lo, domain.hi]);
   const ivPath = pathFromPoints(
     ivZ
       .map((v, i) => [x(i), v == null ? NaN : y(v)] as Point)
@@ -70,7 +70,7 @@ export function DivergenceOverlay({
         <span style={{ color: "var(--accent-warm)" }}>— IV-z</span>
         <span style={{ color: "var(--accent-vivid)" }}>— RV-z</span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img">
+      <svg {...frame.svg}>
         {domain.lo < 0 && domain.hi > 0 && (
           <line
             x1={M.left}
@@ -93,36 +93,13 @@ export function DivergenceOverlay({
           fill="none"
           strokeWidth={1.5}
         />
-        <text
-          x={M.left - 4}
-          y={H - M.bottom}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {domain.lo.toFixed(1)}σ
-        </text>
-        <text
-          x={M.left - 4}
-          y={M.top + 8}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {domain.hi.toFixed(1)}σ
-        </text>
-        <text x={M.left} y={H - 4} fontSize={9} fill="var(--text-muted)">
-          {data[0].date}
-        </text>
-        <text
-          x={W - M.right}
-          y={H - 4}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {data[data.length - 1].date}
-        </text>
+        <FrameLabels
+          frame={frame}
+          yLo={<>{domain.lo.toFixed(1)}σ</>}
+          yHi={<>{domain.hi.toFixed(1)}σ</>}
+          xFirst={data[0].date}
+          xLast={data[data.length - 1].date}
+        />
       </svg>
     </AnalyticalSeriesPanel>
   );

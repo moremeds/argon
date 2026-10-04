@@ -26,6 +26,9 @@ def test_pipeline_benchmark_snapshot_job_inserts_one_snapshot(monkeypatch) -> No
 
     monkeypatch.setattr("uw_scan.worker.jobs.pipeline_benchmark._repo", fake_repo)
     monkeypatch.setattr(
+        "uw_scan.worker.jobs.pipeline_benchmark.single_flight", repo.fake_single_flight
+    )
+    monkeypatch.setattr(
         "uw_scan.worker.jobs.pipeline_benchmark.build_pipeline_benchmark_inputs",
         lambda _repo, _settings, *, now_utc: inputs,
     )
@@ -52,6 +55,9 @@ def test_pipeline_benchmark_snapshot_job_skips_when_lock_busy(monkeypatch) -> No
         yield repo
 
     monkeypatch.setattr("uw_scan.worker.jobs.pipeline_benchmark._repo", fake_repo)
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.pipeline_benchmark.single_flight", repo.fake_single_flight
+    )
 
     snapshot_id = pipeline_benchmark_snapshot_job(Settings(api_key="uw"))
 
@@ -66,12 +72,17 @@ class _FakeRepo:
         self.lock_calls: list[str] = []
         self.insert_calls: list[dict] = []
 
-    def try_advisory_lock(self, _key: int) -> bool:
-        self.lock_calls.append("try")
-        return self.lock_acquired
+    conn = None  # the job only hands it to single_flight, which is faked below
 
-    def release_advisory_lock(self, _key: int) -> None:
-        self.lock_calls.append("release")
+    def fake_single_flight(self, _conn, _key):
+        @contextmanager
+        def lock():
+            self.lock_calls.append("try")
+            yield self.lock_acquired
+            if self.lock_acquired:
+                self.lock_calls.append("release")
+
+        return lock()
 
     def insert_pipeline_benchmark_snapshot(self, **kwargs) -> int:
         self.insert_calls.append(kwargs)
