@@ -13,6 +13,7 @@ import {
   sliceSeriesByTimeframe,
   type Timeframe,
 } from "@/lib/technicals/series";
+import { usePolledResource } from "@/lib/usePolledResource";
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
 import { TechnicalsPriceChart } from "../panels/TechnicalsPriceChart";
 import MagnetSubTab from "./technicals/MagnetSubTab";
@@ -182,7 +183,14 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
     data: null,
     error: null,
   });
-  const [live, setLive] = useState<TechnicalsLiveResponse | null>(null);
+  // Live technicals head — poll every 25s. Never surfaces an error: absent/
+  // stale simply keeps the EOD daily payload authoritative.
+  const live = usePolledResource<TechnicalsLiveResponse>(
+    () => api.technicalsLive(ticker),
+    25_000,
+    [ticker],
+    { onError: "clear" },
+  );
   const [timeframe, setTimeframe] = useState<Timeframe>("1y");
   const [subView, setSubView] = useState<"chart" | "magnet">(() => {
     if (typeof window === "undefined") return "chart";
@@ -218,28 +226,6 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       });
     return () => {
       cancelled = true;
-    };
-  }, [ticker]);
-
-  // Live technicals head — poll every 25s. Never surfaces an error: absent/
-  // stale simply keeps the EOD daily payload authoritative.
-  useEffect(() => {
-    let cancelled = false;
-    const poll = () => {
-      api
-        .technicalsLive(ticker)
-        .then((r) => {
-          if (!cancelled) setLive(r);
-        })
-        .catch(() => {
-          if (!cancelled) setLive(null);
-        });
-    };
-    poll();
-    const id = setInterval(poll, 25_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
     };
   }, [ticker]);
 
