@@ -424,6 +424,7 @@ def theta_harvester_quote(
     the untouched entry_credit_theo. A basis that exists for quoted rows and
     not for the rest would make the panel incomparable with itself.
     """
+    from uw_scan.sources.source_errors import SourceUnavailable
     from uw_scan.sources.xenon_query import fetch_ib_option_quote
 
     req = payload or ThetaQuoteRequest()
@@ -458,15 +459,21 @@ def theta_harvester_quote(
                 (float(row["put_strike"]), "P"),
                 (float(row["call_strike"]), "C"),
             ):
-                leg = fetch_ib_option_quote(
-                    base_url=settings.xenon_query_api_url,
-                    api_key=api_key,
-                    symbol=row["ticker"],
-                    expiry=expiry,
-                    strike=strike,
-                    right=right,
-                    timeout_s=_QUOTE_TIMEOUT_S,
-                )
+                try:
+                    leg = fetch_ib_option_quote(
+                        base_url=settings.xenon_query_api_url,
+                        api_key=api_key,
+                        symbol=row["ticker"],
+                        expiry=expiry,
+                        strike=strike,
+                        right=right,
+                        timeout_s=_QUOTE_TIMEOUT_S,
+                    )
+                except SourceUnavailable as exc:
+                    # View-only: an unreachable xenon leg counts the candidate
+                    # as failed, the same as an IB answer with no NBBO.
+                    logger.warning("theta quote %s: %s", row["ticker"], repr(exc))
+                    leg = None
                 if not leg or leg.get("bid") is None or leg.get("ask") is None:
                     mids = []
                     break
@@ -480,9 +487,9 @@ def theta_harvester_quote(
                 failed += 1
         return ThetaHarvesterQuoteResult(quoted=quoted, failed=failed)
     finally:
-        # fetch_ib_option_quote never raises, but set_ib_credit can fail on a DB
-        # error and a leaked session lock would block every later quote until
-        # the connection is recycled.
+        # A xenon outage is caught per leg above, but set_ib_credit can fail on
+        # a DB error and a leaked session lock would block every later quote
+        # until the connection is recycled.
         _release(repo, _THETA_QUOTE_LOCK_SQL)
 
 

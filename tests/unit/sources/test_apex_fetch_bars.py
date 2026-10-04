@@ -3,8 +3,12 @@ from __future__ import annotations
 from datetime import date, datetime
 
 import httpx
+import pytest
 
 from uw_scan.sources.apex import fetch_bars
+from uw_scan.sources.source_errors import SourceUnavailable
+
+URL = "http://apex"
 
 # Frozen REAL AAPL 30m bars, as-of 2026-07-10 (phaseb_apex_bars_contract.md §3).
 _AAPL_30M_PAYLOAD = {
@@ -55,7 +59,9 @@ def test_fetch_bars_parses_real_payload_and_passes_explicit_start():
         seen["params"] = dict(request.url.params)
         return httpx.Response(200, json=_AAPL_30M_PAYLOAD)
 
-    bars = fetch_bars("aapl", "30m", date(2021, 6, 11), client=_client(handler))
+    bars = fetch_bars(
+        "aapl", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler)
+    )
     assert len(bars) == 3  # non-vacuity
     assert bars[0]["close"] == 126.4
     assert bars[0]["time"] == "2021-06-11T08:00:00+00:00"
@@ -78,10 +84,15 @@ def test_fetch_bars_unknown_ticker_empty_is_no_data():
             },
         )
 
-    assert fetch_bars("ZZZ", "30m", date(2021, 6, 11), client=_client(handler)) == []
+    assert (
+        fetch_bars(
+            "ZZZ", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler)
+        )
+        == []
+    )
 
 
-def test_fetch_bars_400_unsupported_timeframe_never_raises():
+def test_fetch_bars_400_unsupported_timeframe_raises_source_unavailable():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             400,
@@ -90,21 +101,30 @@ def test_fetch_bars_400_unsupported_timeframe_never_raises():
             },
         )
 
-    assert fetch_bars("AAPL", "2h", date(2021, 6, 11), client=_client(handler)) == []
+    with pytest.raises(SourceUnavailable, match="400"):
+        fetch_bars(
+            "AAPL", "2h", date(2021, 6, 11), base_url=URL, client=_client(handler)
+        )
 
 
-def test_fetch_bars_connect_error_never_raises():
+def test_fetch_bars_connect_error_raises_source_unavailable():
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("boom", request=request)
 
-    assert fetch_bars("AAPL", "30m", date(2021, 6, 11), client=_client(handler)) == []
+    with pytest.raises(SourceUnavailable, match="ConnectError"):
+        fetch_bars(
+            "AAPL", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler)
+        )
 
 
-def test_fetch_bars_malformed_body_never_raises():
+def test_fetch_bars_malformed_body_raises_source_unavailable():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json="nonsense")
 
-    assert fetch_bars("AAPL", "30m", date(2021, 6, 11), client=_client(handler)) == []
+    with pytest.raises(SourceUnavailable, match="body is str"):
+        fetch_bars(
+            "AAPL", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler)
+        )
 
 
 def test_fetch_bars_uses_v1_route_and_defaults_to_equity_adjusted():
@@ -115,7 +135,7 @@ def test_fetch_bars_uses_v1_route_and_defaults_to_equity_adjusted():
         seen["params"] = dict(request.url.params)
         return httpx.Response(200, json=_AAPL_30M_PAYLOAD)
 
-    fetch_bars("aapl", "30m", date(2021, 6, 11), client=_client(handler))
+    fetch_bars("aapl", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler))
     assert seen["path"] == "/v1/equity/AAPL/bars"
     assert seen["params"]["price_mode"] == "adjusted"
 
@@ -151,14 +171,19 @@ def test_fetch_bars_volatility_class_reaches_spx_without_price_mode():
         )
 
     bars = fetch_bars(
-        "spx", "1d", date(2026, 8, 21), asset_class="volatility", client=_client(handler)
+        "spx",
+        "1d",
+        date(2026, 8, 21),
+        asset_class="volatility",
+        base_url=URL,
+        client=_client(handler),
     )
     assert seen["path"] == "/v1/volatility/SPX/bars"
     assert "price_mode" not in seen["params"]
     assert bars[0]["close"] == 7674.37
 
 
-def test_fetch_bars_503_adjusted_unavailable_never_raises():
+def test_fetch_bars_503_adjusted_unavailable_raises_source_unavailable():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             503,
@@ -171,7 +196,10 @@ def test_fetch_bars_503_adjusted_unavailable_never_raises():
             },
         )
 
-    assert fetch_bars("CCJ", "1d", date(2026, 8, 21), client=_client(handler)) == []
+    with pytest.raises(SourceUnavailable, match="adjusted_unavailable"):
+        fetch_bars(
+            "CCJ", "1d", date(2026, 8, 21), base_url=URL, client=_client(handler)
+        )
 
 
 def test_start_is_offset_aware_iso_datetime():
@@ -191,6 +219,7 @@ def test_start_is_offset_aware_iso_datetime():
         "1d",
         date(2021, 6, 11),
         end=date(2021, 6, 30),
+        base_url=URL,
         client=_client(handler),
     )
     for key in ("start", "end"):
@@ -207,6 +236,23 @@ def test_naive_datetime_start_gains_utc_offset():
         return httpx.Response(200, json=_AAPL_30M_PAYLOAD)
 
     fetch_bars(
-        "AAPL", "30m", datetime(2021, 6, 11, 13, 30), client=_client(handler)
+        "AAPL",
+        "30m",
+        datetime(2021, 6, 11, 13, 30),
+        base_url=URL,
+        client=_client(handler),
     )
     assert seen["params"]["start"] == "2021-06-11T13:30:00+00:00"
+
+
+def test_fetch_bars_programming_error_propagates():
+    """I-17: only transport/HTTP/decode/shape failures are caught; a TypeError
+    from inside the call is a bug and must surface, not read as an outage."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise TypeError("bad handler")
+
+    with pytest.raises(TypeError, match="bad handler"):
+        fetch_bars(
+            "AAPL", "30m", date(2021, 6, 11), base_url=URL, client=_client(handler)
+        )

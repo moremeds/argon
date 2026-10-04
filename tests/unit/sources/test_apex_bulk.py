@@ -1,4 +1,4 @@
-"""fetch_bulk_daily_closes: request shape, parser, never-raise.
+"""fetch_bulk_daily_closes: request shape, parser, status contract.
 
 _BULK is a REAL response of apex GET /v1/equity/bars captured 2026-09-26:
 XLK adjusted closes at adjustment_revision 80, and TWTR filed under `missing`
@@ -12,8 +12,12 @@ from __future__ import annotations
 from datetime import date
 
 import httpx
+import pytest
 
 from uw_scan.sources.apex import fetch_bulk_daily_closes
+from uw_scan.sources.source_errors import SourceUnavailable
+
+URL = "http://apex"
 
 _START, _END = date(2026, 9, 10), date(2026, 9, 11)
 _XLK_BARS = [
@@ -76,6 +80,7 @@ def _client(handler) -> httpx.Client:
 def test_nested_shape_parses_and_missing_symbols_are_absent():
     out = fetch_bulk_daily_closes(
         ["XLK", "TWTR"],
+        base_url=URL,
         start=_START,
         end=_END,
         client=_client(lambda req: httpx.Response(200, json=_BULK)),
@@ -92,7 +97,11 @@ def test_request_is_one_tz_aware_adjusted_full_window_call():
         return httpx.Response(200, json=_BULK)
 
     fetch_bulk_daily_closes(
-        ["xlk", "XLK", "TWTR"], start=_START, end=_END, client=_client(handler)
+        ["xlk", "XLK", "TWTR"],
+        base_url=URL,
+        start=_START,
+        end=_END,
+        client=_client(handler),
     )
     assert len(seen) == 1
     q = seen[0].url.params
@@ -116,13 +125,20 @@ def test_201_symbols_are_two_calls_of_200_and_1():
         return httpx.Response(200, json={**_BULK, "symbols": {}, "missing": {}})
 
     fetch_bulk_daily_closes(
-        [*_SP500_FIRST_200, "XLK"], start=_START, end=_END, client=_client(handler)
+        [*_SP500_FIRST_200, "XLK"],
+        base_url=URL,
+        start=_START,
+        end=_END,
+        client=_client(handler),
     )
     assert [len(s) for s in seen] == [200, 1]
     assert seen[1] == ["XLK"]
 
 
-def test_a_failed_chunk_costs_only_that_chunk():
+def test_a_failed_chunk_raises_rather_than_dropping_200_symbols():
+    """Behavior change (I-15): a failed chunk used to cost only that chunk,
+    silently removing up to 200 symbols from the breadth denominator."""
+
     def handler(req: httpx.Request) -> httpx.Response:
         if req.url.params["symbols"] == "XLK":
             return httpx.Response(200, json=_BULK)
@@ -130,13 +146,17 @@ def test_a_failed_chunk_costs_only_that_chunk():
             503, json={"error": {"code": "adjusted_unavailable", "message": "mocked"}}
         )
 
-    out = fetch_bulk_daily_closes(
-        [*_SP500_FIRST_200, "XLK"], start=_START, end=_END, client=_client(handler)
-    )
-    assert out == {"XLK": _XLK_CLOSES}
+    with pytest.raises(SourceUnavailable, match="adjusted_unavailable"):
+        fetch_bulk_daily_closes(
+            [*_SP500_FIRST_200, "XLK"],
+            base_url=URL,
+            start=_START,
+            end=_END,
+            client=_client(handler),
+        )
 
 
-def test_transport_error_and_garbage_never_raise():
+def test_transport_error_and_garbage_raise_source_unavailable():
     def boom(req: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=req)
 
@@ -152,12 +172,16 @@ def test_transport_error_and_garbage_never_raise():
         )
 
     for h in (boom, html, wrong_shape, bad_request):
-        assert (
-            fetch_bulk_daily_closes(["XLK"], start=_START, end=_END, client=_client(h))
-            == {}
-        )
+        with pytest.raises(SourceUnavailable):
+            fetch_bulk_daily_closes(
+                ["XLK"], base_url=URL, start=_START, end=_END, client=_client(h)
+            )
+    # No symbols: no call, nothing to be unavailable.
     assert (
-        fetch_bulk_daily_closes([], start=_START, end=_END, client=_client(boom)) == {}
+        fetch_bulk_daily_closes(
+            [], base_url=URL, start=_START, end=_END, client=_client(boom)
+        )
+        == {}
     )
 
 
