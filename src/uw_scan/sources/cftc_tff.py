@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 from uw_scan.storage.repository import redact_params, status_family_for
 

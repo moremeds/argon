@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 import pytest
 
 from uw_scan.api.client import UwClient, UwHTTPError
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder

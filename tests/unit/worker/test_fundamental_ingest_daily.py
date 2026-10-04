@@ -16,7 +16,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.sources.earnings_calendar import CalendarListing
 from uw_scan.worker.jobs import fundamental_ingest_daily as mod
 
@@ -196,7 +196,7 @@ def test_a_negative_lookback_still_reads_today(patched):
 
 def test_the_calendar_slots_are_the_registered_ones():
     """Guards the enum against a rename that would silently 404 every day."""
-    from uw_scan.api.endpoints import REGISTRY
+    from uw_scan.sources.uw_endpoints import REGISTRY
     from uw_scan.sources.earnings_calendar import SLOTS
 
     assert (

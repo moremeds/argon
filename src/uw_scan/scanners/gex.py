@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from uw_scan.api.client import UwClient
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.cards.greek_exposure_history import parse_greek_exposure_history
 from uw_scan.sources import uw as uw_source
 from uw_scan.storage.repository import Repository

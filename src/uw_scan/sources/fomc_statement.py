@@ -17,7 +17,7 @@ import httpx
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 
 from .fomc_release_contracts import (
     FomcDiscoveryResult,

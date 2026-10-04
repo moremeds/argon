@@ -1,6 +1,6 @@
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug, build_path
+from uw_scan.sources.uw_endpoints import EndpointSlug, build_path
 
 
 @pytest.mark.parametrize(

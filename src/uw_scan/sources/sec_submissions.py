@@ -26,12 +26,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
 import httpx
 
+from uw_scan.models.sec import SecFiling
 from uw_scan.sources.source_errors import SourceUnavailable
 
 logger = logging.getLogger(__name__)
@@ -43,22 +43,6 @@ SEC_ARCHIVE_URL = "https://data.sec.gov/submissions/{name}"
 #: Periodic reports only. An 8-K announces, a Form 4 reports ownership; neither
 #: publishes the statements Argon stores, so neither can date one.
 SEC_FORMS = frozenset({"10-Q", "10-K", "20-F", "40-F"})
-
-
-@dataclass(frozen=True)
-class SecFiling:
-    """One periodic filing. Frozen and hashable so a caller can dedupe archives.
-
-    `report_date` is SEC's `reportDate` — the fiscal period the filing covers,
-    which is NOT reliably equal to Argon's `period_end` (52/53-week calendars
-    disagree by a few days). `filing_date` is when it became public.
-    """
-
-    accession: str
-    form: str
-    report_date: date
-    filing_date: date
-    is_amendment: bool
 
 
 def _parse_date(value: Any) -> date | None:

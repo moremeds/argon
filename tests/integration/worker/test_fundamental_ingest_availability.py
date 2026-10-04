@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.fundamentals.observation_time import (
     CLAIM_KEY_CAPTURE_FIRST_OBSERVED,
     EvidenceClass,

@@ -25,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.config import Settings
 from uw_scan.reports.data_gap_healer import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
