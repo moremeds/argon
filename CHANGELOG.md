@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.20] — 2026-10-04
+
+
 ### Fixed
 
 - **uw-1's nightly flow refresh no longer holds the intraday-refresh lock.** `flow_data_refresh` locked `91501 + worker_index`, so uw-1 took 91502 = `INTRADAY_REFRESH_LOCK`, and a third uw worker would have taken 91503 = `GREEK_DAILY_REFRESH_LOCK` (which runs at 18:30, right after flow at 18:15). Either job then silently skipped the other ("lock held; skipping"). Its per-worker range moves to 91701 + index; the registry's import-time assert proves the whole 91701-91717 span free. During the Watchtower rollout an old-image and a new-image worker could each run the refresh once; it is idempotent (per-ticker delete + upsert of the chain, `ON CONFLICT DO UPDATE` volume rows), so the only cost is an extra `scan_runs` row and repeated UW calls.
@@ -49,7 +52,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Fixed
 
 - **Web: missing GEX values render as missing, never as 0 or a crash (13 pre-existing display bugs from I-103b).** A null `bias.direction` no longer crashes the GEX tab, and null MQ source deltas no longer crash the MQ panel; the curvature chart drops buckets with a null strike or net GEX instead of plotting them at 0 (which drew a GEX value the API never sent and stretched the axis to strike 0), and a null spot no longer throws; a null net GEX/DEX shows "---" in a neutral colour instead of green; absent `bias`/`levels`/`expected_range` render their missing state; `retagProfileForSpot` never picks a null-strike bucket as nearest and gives it `pct_from_spot: null` instead of -100. Real-payload snapshots are unchanged; `web/tests/unit/regimeNullRendering.test.tsx` (written first, 18 of its 21 cases failed on the old code) covers each case. The MQ fallback on the GEX tab no longer relies on type casts (`mq`, `source_delta`, `hvl`); a missing HVL or MQ level renders as the dash.
-
 ## [0.13.19] — 2026-10-04
 
 
