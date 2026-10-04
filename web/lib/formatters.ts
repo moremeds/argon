@@ -155,3 +155,21 @@ export function toNum(v: unknown): number | null {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : null;
 }
+
+/** Signed compact dollars for a GEX value: `+$1.2M`, `$-3.4K`, `+$12`; `---` for null. */
+export function fmtGexUsd(v: number | null | undefined): string {
+  if (v == null) return "---";
+  const absVal = Math.abs(v);
+  if (absVal >= 1_000_000)
+    return `${v >= 0 ? "+" : ""}$${(v / 1_000_000).toFixed(1)}M`;
+  if (absVal >= 1_000) return `${v >= 0 ? "+" : ""}$${(v / 1_000).toFixed(1)}K`;
+  return `${v >= 0 ? "+" : ""}$${v.toFixed(0)}`;
+}
+
+/** A snake_case enum label as display text: `grind_up` → `GRIND UP`. */
+export function formatLabel(
+  value: string | null | undefined,
+  fallback = "-",
+): string {
+  return value ? value.replaceAll("_", " ").toUpperCase() : fallback;
+}

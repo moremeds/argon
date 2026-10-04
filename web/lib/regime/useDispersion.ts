@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { apiFetch } from "@/lib/apiClient";
+import { usePolledResource } from "@/lib/usePolledResource";
 import type { components } from "@/lib/types";
 
 import { regimeApi } from "./api";
@@ -13,25 +12,10 @@ export type DispersionData = components["schemas"]["DispersionResponse"];
 
 /** Fetch once on mount, then refresh every 5 min (data updates once/day). */
 export function useDispersion(): DispersionData | null {
-  const [data, setData] = useState<DispersionData | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const json = await apiFetch<DispersionData>(regimeApi.dispersion());
-        if (alive) setData(json);
-      } catch {
-        // never-raise: leave the tile row absent rather than break the page
-      }
-    };
-    load();
-    const id = setInterval(load, 5 * 60 * 1000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-
-  return data;
+  // never-raise: on error the tile row stays absent rather than break the page
+  return usePolledResource(
+    () => apiFetch<DispersionData>(regimeApi.dispersion()),
+    5 * 60 * 1000,
+    [],
+  );
 }
