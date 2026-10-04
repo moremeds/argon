@@ -32,6 +32,7 @@ _SPLIT_PREFIXES = (
     "/api/gold",
     "/api/rates",
     "/api/cockpit",
+    "/api/health",
 )
 
 

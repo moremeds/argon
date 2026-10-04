@@ -5,9 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from fastapi import HTTPException
 
-from uw_scan.api.routers.health import _snapshot_record_health
+from uw_scan.reports.health_blocks import UnknownRecordTables, _snapshot_record_health
 from uw_scan.storage.rows import RecordHealthRawRow
 
 NOW = datetime(2026, 9, 24, 15, 0, tzinfo=UTC)
@@ -88,13 +87,12 @@ def test_fresh_snapshot_applies_request_coverage_and_watchlist_size() -> None:
     assert reason is None
 
 
-def test_selected_tables_are_passed_through_and_unknown_is_400() -> None:
+def test_selected_tables_are_passed_through_and_unknown_is_rejected() -> None:
     repo = _Repo([_row("watchlist_card", 100, timedelta(minutes=1))])
     fields, _, _ = _call(repo, tables=["watchlist_card"])
     assert repo.requested[-1] == ["watchlist_card"]
     assert [check.table for check in fields["record_health"]] == ["watchlist_card"]
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(UnknownRecordTables) as exc:
         _call(repo, tables=["watchlist_card", "no_such_table"])
-    assert exc.value.status_code == 400
-    assert "no_such_table" in exc.value.detail
+    assert "no_such_table" in str(exc.value)
