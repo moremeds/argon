@@ -28,6 +28,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_POLL_SECONDS = 15.0
 #: The wait is logged at most this often, so a long deploy window stays readable.
 LOG_EVERY_SECONDS = 60.0
+#: A normal deploy migrates in seconds. Waiting this long means the api's migration
+#: probably failed part-way: the marker never moves, so the wait turns WARNING
+#: instead of idling quietly at INFO forever.
+WARN_AFTER_SECONDS = 600.0
 
 
 def expected_migration(migrations_dir: Path = MIGRATIONS_DIR) -> str:
@@ -72,6 +76,7 @@ def wait_for_schema(
 ) -> str:
     """Block until the applied marker sorts at or after ``expected``; return it."""
     want = expected or expected_migration()
+    started = clock()
     last_log: float | None = None
     while True:
         try:
@@ -86,10 +91,19 @@ def wait_for_schema(
             why = f"database at {have or '<no marker>'}"
         now = clock()
         if last_log is None or now - last_log >= LOG_EVERY_SECONDS:
-            logger.info(
-                "schema gate: waiting for migrations; %s, code needs %s",
-                why,
-                want,
-            )
+            if now - started >= WARN_AFTER_SECONDS:
+                logger.warning(
+                    "schema gate: still waiting after %.0f s; %s, code needs %s -- "
+                    "migration may have failed; check api logs",
+                    now - started,
+                    why,
+                    want,
+                )
+            else:
+                logger.info(
+                    "schema gate: waiting for migrations; %s, code needs %s",
+                    why,
+                    want,
+                )
             last_log = now
         sleep(poll_seconds)
