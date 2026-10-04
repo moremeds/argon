@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from uw_scan.reports import vrp_macro_entry as M
+from uw_scan.sources.source_errors import SourceUnavailable
 
 _ET = ZoneInfo("America/New_York")
 
@@ -86,7 +87,10 @@ def test_uses_ib_greeks_when_present(monkeypatch, settings):
 
 
 def test_falls_back_to_uw_and_bs_fills_greeks(monkeypatch, settings):
-    monkeypatch.setattr(M, "fetch_ib_option_quote", lambda **k: None)  # IB down
+    def ib_down(**_k):
+        raise SourceUnavailable("xenon_query", "ConnectError('down')")
+
+    monkeypatch.setattr(M, "fetch_ib_option_quote", ib_down)  # IB down
     # OptionContractRow shape: no strike/expiry/und_spot on the row itself
     uw_row = {
         "option_symbol": "SPXW260807P05800000",

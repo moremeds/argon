@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import csv
+import os
 import random
 import statistics
 from dataclasses import dataclass
@@ -25,7 +26,10 @@ from pathlib import Path
 from uw_scan.chanlun.full import compute_chanlun_full
 from uw_scan.chanlun.lifecycle import derive_marks, mark_side
 from uw_scan.chanlun.types import ChanlunBar
+from uw_scan.config import DEFAULT_APEX_API_URL
 from uw_scan.sources.apex import fetch_bars
+
+_APEX_URL = os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL)
 
 WARMUP = 60  # skip degenerate early prefixes
 HORIZONS = [1, 3, 5, 10, 20]  # trading days
@@ -46,7 +50,7 @@ def load_daily(ticker: str):
     """Full-history adjusted 1d bars from apex with an EXPLICIT start.
     Returns (bars, closes, session_dates) or None (never fabricate)."""
     start = date.today() - timedelta(days=HISTORY_DAYS)
-    raw = fetch_bars(ticker, "1d", start, limit=0)
+    raw = fetch_bars(ticker, "1d", start, base_url=_APEX_URL, limit=0)
     if not raw:
         return None
     bars = [

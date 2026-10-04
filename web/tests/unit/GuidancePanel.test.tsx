@@ -14,7 +14,7 @@ const FAKE = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ ok: true, json: async () => FAKE })),
+    vi.fn(async () => new Response(JSON.stringify(FAKE), { status: 200 })),
   );
 });
 
@@ -36,7 +36,7 @@ describe("GuidancePanel", () => {
   it("stays silent on fetch failure", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: false, status: 500 })),
+      vi.fn(async () => new Response("", { status: 500 })),
     );
     const { container } = render(<GuidancePanel />);
     await new Promise((r) => setTimeout(r, 50));

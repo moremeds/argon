@@ -1,7 +1,7 @@
 import type { CockpitStateResponse, CockpitSurfaceResponse } from "@/lib/api";
 import { useMemo } from "react";
 import type React from "react";
-import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { fmtDecimal, fmtSigned, toNum, formatLabel } from "@/lib/formatters";
 import {
   MultiLineChart,
   panelStyle,
@@ -235,10 +235,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       </div>
     </div>
   );
-}
-
-function formatLabel(value: string | null | undefined): string {
-  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
 }
 
 const emptyStyle: React.CSSProperties = {

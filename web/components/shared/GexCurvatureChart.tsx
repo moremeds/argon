@@ -14,16 +14,8 @@
 
 import { useId, useMemo, useState } from "react";
 import type { GexBucket } from "@/lib/regime/useGex";
+import { fmtGexUsd as fmtGex } from "@/lib/formatters";
 import { linearScale, pathFromPoints, type Point } from "@/lib/svgChart";
-
-function fmtGex(v: number | null | undefined): string {
-  if (v == null) return "---";
-  const absVal = Math.abs(v);
-  if (absVal >= 1_000_000)
-    return `${v >= 0 ? "+" : ""}$${(v / 1_000_000).toFixed(1)}M`;
-  if (absVal >= 1_000) return `${v >= 0 ? "+" : ""}$${(v / 1_000).toFixed(1)}K`;
-  return `${v >= 0 ? "+" : ""}$${v.toFixed(0)}`;
-}
 
 /**
  * Discrete second derivative of net GEX w.r.t. strike, on a possibly
