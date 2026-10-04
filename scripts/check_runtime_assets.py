@@ -55,7 +55,12 @@ HOME_ALLOWLIST = {SRC / "uw_scan" / "config.py"}
 
 # data_gap_healer embeds its own regeneration command as help text, which
 # WRITES docs/runbooks/... It never reads a doc at runtime.
-DOCS_ALLOWLIST = {SRC / "uw_scan" / "reports" / "data_gap_healer.py"}
+# data_gap_registry/fundamentals.py carries a docs/runbooks pointer inside a
+# REGISTRY reason string — also never a runtime path.
+DOCS_ALLOWLIST = {
+    SRC / "uw_scan" / "reports" / "data_gap_healer.py",
+    SRC / "uw_scan" / "reports" / "data_gap_registry" / "fundamentals.py",
+}
 
 SELF = Path(__file__).resolve()
 EXCLUDE_DIRS = {"__pycache__", ".venv", "node_modules"}

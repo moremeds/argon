@@ -266,7 +266,7 @@ def test_end_to_end_monitor_does_not_trip_breaker_one_night_early(
 def test_autoheal_yields_to_a_concurrent_gap_healer_holding_the_lock(
     seeded_db_empty_cards,
 ):
-    """_another_run_active() alone is check-then-act -- it can't see a
+    """another_run_active() alone is check-then-act -- it can't see a
     nightly gap-healer run that acquires the advisory lock a moment later.
     Autoheal must take the SAME lock key so the two are truly mutually
     exclusive, not just usually non-overlapping."""

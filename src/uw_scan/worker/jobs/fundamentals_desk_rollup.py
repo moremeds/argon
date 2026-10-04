@@ -30,7 +30,7 @@ scoring depending on which method version is active. This job answers a
 simpler, engine-version-independent question -- "does the card believe this
 raw figure" -- and uses `violated_fields` directly, matching the brief.
 
-KNOWLEDGE_DATE mirrors `fundamental_scoring._knowledge_date` in FULL, its
+KNOWLEDGE_DATE mirrors `fundamental_scoring.knowledge_date` in FULL, its
 second return value included: a real filing date wins; absent one,
 `period_end + FALLBACK_LAG_DAYS`, and the row records WHICH of the two it got
 in `knowledge_date_known`. The flag is not provenance decoration -- the

@@ -8,7 +8,7 @@ import json
 import types
 from datetime import date
 
-from uw_scan.reports.data_gap_healer import REGISTRY
+from uw_scan.reports.data_gap_registry import REGISTRY
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 
 

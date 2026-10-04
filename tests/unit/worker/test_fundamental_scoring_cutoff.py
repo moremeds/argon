@@ -3,7 +3,7 @@
 Every ticker, period end, and filing date below was read from the production
 `fundamental_scores` table on 2026-08-23 and frozen. EXTR, COHR, TEAM and DMRC
 all filed for period_end 2026-06-30; AMAT and CSCO had not filed for period_end
-2026-07-31, so `_knowledge_date` estimated `period_end + FALLBACK_LAG_DAYS` and
+2026-07-31, so `knowledge_date` estimated `period_end + FALLBACK_LAG_DAYS` and
 produced 2026-09-14 — three weeks past the run date. That estimate is what put
 371 rows across 363 tickers into the future and shadowed six days of fresher
 scores behind `ORDER BY as_of DESC`.

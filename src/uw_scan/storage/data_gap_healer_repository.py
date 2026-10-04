@@ -9,7 +9,7 @@ from typing import Any
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-from uw_scan.reports.data_gap_healer import (
+from uw_scan.reports.data_gap_types import (
     Caveat,
     DatasetRegistryEntry,
     GapItem,

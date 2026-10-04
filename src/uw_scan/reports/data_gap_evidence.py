@@ -11,11 +11,8 @@ import json
 from datetime import date
 from pathlib import Path
 
-from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
-    CoverageSummary,
-    GapItem,
-)
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import CoverageSummary, GapItem
 
 
 def build_evidence(

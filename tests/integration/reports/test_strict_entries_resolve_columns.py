@@ -9,11 +9,11 @@ catch the next one at CI time rather than after an outage.
 
 import pytest
 
-from uw_scan.reports.data_gap_healer import (
+from uw_scan.reports.data_gap_healer import detect_col
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import (
     _DATE_COL_PREFERENCE,
     _TICKER_COL_PREFERENCE,
-    REGISTRY,
-    _detect_col,
 )
 
 STRICT = [e for e in REGISTRY if e.audit_mode.startswith("strict")]
@@ -39,7 +39,7 @@ def test_strict_entry_resolves_a_date_column(seeded_db_empty_cards, entry):
     cols = _columns(repo.conn, repo._schema, entry.table_name)
     if not cols:
         pytest.skip(f"{entry.table_name} not present in the test schema")
-    resolved = entry.date_col or _detect_col(
+    resolved = entry.date_col or detect_col(
         repo.conn, repo._schema, entry.table_name, _DATE_COL_PREFERENCE
     )
     assert resolved, (
@@ -60,7 +60,7 @@ def test_strict_ticker_date_entry_resolves_a_ticker_column(seeded_db_empty_cards
     cols = _columns(repo.conn, repo._schema, entry.table_name)
     if not cols:
         pytest.skip(f"{entry.table_name} not present in the test schema")
-    resolved = entry.ticker_col or _detect_col(
+    resolved = entry.ticker_col or detect_col(
         repo.conn, repo._schema, entry.table_name, _TICKER_COL_PREFERENCE
     )
     assert resolved, (

@@ -26,13 +26,13 @@ from datetime import date
 
 from psycopg import sql as psql
 
-from uw_scan.reports.data_gap_healer import (
+from uw_scan.reports.data_gap_healer import detect_col
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import (
     _DATE_COL_PREFERENCE,
     _TICKER_COL_PREFERENCE,
-    REGISTRY,
     Caveat,
     DatasetRegistryEntry,
-    _detect_col,
 )
 from uw_scan.worker.jobs.data_gap_telemetry import (
     STAGE_ADAPTER,
@@ -208,11 +208,11 @@ def _recorder_hook(ctx: HealContext):
 
 
 def _run_option_surface(ctx: HealContext, ticker: str, market_date: date) -> int:
-    from uw_scan.worker.jobs.option_surface_capture import _build_ticker_rows
+    from uw_scan.worker.jobs.option_surface_capture import build_ticker_rows
 
     client = ctx.uw_client()
     run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:option_surface")
-    rows = _build_ticker_rows(
+    rows = build_ticker_rows(
         client=client,
         repo=ctx.repo,
         run_id=run_id,
@@ -929,14 +929,14 @@ def _verify_covered(
     ctx: HealContext, entry: DatasetRegistryEntry, ticker: str | None, data_date: date
 ) -> bool:
     table = entry.table_name
-    date_col = entry.date_col or _detect_col(
+    date_col = entry.date_col or detect_col(
         ctx.repo.conn, ctx.schema, table, _DATE_COL_PREFERENCE
     )
     if date_col is None:
         return False
     tcol = None
     if ticker:
-        tcol = entry.ticker_col or _detect_col(
+        tcol = entry.ticker_col or detect_col(
             ctx.repo.conn, ctx.schema, table, _TICKER_COL_PREFERENCE
         )
     parts = [

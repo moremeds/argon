@@ -124,7 +124,7 @@ def test_budget_bounds_the_night_and_reports_the_remainder(
         calls.append((ticker, market_date))
         return [_grid_row()]
 
-    monkeypatch.setattr(mod, "_build_ticker_rows", _fake_build)
+    monkeypatch.setattr(mod, "build_ticker_rows", _fake_build)
 
     # Budget for exactly two pairs.
     out = option_surface_research_catchup(
@@ -159,7 +159,7 @@ def test_resumes_where_it_stopped(
         seen.append((ticker, market_date))
         return [_grid_row()]
 
-    monkeypatch.setattr(mod, "_build_ticker_rows", _fake_build)
+    monkeypatch.setattr(mod, "build_ticker_rows", _fake_build)
 
     kwargs = dict(
         repo=repo,

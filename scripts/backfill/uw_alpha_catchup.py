@@ -30,8 +30,8 @@ import psycopg
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.reports.data_gap_healer import (  # reused session-spine + resume utils
-    _calendar_dates,
-    _missing_ticker_date_pairs,
+    calendar_dates,
+    missing_ticker_date_pairs,
 )
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
@@ -90,7 +90,7 @@ def cmd_backfill_eventlog(args, settings: Settings) -> int:
 
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
-        calendar = _calendar_dates(conn, settings.db_schema, start, end)
+        calendar = calendar_dates(conn, settings.db_schema, start, end)
         tickers = _watchlist(repo)
     logger.info(
         "range %s..%s: %d sessions x %d tickers",
@@ -116,7 +116,7 @@ def cmd_backfill_eventlog(args, settings: Settings) -> int:
         )
         for dataset in datasets:
             capture_fn, per_pair = _EVENTLOG[dataset]
-            missing = _missing_ticker_date_pairs(
+            missing = missing_ticker_date_pairs(
                 conn,
                 settings.db_schema,
                 dataset,
@@ -168,7 +168,7 @@ def cmd_coverage(args, settings: Settings) -> int:
     start, end = _parse_range(args, settings)
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
-        calendar = _calendar_dates(conn, settings.db_schema, start, end)
+        calendar = calendar_dates(conn, settings.db_schema, start, end)
         tickers = _watchlist(repo)
         expected = len(calendar) * len(tickers)
         lines = [
@@ -184,7 +184,7 @@ def cmd_coverage(args, settings: Settings) -> int:
             "| --- | ---: | ---: | ---: |",
         ]
         for dataset in _ALL_DATASETS:
-            missing = _missing_ticker_date_pairs(
+            missing = missing_ticker_date_pairs(
                 conn,
                 settings.db_schema,
                 dataset,

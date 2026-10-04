@@ -10,7 +10,7 @@ adapter, a missing registry entry, or a wrong granularity fails here.
 from __future__ import annotations
 
 
-from uw_scan.reports.data_gap_healer import GapItem
+from uw_scan.reports.data_gap_types import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.worker.jobs.data_gap_adapters import (
     HealContext,
