@@ -1,6 +1,6 @@
 import type { CockpitStateResponse } from "@/lib/api";
 import type React from "react";
-import { fmtDateTimeWithZone, fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { fmtDateTimeWithZone, fmtDecimal, fmtSigned, toNum, formatLabel } from "@/lib/formatters";
 
 type MatrixState = NonNullable<CockpitStateResponse>["state"];
 type Direction = MatrixState["vanna_state"];
@@ -205,10 +205,6 @@ function InputTile({ label, value }: { label: string; value: string }) {
       <div style={inputValueStyle}>{value}</div>
     </div>
   );
-}
-
-function formatLabel(value: string | null | undefined): string {
-  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
 }
 
 function DimensionCell({
