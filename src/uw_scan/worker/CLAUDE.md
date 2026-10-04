@@ -6,7 +6,7 @@
 - `jobs/full_scan.py` / `jobs/ohlc_pull.py` / `jobs/rescan_loop.py` — the core scan/OHLC/rescan trio; the rest of `jobs/` is per-feature (gold, rates, regime, skew, `vrp_*`, `option_surface_*`, data_freshness/gap, `trade_insights_ai*`, …)
 - `volatility_jobs.py` — `daily_spy_ohlc_refresh`, `nightly_vol_analytics_rollup` (Volatility tab v2)
 - `massive_ws_consumer.py` + `ws_tick_buffer.py` + `ws_db_writer.py` — the standalone spot WS consumer process (see below)
-- `schema_gate.py` — `scheduler.main()` waits here before building any job until `uw_scan.schema_version` (written by `migrate_runner` after a full apply, migration 158) is at least the newest migration in this image. Watchtower ignores `depends_on`, so a worker can start before the api has migrated; waiting logs at INFO (≤1/min) and never reaches `job_failures`. Locally, run `scripts/migrate.sh` after pulling new migrations or `up` will wait on the worker heartbeat
+- `schema_gate.py` — `scheduler.main()` waits here before building any job until `uw_scan.schema_version` (written by `migrate_runner` after a full apply, migration 158) is at least the newest migration in this image. Watchtower ignores `depends_on`, so a worker can start before the api has migrated; waiting logs at INFO (≤1/min) and never reaches `job_failures`. `scripts/dev.sh` migrates before it starts anything, so locally the gate passes at once
 - `market_session.py`, `schedule_expectations.py`, `gold_warmup.py` — session-window helpers, health-panel schedule expectations, gold cache warmup
 
 ## Worker roles
