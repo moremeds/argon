@@ -18,11 +18,15 @@ type Mark = {
  * that distributed text evenly and never lined up with the ticks.
  */
 export function ExpectedRangeBar({ data }: { data: GexData }) {
-  // Type-only: the API always sends both (default_factory); if one were
-  // missing this would throw, exactly as before the generated types.
-  const { expected_range, levels, spot } = data as GexData &
-    Required<Pick<GexData, "expected_range" | "levels">>;
-  if (expected_range.low == null || expected_range.high == null) return null;
+  // Both are optional in the contract: no range → no bar; no levels → the
+  // band renders without level markers.
+  const { expected_range, levels, spot } = data;
+  if (
+    expected_range == null ||
+    expected_range.low == null ||
+    expected_range.high == null
+  )
+    return null;
 
   const low = expected_range.low;
   const high = expected_range.high;
@@ -39,11 +43,16 @@ export function ExpectedRangeBar({ data }: { data: GexData }) {
     if (value != null && Number.isFinite(value))
       marks.push({ key, value, name, color });
   };
-  push(levels.max_accelerator?.strike, "MAX ACCEL", "var(--fault)", "accel");
-  push(levels.gex_flip?.strike, "GEX FLIP", "var(--warning)", "flip");
+  push(levels?.max_accelerator?.strike, "MAX ACCEL", "var(--fault)", "accel");
+  push(levels?.gex_flip?.strike, "GEX FLIP", "var(--warning)", "flip");
   push(close, "CLOSE", "var(--text-muted)", "close");
   push(spot, "SPOT", "var(--signal-strong)", "spot");
-  push(levels.max_magnet?.strike, "MAX MAGNET", "var(--signal-core)", "magnet");
+  push(
+    levels?.max_magnet?.strike,
+    "MAX MAGNET",
+    "var(--signal-core)",
+    "magnet",
+  );
 
   // Axis spans the band AND every marker so nothing plots off-bar; 3% padding
   // keeps the edge labels inside the card.

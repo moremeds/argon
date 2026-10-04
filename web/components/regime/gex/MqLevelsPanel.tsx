@@ -28,17 +28,26 @@ export function MqLevelsPanel({
 
   function fmtDelta(e: SourceDeltaEntry | null | undefined): ReactNode {
     if (!e) return <span style={{ color: "var(--text-muted)" }}>—</span>;
-    const sign = e.delta! > 0 ? "+" : "";
+    // Each side may be null inside a present entry: show the dash for it,
+    // in the muted colour, never a number.
+    const missing = <span style={{ color: "var(--text-muted)" }}>—</span>;
     return (
       <span style={deltaStyle(e.delta)}>
-        {sign}
-        {e.delta!.toFixed(1)} &nbsp;
+        {e.delta == null ? (
+          missing
+        ) : (
+          <>
+            {e.delta > 0 ? "+" : ""}
+            {e.delta.toFixed(1)}
+          </>
+        )}{" "}
+        &nbsp;
         <span style={{ color: "var(--signal-core)", fontSize: 9 }}>
-          {e.uw!.toFixed(0)}
+          {e.uw == null ? missing : e.uw.toFixed(0)}
         </span>
         <span style={{ color: "var(--text-muted)", fontSize: 9 }}> vs </span>
         <span style={{ color: "#85b7eb", fontSize: 9 }}>
-          {e.mq!.toFixed(0)}
+          {e.mq == null ? missing : e.mq.toFixed(0)}
         </span>
       </span>
     );

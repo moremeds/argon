@@ -101,7 +101,9 @@ describe("GexSubTab", () => {
     const root = renderSubTab(d);
     const dir = root.querySelector(".gex-bias-direction")!;
     expect(dir.textContent).toBe("---");
-    expect(root.querySelectorAll(".gex-bias-reason")).toHaveLength(0);
+    expect(
+      dir.parentElement!.querySelectorAll(".gex-bias-reason"),
+    ).toHaveLength(0);
     expect(root.querySelector(".gex-day-badge")).toBeNull();
   });
 
@@ -184,9 +186,9 @@ describe("GexSubTab", () => {
     expect(style).not.toContain(POSITIVE);
     expect(style).not.toContain(NEGATIVE);
     // Reasons still render from the real payload.
-    expect(root.querySelectorAll(".gex-bias-reason")).toHaveLength(
-      gexFixture.bias.reasons.length,
-    );
+    expect(
+      dir.parentElement!.querySelectorAll(".gex-bias-reason"),
+    ).toHaveLength(gexFixture.bias.reasons.length);
   });
 
   it("bug 8: null spot (no live spot) renders the chart without a spot rule", () => {
@@ -350,10 +352,7 @@ describe("GexCurvatureChart (bugs 11, 12)", () => {
 
   it("bug 12: a null spot renders the missing marker, no spot rule", () => {
     const { container } = render(
-      <GexCurvatureChart
-        profile={profile()}
-        spot={null as unknown as number}
-      />,
+      <GexCurvatureChart profile={profile()} spot={null} />,
     );
     expect(container.querySelector("svg title")!.textContent).toBe(
       "Net GEX by strike; spot ---",
@@ -372,10 +371,10 @@ describe("retagProfileForSpot (bug 13)", () => {
     expect(out[0].pct_from_spot).toBeNull();
     expect(out[0].tag).toBeNull();
     expect(out[0].net_gex).toBe(p[0].net_gex);
-    // Exactly one SPOT tag, on a real strike.
-    const spots = out.filter((b) => b.tag === "SPOT");
-    expect(spots).toHaveLength(1);
-    expect(spots[0].strike).not.toBeNull();
+    // Every other bucket is tagged exactly as if the null bucket were absent.
+    expect(out.slice(1)).toEqual(
+      retagProfileForSpot(p.slice(1), d.spot as number, d.levels),
+    );
   });
 
   it("is not picked nearest even when the live spot is near 0", () => {
