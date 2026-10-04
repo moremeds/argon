@@ -6310,6 +6310,8 @@ export interface components {
             gap_healer?: components["schemas"]["HealthGapHealer"] | null;
             /** Job Failures */
             job_failures?: components["schemas"]["JobFailureStreak"][];
+            /** Job Degraded */
+            job_degraded?: components["schemas"]["JobDegraded"][];
         };
         /** InsightBadge */
         InsightBadge: {
@@ -6424,6 +6426,29 @@ export interface components {
             current_iv?: string | null;
             /** Current Pctile */
             current_pctile?: string | null;
+        };
+        /**
+         * JobDegraded
+         * @description One job's current 'succeeded but degraded' record: the run returned
+         *     normally but part of its work did not land (thin data, or one failed unit
+         *     among interchangeable ones). Informational only — it never flips ``ok``,
+         *     never sets ``reason`` and never alerts, and it self-clears on the next
+         *     clean run or source success (see reports/health_blocks._job_degraded).
+         */
+        JobDegraded: {
+            /** Job Name */
+            job_name: string;
+            /**
+             * Record
+             * @enum {string}
+             */
+            record: "scan_run" | "macro_source";
+            /** Since */
+            since?: string | null;
+            /** Detail */
+            detail?: string | null;
+            /** Consecutive */
+            consecutive?: number | null;
         };
         /**
          * JobFailureStreak

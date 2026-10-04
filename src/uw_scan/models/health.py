@@ -69,6 +69,28 @@ class JobFailureStreak(BaseModel):
     last_failed_at: datetime
 
 
+class JobDegraded(BaseModel):
+    """One job's current 'succeeded but degraded' record: the run returned
+    normally but part of its work did not land (thin data, or one failed unit
+    among interchangeable ones). Informational only — it never flips ``ok``,
+    never sets ``reason`` and never alerts, and it self-clears on the next
+    clean run or source success (see reports/health_blocks._job_degraded)."""
+
+    #: The scheduled job id for scan-run records ("regime_grg_scan",
+    #: "discovery_scan"); the ``macro_source_status.source`` key for
+    #: macro-source records.
+    job_name: str
+    #: Which existing record the entry was read from.
+    record: Literal["scan_run", "macro_source"]
+    #: ``scan_runs.finished_at`` or ``macro_source_status.last_attempt_at``.
+    since: datetime | None = None
+    #: Human-readable summary (e.g. "dp 31/50 enriched",
+    #: "error_type: error_message").
+    detail: str | None = None
+    #: ``macro_source_status.consecutive_failures``; None for scan runs.
+    consecutive: int | None = None
+
+
 class TradeInsightsAiProviderHealth(BaseModel):
     """Per-provider AI worker pool status."""
 
@@ -177,6 +199,7 @@ class HealthResponse(BaseModel):
     freshness: "HealthFreshness | None" = None
     gap_healer: "HealthGapHealer | None" = None
     job_failures: list["JobFailureStreak"] = Field(default_factory=list)
+    job_degraded: list["JobDegraded"] = Field(default_factory=list)
 
 
 _preserve_public_module(
@@ -185,6 +208,7 @@ _preserve_public_module(
     HealthFreshness,
     HealthGapHealer,
     JobFailureStreak,
+    JobDegraded,
     TradeInsightsAiProviderHealth,
     TradeInsightsAiHealth,
     WsConsumerHealth,

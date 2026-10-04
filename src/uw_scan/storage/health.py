@@ -424,3 +424,34 @@ class _HealthMixin:
             )
             row = cur.fetchone()
         return (str(row[0]), row[1]) if row else None
+
+    def list_degraded_macro_sources(self) -> list[dict]:
+        """``macro_source_status`` rows currently 'degraded'.
+
+        The macro ingests already write this per-source record on every run
+        (degraded on any feed/series/release failure, ok — with the counter
+        reset — on the next success). /api/health's degraded block surfaces it;
+        the table's CHECK guarantees a degraded row also carries
+        ``consecutive_failures > 0`` and a non-null ``error_type``.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT source, last_attempt_at, updated_at,
+                       consecutive_failures, error_type, error_message
+                  FROM {self._schema}.macro_source_status
+                 WHERE status = 'degraded'
+                 ORDER BY source
+                """
+            )
+            return [
+                {
+                    "source": r[0],
+                    "last_attempt_at": r[1],
+                    "updated_at": r[2],
+                    "consecutive_failures": r[3],
+                    "error_type": r[4],
+                    "error_message": r[5],
+                }
+                for r in cur.fetchall()
+            ]

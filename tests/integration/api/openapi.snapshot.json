@@ -10365,6 +10365,13 @@
             ],
             "title": "Http 5Xx"
           },
+          "job_degraded": {
+            "items": {
+              "$ref": "#/components/schemas/JobDegraded"
+            },
+            "title": "Job Degraded",
+            "type": "array"
+          },
           "job_failures": {
             "items": {
               "$ref": "#/components/schemas/JobFailureStreak"
@@ -10914,6 +10921,63 @@
           }
         },
         "title": "IvPercentileDistribution",
+        "type": "object"
+      },
+      "JobDegraded": {
+        "description": "One job's current 'succeeded but degraded' record: the run returned\nnormally but part of its work did not land (thin data, or one failed unit\namong interchangeable ones). Informational only \u2014 it never flips ``ok``,\nnever sets ``reason`` and never alerts, and it self-clears on the next\nclean run or source success (see reports/health_blocks._job_degraded).",
+        "properties": {
+          "consecutive": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consecutive"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "job_name": {
+            "title": "Job Name",
+            "type": "string"
+          },
+          "record": {
+            "enum": [
+              "scan_run",
+              "macro_source"
+            ],
+            "title": "Record",
+            "type": "string"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "job_name",
+          "record"
+        ],
+        "title": "JobDegraded",
         "type": "object"
       },
       "JobFailureStreak": {

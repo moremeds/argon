@@ -194,3 +194,47 @@ def test_discovery_success_returns_normally(jobs, monkeypatch):
 
     assert closures["discovery_scan"]() is None
     assert repo.conn.rollbacks == 0
+
+
+def test_grg_thin_data_marks_run_degraded_and_returns_none(monkeypatch):
+    """Thin data is degraded, not an error: the scanner finishes the audit row
+    'degraded' and returns None, so the closure and the job listener both see a
+    successful (degraded) run."""
+    import uw_scan.cards.grg_scoring as grg_scoring
+
+    class _Repo:
+        def __init__(self) -> None:
+            self.statuses: list[str] = []
+            self.conn = _FakeConn()
+
+        def insert_scan_run(self, *_a, **_k) -> int:
+            return 1
+
+        def finish_scan_run(self, _run_id, status="ok") -> None:
+            self.statuses.append(status)
+
+        def fetch_latest_gex(self, **_k):
+            return None
+
+        def list_daily_ohlc(self, *_a, **_k):
+            return []
+
+    repo = _Repo()
+    monkeypatch.setattr(
+        grg_scanner.uw_source,
+        "fetch_greek_exposure_history",
+        lambda *a, **k: {"data": []},
+    )
+    monkeypatch.setattr(
+        grg_scanner,
+        "parse_greek_exposure_history",
+        lambda _body: [{"date": "2026-01-01", "net_gex": 1.0}],
+    )
+
+    def boom(*_a, **_k):
+        raise ValueError("Only 3 aligned observations; need 70")
+
+    monkeypatch.setattr(grg_scoring, "run_analysis", boom)
+
+    assert grg_scanner.run(object(), repo) is None
+    assert repo.statuses == ["degraded"]

@@ -54,6 +54,35 @@ class _ScanRunsMixin:
             row = cur.fetchone()
             return int(row[0]) if row else 0
 
+    def latest_scan_run_state(self, ticker: str) -> dict | None:
+        """Latest FINISHED ``scan_runs`` row for `ticker`, regardless of status.
+
+        Unlike ``latest_run_id`` (which filters to renderable full scans) this
+        answers "what did the job's most recent run LOOK like" — status plus
+        the run-meta aggregates. The /api/health degraded block reads it for
+        the sentinel-ticker side-channel jobs ('GRG', '_DISCOVER'). Both
+        lookups are point queries on ``idx_scan_runs_ticker_run_desc``.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT status, finished_at, aggregates "
+                f"FROM {self._schema}.scan_runs "
+                # Finished runs only: an in-flight run has no outcome yet, and
+                # letting it win would hide the previous run's degraded entry for
+                # the whole time the next run is executing.
+                "WHERE ticker = %s AND finished_at IS NOT NULL "
+                "ORDER BY run_id DESC LIMIT 1",
+                (ticker.upper(),),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return {
+            "status": row[0],
+            "finished_at": row[1],
+            "aggregates": row[2] or {},
+        }
+
     def insert_scan_run(self, ticker: str, notes: str = "") -> int:
         sql = (
             f"INSERT INTO {self._schema}.scan_runs (ticker, notes) "

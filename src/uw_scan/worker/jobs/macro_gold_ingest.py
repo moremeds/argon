@@ -69,8 +69,10 @@ def macro_gold_ingest_job(
     """Fetch, store and parse both gold-owned feeds. One failing feed does not stop the other.
 
     Each feed's outcome lands in ``macro_source_status`` (like the other macro ingests),
-    and the job raises AFTER both feeds ran and committed when either failed, so the
-    scheduler's ``job_failures`` streak sees it instead of a clean run.
+    and the job raises AFTER both feeds ran and committed only when EVERY feed failed,
+    so the scheduler's ``job_failures`` streak sees a dead run instead of a clean one.
+    A partial failure returns normally: the failed feed's 'degraded' status row is the
+    record.
 
     The provider factories exist so a test can drive the REAL job -- artifact write,
     commit, parse, upsert -- against frozen payloads instead of the network. A test that
@@ -122,7 +124,7 @@ def macro_gold_ingest_job(
             ),
             result,
         )
-    if result.errors:
+    if result.errors and result.feeds_succeeded == 0:
         raise RuntimeError(
             f"macro_gold_ingest: {len(result.errors)} of {result.feeds_attempted} "
             f"feeds failed: " + "; ".join(result.errors)
@@ -143,8 +145,8 @@ def _run_feed(
     try:
         artifacts, created, unchanged = call()
     except Exception as exc:
-        # Caught so a dead vendor does not stop the other feed; the job raises once
-        # both have run (see macro_gold_ingest_job).
+        # Caught so a dead vendor does not stop the other feed; the job raises
+        # only when every feed failed (see macro_gold_ingest_job).
         logger.warning("macro gold ingest feed %s failed: %s", name, repr(exc))
         conn.rollback()
         result.errors.append(f"{name}: {repr(exc)[:400]}")

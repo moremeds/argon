@@ -164,6 +164,7 @@ def discovery_scan_once(
 
             snapshot_rows: list[dict] = []
             dp_enriched = 0
+            dp_failures: list[tuple[str, Exception]] = []
             for idx, (ticker, agg) in enumerate(ranked):
                 if idx > 0 and settings.scanner_discover_dp_sleep_ms > 0:
                     # Rate guard: space out DP fetches so a 50-ticker run can't burst
@@ -189,6 +190,7 @@ def discovery_scan_once(
                     logger.warning(
                         "discovery_scan: DP fetch failed for %s: %s", ticker, repr(exc)
                     )
+                    dp_failures.append((ticker, exc))
                     dp_status = "degraded"
 
                 # Graceful degrade: when TODAY's DP fetch failed, score on the flow
@@ -271,6 +273,20 @@ def discovery_scan_once(
                     }
                 )
 
+            if ranked and len(dp_failures) == len(ranked):
+                # Every interchangeable unit failed: the DP enrichments are the
+                # per-candidate units here, and none answered. This run produced
+                # no usable evidence — raise so the outer except marks the run
+                # 'fail' and the job listener records the failure. A partial
+                # failure still finishes 'ok' with per-candidate dp_status
+                # 'degraded'; a fetch returning no prints is 'no_data', not a
+                # failure.
+                first_ticker, first_exc = dp_failures[0]
+                raise RuntimeError(
+                    f"all {len(dp_failures)} dark-pool fetches failed: "
+                    f"first {first_ticker}: {first_exc!r}"
+                )
+
             # Run-level metadata persisted to the scan_runs row (NOT into candidate
             # evidence) so a non-empty feed fully filtered to zero candidates still
             # records alerts_pulled / earnings_unknown_dropped.
@@ -294,7 +310,9 @@ def discovery_scan_once(
             repo.conn.rollback()
             repo.finish_scan_run(run_id, status="fail")
             repo.conn.commit()
-            # One unit (the scan: alerts fetch + snapshot write). Persist the 'fail'
-            # row above, then raise so the job listener records the failure. A
-            # per-ticker DP miss is not a unit failure: it degrades that candidate.
+            # Persist the 'fail' row above, then raise so the job listener
+            # records the failure. A per-ticker DP miss degrades that candidate
+            # and is not a unit failure by itself — the run only fails when
+            # every candidate's DP fetch failed (checked above the persist
+            # block).
             raise

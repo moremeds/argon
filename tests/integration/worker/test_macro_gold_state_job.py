@@ -363,18 +363,26 @@ class _DeadFlowProvider(_FlowProvider):
         raise RuntimeError("404 Not Found")
 
 
-def test_a_dead_feed_keeps_the_live_one_records_status_and_raises(
+class _DeadPriceProvider(_PriceProvider):
+    def fetch_daily_payload(self, ticker: str, start: date, end: date):
+        raise RuntimeError("502 Bad Gateway")
+
+
+def test_a_dead_feed_keeps_the_live_one_and_records_degraded(
     seeded_db_empty_cards,
 ):
-    """The swallow used to make a dead vendor a clean run that job_failures never saw."""
+    """One dead vendor is a degraded run, not a job failure: the live feed
+    still lands, the dead one's 'degraded' status row is the record, and the
+    job returns so the listener sees success."""
     settings = _settings()
-    with pytest.raises(RuntimeError, match=r"1 of 2 feeds failed: gold_flow: "):
-        macro_gold_ingest_job(
-            dsn=settings.db_dsn(),
-            massive_api_key="unused-by-the-stub",
-            price_provider_factory=_PriceProvider,
-            flow_provider_factory=_DeadFlowProvider,
-        )
+    result = macro_gold_ingest_job(
+        dsn=settings.db_dsn(),
+        massive_api_key="unused-by-the-stub",
+        price_provider_factory=_PriceProvider,
+        flow_provider_factory=_DeadFlowProvider,
+    )
+    assert result.feeds_succeeded == 1
+    assert len(result.errors) == 1
 
     with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
         cur.execute(
@@ -388,5 +396,28 @@ def test_a_dead_feed_keeps_the_live_one_records_status_and_raises(
         )
         assert cur.fetchall() == [
             ("massive.com", "ok", 0),
+            ("spdrgoldshares", "degraded", 1),
+        ]
+
+
+def test_every_dead_feed_raises_after_status_commit(seeded_db_empty_cards):
+    """Every feed dead is a dead run: raise AFTER the status rows commit, so
+    the job_failures streak sees it while the 'degraded' rows stay queryable."""
+    settings = _settings()
+    with pytest.raises(RuntimeError, match=r"2 of 2 feeds failed"):
+        macro_gold_ingest_job(
+            dsn=settings.db_dsn(),
+            massive_api_key="unused-by-the-stub",
+            price_provider_factory=_DeadPriceProvider,
+            flow_provider_factory=_DeadFlowProvider,
+        )
+
+    with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT source, status, consecutive_failures FROM uw_scan.macro_source_status"
+            " WHERE source IN ('massive.com', 'spdrgoldshares') ORDER BY source"
+        )
+        assert cur.fetchall() == [
+            ("massive.com", "degraded", 1),
             ("spdrgoldshares", "degraded", 1),
         ]

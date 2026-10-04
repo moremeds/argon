@@ -242,6 +242,43 @@ def test_a_broken_payload_keeps_its_bytes_and_spares_the_other_feed(
     assert row[3] == "cftc"
 
 
+class _DeadProvider:
+    """Every fetch raises — a publisher outage across the whole run."""
+
+    def __enter__(self) -> "_DeadProvider":
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        return None
+
+    def fetch_auctions_payload(self, *, security_type: str) -> tuple[bytes, str]:
+        raise RuntimeError("publisher 503")
+
+    def fetch_treasury_payload(self, *, start: date) -> tuple[bytes, str]:
+        raise RuntimeError("publisher 503")
+
+
+def test_every_feed_failed_raises_after_status_commit(seeded_db_empty_cards) -> None:
+    """All units dead is a job failure, not a degraded success. The raise must
+    come AFTER the macro_source_status commit: the streak records the dead run,
+    the 'degraded' rows are the reason an operator can read."""
+    settings = _settings()
+    with pytest.raises(RuntimeError, match="2 of 2 feeds failed"):
+        macro_market_layer_ingest_job(
+            dsn=settings.db_dsn(),
+            supply_types=("Note",),
+            supply_provider_factory=_DeadProvider,
+            positioning_provider_factory=_DeadProvider,
+            max_attempts=1,
+        )
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        rows = conn.execute(
+            "SELECT source, status FROM uw_scan.macro_source_status ORDER BY source"
+        ).fetchall()
+    assert rows == [("cftc", "degraded"), ("treasurydirect", "degraded")]
+
+
 def test_each_supply_type_is_requested_on_its_own(seeded_db_empty_cards) -> None:
     """One request per instrument type, or the deep half of the history never arrives."""
     settings = _settings()
