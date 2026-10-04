@@ -618,16 +618,16 @@ the word "monitor" without a level and a session count."""
 # CONTRACT_PROMPT — the JSON-contract clause every provider must see.
 #
 # Lifted verbatim from the historical Claude-only `_JSON_ONLY_SYSTEM_PROMPT`
-# at worker/jobs/trade_insights_claude_runner.py (pre-deepseek-decoupling).
+# (the Claude runner was removed when Trade Insights AI went DeepSeek-only).
 # Codex was getting these rules indirectly via the integration-notes appendix
 # in analysis_input.build_trade_insights_ai_prompt; Claude was getting them via
-# --append-system-prompt. DeepSeek would have gotten nothing. Centralizing here
-# means every provider sees the same contract through the user-prompt path.
+# --append-system-prompt. Centralizing here means every provider sees the
+# same contract through the user-prompt path.
 #
 # The final Claude-specific sentence ("Use the StructuredOutput tool if
 # available; otherwise emit the JSON object as the entire response.") is
-# INTENTIONALLY DROPPED here — that sentence is provider-mechanic advice and
-# lives only inside ClaudeRunner.run() comments where it belongs.
+# INTENTIONALLY DROPPED here — it was provider-mechanic advice for the CLI
+# runner, not part of the shared contract.
 #
 # The phrase "the supplied --json-schema" (Claude CLI flag name) was rewritten
 # to "the supplied JSON schema" so the constant is provider-neutral.

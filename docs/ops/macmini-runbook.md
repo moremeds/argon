@@ -16,7 +16,7 @@ bash scripts/deploy/macmini-bootstrap.sh
 ```
 Idempotent; safe to re-run.
 
-**Claude/Codex CLI auth is advisory.** Bootstrap probes both CLIs but does not gate the core stack on them. If either probe fails (CLI missing, not signed in, keychain inaccessible), the corresponding `ai-claude` / `ai-codex` worker plists are **rendered but not loaded** — so they don't crash-loop. The bootstrap summary prints the exact `launchctl load …` commands to run after fixing the auth. AI-DeepSeek workers depend on `DEEPSEEK_API_KEY` in `.env`, not a CLI; the standard "fill secrets" step covers them.
+AI workers are `ai-deepseek` only — the Codex/Claude CLI providers were removed (the Docker worker containers can't run native CLIs). They depend on `DEEPSEEK_API_KEY` in `.env`; the standard "fill secrets" step covers them.
 
 ## Regular deploy of a tagged release
 
@@ -88,10 +88,10 @@ ssh moremeds@100.66.147.98 'launchctl print gui/$UID/com.argon.api | head -30'
 
 Restart one:
 ```
-ssh moremeds@100.66.147.98 'launchctl kickstart -k gui/$UID/com.argon.worker.ai-claude-0'
+ssh moremeds@100.66.147.98 'launchctl kickstart -k gui/$UID/com.argon.worker.ai-deepseek-0'
 ```
 
-Restart all 13:
+Restart all 9:
 ```
 ssh moremeds@100.66.147.98 'cd ~/projects/argon && while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
@@ -99,7 +99,7 @@ ssh moremeds@100.66.147.98 'cd ~/projects/argon && while IFS= read -r s; do
 done < config/services.list'
 ```
 
-Stop all 13 (e.g., for maintenance) — uses `unload` to match xenon's `load`/`unload` pattern in the bootstrap script. **Note:** `com.argon.massive-ws` holds an in-memory `TickBuffer` (see `src/uw_scan/worker/ws_tick_buffer.py`); SIGTERM from `unload` discards anything not yet flushed (~5-30 s of intraday ticks during RTH). For ops where data continuity matters, prefer maintenance windows in pre-market or after-hours.
+Stop all 9 (e.g., for maintenance) — uses `unload` to match xenon's `load`/`unload` pattern in the bootstrap script. **Note:** `com.argon.massive-ws` holds an in-memory `TickBuffer` (see `src/uw_scan/worker/ws_tick_buffer.py`); SIGTERM from `unload` discards anything not yet flushed (~5-30 s of intraday ticks during RTH). For ops where data continuity matters, prefer maintenance windows in pre-market or after-hours.
 ```
 ssh moremeds@100.66.147.98 'while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
@@ -107,7 +107,7 @@ ssh moremeds@100.66.147.98 'while IFS= read -r s; do
 done < ~/projects/argon/config/services.list'
 ```
 
-Re-load all 13 (after an unload):
+Re-load all 9 (after an unload):
 ```
 ssh moremeds@100.66.147.98 'while IFS= read -r s; do
   [[ -z "$s" || "$s" == \#* ]] && continue
@@ -119,7 +119,7 @@ done < ~/projects/argon/config/services.list'
 
 - Aggregate: `ssh moremeds@100.66.147.98 'cd ~/projects/argon && tail -F logs/*.err.log'`
 - API only: `ssh moremeds@100.66.147.98 'tail -F ~/projects/argon/logs/api.err.log'`
-- One worker: `ssh moremeds@100.66.147.98 'tail -F ~/projects/argon/logs/worker-ai-claude-0.err.log'`
+- One worker: `ssh moremeds@100.66.147.98 'tail -F ~/projects/argon/logs/worker-ai-deepseek-0.err.log'`
 
 ## Health checks
 

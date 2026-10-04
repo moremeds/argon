@@ -11,9 +11,5 @@ com.argon.worker.uw-0
 com.argon.worker.uw-1
 com.argon.worker.massive-0
 com.argon.worker.massive-1
-com.argon.worker.ai-codex-0
-com.argon.worker.ai-codex-1
-com.argon.worker.ai-claude-0
-com.argon.worker.ai-claude-1
 com.argon.worker.ai-deepseek-0
 com.argon.worker.ai-deepseek-1

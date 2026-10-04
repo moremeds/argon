@@ -12,7 +12,8 @@ Moves the argon prod stack off launchd into Docker on the mini, matching the
 xenon/apex house pattern: Colima VM, bridge network + `host.docker.internal`,
 host-native Postgres (unchanged), GHCR images built by `release.yml`, and the
 **single engine-wide Watchtower** in `/opt/xenon/compose.yml` for auto-deploy.
-AI Codex/Claude workers are dropped in phase 1 (issue #248); DeepSeek survives.
+DeepSeek is the only Trade Insights AI provider — the Codex/Claude CLI runners
+were removed because native CLIs can't run inside the worker containers.
 
 ## Images
 
@@ -66,7 +67,6 @@ on purpose; api `:8400` was already loopback-only.
 | `XENON_WS_PORT_FILE` | `""` (empty — host-local file, invisible in-container) |
 | `XENON_QUERY_API_URL` | `http://host.docker.internal:8321` |
 | `APEX_API_URL` | `http://host.docker.internal:8322` |
-| `TRADE_INSIGHTS_AI_ENABLED` / `..._CLAUDE_ENABLED` | `false` (Codex/Claude off) |
 | `TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED` | `true` |
 
 **Do NOT set `UW_SCAN_ALLOW_DB_MISMATCH=1`** in the container `.env` — it bypasses
