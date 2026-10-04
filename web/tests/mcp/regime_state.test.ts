@@ -133,7 +133,7 @@ describe("gex section", () => {
     expect(out.gex.spot).toBe(7716.87);
     expect(out.gex.live_spot).toBeNull();
     expect(out.gex.display_spot).toBe(7716.87);
-    expect(out.gex.flip).toEqual(GEX.levels.gex_flip);
+    expect(out.gex.flip).toEqual(GEX.levels!.gex_flip);
     expect(out.gex.levels).toEqual(GEX.levels);
     expect(out.gex.profile).toEqual(GEX.profile);
   });
@@ -146,10 +146,10 @@ describe("gex section", () => {
     expect(out.gex.live_spot).toBe(sel.liveSpot);
     expect(out.gex.live_spot).toBe(7575.39);
     expect(out.gex.display_spot).toBe(7575.39);
-    const expected = retagProfileForSpot(GEX.profile, 7575.39, GEX.levels);
+    const expected = retagProfileForSpot(GEX.profile!, 7575.39, GEX.levels);
     expect(out.gex.profile).toEqual(expected);
     expect(
-      (expected as GexData["profile"]).filter((b) => b.tag === "SPOT")
+      (expected as NonNullable<GexData["profile"]>).filter((b) => b.tag === "SPOT")
         .map((b) => b.strike),
     ).toEqual([7575]);
   });

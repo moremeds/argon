@@ -15,14 +15,19 @@ import io
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 
+from uw_scan.sources._http import (
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -239,103 +244,21 @@ class FredProvider:
         endpoint_key: str,
         path_template: str,
     ) -> httpx.Response:
-        url = f"{base_url}{path}"
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._error_event(
-                    path,
-                    params,
-                    started_at,
-                    finished_at,
-                    exc,
-                    endpoint_key=endpoint_key,
-                    path_template=path_template,
-                )
-            )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._success_event(
-                path,
-                params,
-                started_at,
-                finished_at,
-                response,
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
                 endpoint_key=endpoint_key,
+                path=path,
                 path_template=path_template,
+                params=params,
+                job_name=self._job_name,
             )
+            record_or_log(self._record_request_fn, self, event, "fred")
+
+        return get_with_telemetry(
+            self._client, f"{base_url}{path}", params=params, record=record
         )
-        return response
-
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("fred telemetry %r", event)
-
-    def _success_event(
-        self,
-        path: str,
-        params: dict[str, Any],
-        started_at: datetime,
-        finished_at: datetime,
-        response: httpx.Response,
-        *,
-        endpoint_key: str,
-        path_template: str,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=endpoint_key,
-            method="GET",
-            path=path,
-            path_template=path_template,
-            params=redact_params(params),
-            status_code=response.status_code,
-            status_family=status_family_for(response.status_code),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=_latency_ms(started_at, finished_at),
-            job_name=self._job_name,
-            error_message=(
-                response.text[:1000] if response.status_code >= 400 else None
-            ),
-        )
-
-    def _error_event(
-        self,
-        path: str,
-        params: dict[str, Any],
-        started_at: datetime,
-        finished_at: datetime,
-        exc: httpx.HTTPError,
-        *,
-        endpoint_key: str,
-        path_template: str,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=endpoint_key,
-            method="GET",
-            path=path,
-            path_template=path_template,
-            params=redact_params(params),
-            status_code=None,
-            status_family=status_family_for(None, transport_error=True),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=_latency_ms(started_at, finished_at),
-            job_name=self._job_name,
-            error_message=repr(exc)[:1000],
-        )
-
-
-def _latency_ms(started_at: datetime, finished_at: datetime) -> int:
-    return max(0, int((finished_at - started_at).total_seconds() * 1000))
 
 
 def _raise_for_status_redacted(response: httpx.Response, *, endpoint_key: str) -> None:
