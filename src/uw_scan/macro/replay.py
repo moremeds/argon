@@ -10,7 +10,12 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
-from fastapi import HTTPException
+
+class InvalidInstant(ValueError):
+    """The request named its instant ambiguously. The API answers it as a 422 with
+    this message as ``detail`` (``uw_scan.api.server`` registers the handler), so
+    this module stays free of the web framework."""
+
 
 #: A state older than this has not been recomputed since, which is a statement about our
 #: scheduler and not about the publishers -- each factor carries its own freshness inside
@@ -53,16 +58,12 @@ def resolve_instant(as_of: date | None, as_of_ts: datetime | None) -> datetime:
     silently read a naive timestamp as UTC on one surface and refuse it on the other.
     """
     if as_of is not None and as_of_ts is not None:
-        raise HTTPException(
-            status_code=422, detail="supply either as_of or as_of_ts, not both"
-        )
+        raise InvalidInstant("supply either as_of or as_of_ts, not both")
     if as_of_ts is not None:
         # A naive instant is a timezone guess, and the FOMC publishes at 14:00
         # ET -- guessing UTC moves the release four or five hours.
         if as_of_ts.tzinfo is None or as_of_ts.utcoffset() is None:
-            raise HTTPException(
-                status_code=422, detail="as_of_ts must carry a UTC offset"
-            )
+            raise InvalidInstant("as_of_ts must carry a UTC offset")
         return as_of_ts
     if as_of is not None:
         return datetime.combine(as_of, time.max, tzinfo=UTC)
