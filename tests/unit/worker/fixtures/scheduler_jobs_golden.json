@@ -1,0 +1,4050 @@
+{
+ "all_enabled/ai-0": [
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-1": [
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-claude-0": [
+  {
+   "func": "_trade_insights_ai_tick_claude",
+   "id": "trade_insights_ai_tick_claude",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (claude)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-claude-1": [
+  {
+   "func": "_trade_insights_ai_tick_claude",
+   "id": "trade_insights_ai_tick_claude",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (claude)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-codex-0": [
+  {
+   "func": "_trade_insights_ai_tick_codex",
+   "id": "trade_insights_ai_tick_codex",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (codex)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-codex-1": [
+  {
+   "func": "_trade_insights_ai_tick_codex",
+   "id": "trade_insights_ai_tick_codex",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (codex)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-deepseek-0": [
+  {
+   "func": "_trade_insights_ai_tick_deepseek",
+   "id": "trade_insights_ai_tick_deepseek",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (deepseek)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/ai-deepseek-1": [
+  {
+   "func": "_trade_insights_ai_tick_deepseek",
+   "id": "trade_insights_ai_tick_deepseek",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (deepseek)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/all-0": [
+  {
+   "func": "_chanlun_lifecycle_scan",
+   "id": "chanlun_lifecycle_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Chanlun daily-mark lifecycle (30m sub-level confirm)'"
+   },
+   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_cockpit_daily_snapshot",
+   "id": "cockpit_daily_snapshot",
+   "options": {
+    "name": "'Cockpit 6-dim matrix daily snapshot'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_company_sector_refresh",
+   "id": "company_sector_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vendor sector fill for company_type routing (daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_corporate_actions_refresh",
+   "id": "corporate_actions_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Corporate-actions ingestion'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_credit_etf_lake_sync",
+   "id": "credit_etf_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Credit-ETF parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_spy_ohlc_refresh",
+   "id": "daily_spy_ohlc_refresh",
+   "options": {
+    "name": "'Daily SPY OHLC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_data_freshness_monitor",
+   "id": "data_freshness_monitor",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Data-date freshness monitor (prevention)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_data_gap_healer",
+   "id": "data_gap_healer",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly data gap healer'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-5', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_discovery_scan",
+   "id": "discovery_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-wide discovery scan (UW)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='15,45'] tz=America/New_York"
+  },
+  {
+   "func": "_earnings_reactions_compute",
+   "id": "earnings_reactions_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Earnings reaction history (calendar x OHLC)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='41'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan_hot",
+   "id": "full_scan_hot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Hot-subset full_scan (fast lane)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='*/5'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_change_events",
+   "id": "fundamental_change_events",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental delta-rail change events'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_concentration_capture",
+   "id": "fundamental_concentration_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental revenue-breakdown capture (monthly)'"
+   },
+   "trigger": "cron[month='*', day='3', day_of_week='*', hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest",
+   "id": "fundamental_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (monthly)'"
+   },
+   "trigger": "cron[month='*', day='2', day_of_week='*', hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest_daily",
+   "id": "fundamental_ingest_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (daily, calendar-driven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_refresh",
+   "id": "fundamental_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental routing + subscores + valuation anchors'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_desk_rollup",
+   "id": "fundamentals_desk_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamentals desk matrix rollup (rev YoY, gross margin)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_cftc_cot_ingest",
+   "id": "gold_cftc_cot_ingest",
+   "options": {
+    "name": "'Gold: CFTC COT weekly (Fridays)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_etf_holdings_ingest",
+   "id": "gold_etf_holdings_ingest",
+   "options": {
+    "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_fred_ingest",
+   "id": "gold_fred_ingest",
+   "options": {
+    "name": "'Gold: FRED daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_gpr_ingest",
+   "id": "gold_gpr_ingest",
+   "options": {
+    "name": "'Gold: GPR daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_lbma_vault_ingest",
+   "id": "gold_lbma_vault_ingest",
+   "options": {
+    "name": "'Gold: LBMA vault monthly'"
+   },
+   "trigger": "cron[month='*', day='8', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_posture_compute",
+   "id": "gold_posture_compute",
+   "options": {
+    "name": "'Gold: posture row compute (post-ingest)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_spot_ingest",
+   "id": "gold_spot_ingest",
+   "options": {
+    "name": "'Gold: spot price (GLD daily bars via massive)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_uw_options_ingest",
+   "id": "gold_uw_options_ingest",
+   "options": {
+    "name": "'Gold: UW options snapshot (GLD/GDX/IAU)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_wgc_cb_ingest",
+   "id": "gold_wgc_cb_ingest",
+   "options": {
+    "name": "'Gold: WGC CB reserves monthly'"
+   },
+   "trigger": "cron[month='*', day='10', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_greek_exposure_daily_refresh",
+   "id": "greek_exposure_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Single-name greek_exposure_daily refresh (#179)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_implied_move_snapshot",
+   "id": "implied_move_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Implied move snapshot (option surface grid)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='20', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_intraday_oi_refresh",
+   "id": "intraday_oi_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Intraday OI mover refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_fomc_ingest",
+   "id": "macro_fomc_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: official FOMC statement evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_gold_ingest",
+   "id": "macro_gold_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: gold price and ETF tonnage evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_market_layer_ingest",
+   "id": "macro_market_layer_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: Treasury supply and CFTC positioning evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_market_shadow_ingest",
+   "id": "macro_market_shadow_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: delayed third-party market policy shadow'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_release_calendar_capture",
+   "id": "macro_release_calendar_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Economic-release calendar capture + FRED fill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_sep_ingest",
+   "id": "macro_sep_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: official SEP evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_series_ingest",
+   "id": "macro_series_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: vintage-bearing FRED series evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_sme_ingest",
+   "id": "macro_sme_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: NY Fed dealer expectations'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_state_compute",
+   "id": "macro_state_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: inflation, policy/rates, USD and gold domain states'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_market_tide_sentiment_eod",
+   "id": "market_tide_sentiment_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-tide EOD sentiment (DB)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='16', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_mcp_event_retention",
+   "id": "mcp_event_retention",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'MCP event retention (purge >30d)'"
+   },
+   "trigger": "cron[hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_analytics_rollup",
+   "id": "nightly_skew_analytics_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly skew analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_analytics_rollup",
+   "id": "nightly_vol_analytics_rollup",
+   "options": {
+    "name": "'Nightly vol analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_capture",
+   "id": "option_surface_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface full-chain capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_iv_canary",
+   "id": "option_surface_iv_canary",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface IB-vs-UW IV canary'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_capture",
+   "id": "option_surface_research_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface capture (research cohort)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_catchup",
+   "id": "option_surface_research_catchup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface catch-up (research cohort history)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_pipeline_benchmark_snapshot",
+   "id": "pipeline_benchmark_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Pipeline benchmark snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rates_fred_ingest",
+   "id": "rates_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Rates: FRED curve and macro refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "record_health_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "300",
+    "name": "'Record health snapshot'"
+   },
+   "trigger": "interval[0:15:00]"
+  },
+  {
+   "func": "_regime_canary_scan",
+   "id": "regime_canary_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime 5% Canary scan'"
+   },
+   "trigger": "cron[minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_cri_scan",
+   "id": "regime_cri_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime CRI scan'"
+   },
+   "trigger": "cron[minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_fred_ingest",
+   "id": "regime_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime: FRED NFCI/ANFCI/USREC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='22'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_gex_scan",
+   "id": "regime_gex_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GEX scan (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9-16', minute='*/2'], cron[day_of_week='mon-fri', hour='0-8,17-23', minute='*/15']]"
+  },
+  {
+   "func": "_regime_grg_scan",
+   "id": "regime_grg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GRG scan (UW)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='9-18', minute='*/15'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_live_scan",
+   "id": "regime_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live CRI/VCG snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_regime_live_validation",
+   "id": "regime_live_validation",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live close vs lake validation'"
+   },
+   "trigger": "cron[hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_market_tide_scan",
+   "id": "regime_market_tide_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime market-tide capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30-55/5'], cron[day_of_week='mon-fri', hour='10-15', minute='*/5'], cron[day_of_week='mon-fri', hour='16', minute='0,5,10']]"
+  },
+  {
+   "func": "_regime_top_net_impact_scan",
+   "id": "regime_top_net_impact_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime top-net-impact capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30,45'], cron[day_of_week='mon-fri', hour='10-15', minute='*/15'], cron[day_of_week='mon-fri', hour='16', minute='0,15']]"
+  },
+  {
+   "func": "_regime_vcg_scan",
+   "id": "regime_vcg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime VCG scan'"
+   },
+   "trigger": "cron[minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "2",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "_sector_rs_daily",
+   "id": "sector_rs_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Sector RS + breadth (gics ETFs + watchlist chains)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_markout_refresh",
+   "id": "skew_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_swing_greeks_refresh",
+   "id": "skew_swing_greeks_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew swing-DTE greeks refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_spx_density_forecast",
+   "id": "spx_density_forecast",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'SPX 1-5d density cone (v13 GJR-GARCH, display-only)'"
+   },
+   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_daily_refresh",
+   "id": "technical_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Technicals daily refresh (apex bars -> technical_daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_live_scan",
+   "id": "technical_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Live technicals coverage'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_theta_harvester_markout",
+   "id": "theta_harvester_markout",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester forward markout'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_scan",
+   "id": "theta_harvester_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester short-strangle scan'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insight_outcome_backfill",
+   "id": "trade_insight_outcome_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Trade insight outcome backfill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_dark_lit_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_dark_lit_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_gex_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_gex_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_intraday_flow_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_intraday_flow_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_short_pressure_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_short_pressure_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_volatility_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_volatility_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_index_lake_sync",
+   "id": "vol_index_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vol-complex parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_volatility_backfill_tick",
+   "id": "volatility_backfill_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'On-demand volatility backfill queue'"
+   },
+   "trigger": "interval[0:00:10]"
+  },
+  {
+   "func": "_vrp_backtest_refresh",
+   "id": "vrp_backtest_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP condor backtest (weekly)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='6', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_candidates_refresh",
+   "id": "vrp_candidates_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP iron-condor candidate emit'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_eod",
+   "id": "vrp_macro_entry_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (EOD mark, last-resort birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='15', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_grid_refresh",
+   "id": "vrp_macro_entry_grid_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (nightly strike-grid cache)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_postclose",
+   "id": "vrp_macro_entry_postclose",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (post-close mark)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_rth",
+   "id": "vrp_macro_entry_rth",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (RTH marks, birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_signal_refresh",
+   "id": "vrp_macro_signal_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro short-vol signal refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_markout_refresh",
+   "id": "vrp_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP harvest markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_mark",
+   "id": "vrp_paper_mark",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger mark/close'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_open",
+   "id": "vrp_paper_open",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger open'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_research_refresh",
+   "id": "vrp_research_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP research expansion (validation/sector/horizon/directional/\u0394VRP)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/massive-0": [
+  {
+   "func": "_chanlun_lifecycle_scan",
+   "id": "chanlun_lifecycle_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Chanlun daily-mark lifecycle (30m sub-level confirm)'"
+   },
+   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_corporate_actions_refresh",
+   "id": "corporate_actions_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Corporate-actions ingestion'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_credit_etf_lake_sync",
+   "id": "credit_etf_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Credit-ETF parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_spy_ohlc_refresh",
+   "id": "daily_spy_ohlc_refresh",
+   "options": {
+    "name": "'Daily SPY OHLC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_earnings_reactions_compute",
+   "id": "earnings_reactions_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Earnings reaction history (calendar x OHLC)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='41'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_change_events",
+   "id": "fundamental_change_events",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental delta-rail change events'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_refresh",
+   "id": "fundamental_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental routing + subscores + valuation anchors'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_desk_rollup",
+   "id": "fundamentals_desk_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamentals desk matrix rollup (rev YoY, gross margin)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_cftc_cot_ingest",
+   "id": "gold_cftc_cot_ingest",
+   "options": {
+    "name": "'Gold: CFTC COT weekly (Fridays)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_etf_holdings_ingest",
+   "id": "gold_etf_holdings_ingest",
+   "options": {
+    "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_fred_ingest",
+   "id": "gold_fred_ingest",
+   "options": {
+    "name": "'Gold: FRED daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_gpr_ingest",
+   "id": "gold_gpr_ingest",
+   "options": {
+    "name": "'Gold: GPR daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_lbma_vault_ingest",
+   "id": "gold_lbma_vault_ingest",
+   "options": {
+    "name": "'Gold: LBMA vault monthly'"
+   },
+   "trigger": "cron[month='*', day='8', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_posture_compute",
+   "id": "gold_posture_compute",
+   "options": {
+    "name": "'Gold: posture row compute (post-ingest)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_spot_ingest",
+   "id": "gold_spot_ingest",
+   "options": {
+    "name": "'Gold: spot price (GLD daily bars via massive)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_uw_options_ingest",
+   "id": "gold_uw_options_ingest",
+   "options": {
+    "name": "'Gold: UW options snapshot (GLD/GDX/IAU)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_wgc_cb_ingest",
+   "id": "gold_wgc_cb_ingest",
+   "options": {
+    "name": "'Gold: WGC CB reserves monthly'"
+   },
+   "trigger": "cron[month='*', day='10', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_implied_move_snapshot",
+   "id": "implied_move_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Implied move snapshot (option surface grid)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='20', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_fomc_ingest",
+   "id": "macro_fomc_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: official FOMC statement evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_gold_ingest",
+   "id": "macro_gold_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: gold price and ETF tonnage evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_market_layer_ingest",
+   "id": "macro_market_layer_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: Treasury supply and CFTC positioning evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_market_shadow_ingest",
+   "id": "macro_market_shadow_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: delayed third-party market policy shadow'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_sep_ingest",
+   "id": "macro_sep_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: official SEP evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_series_ingest",
+   "id": "macro_series_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: vintage-bearing FRED series evidence'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_sme_ingest",
+   "id": "macro_sme_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: NY Fed dealer expectations'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_state_compute",
+   "id": "macro_state_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Macro: inflation, policy/rates, USD and gold domain states'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_mcp_event_retention",
+   "id": "mcp_event_retention",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'MCP event retention (purge >30d)'"
+   },
+   "trigger": "cron[hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_analytics_rollup",
+   "id": "nightly_skew_analytics_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly skew analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_analytics_rollup",
+   "id": "nightly_vol_analytics_rollup",
+   "options": {
+    "name": "'Nightly vol analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_canary_scan",
+   "id": "regime_canary_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime 5% Canary scan'"
+   },
+   "trigger": "cron[minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_cri_scan",
+   "id": "regime_cri_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime CRI scan'"
+   },
+   "trigger": "cron[minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_fred_ingest",
+   "id": "regime_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime: FRED NFCI/ANFCI/USREC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='22'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_live_scan",
+   "id": "regime_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live CRI/VCG snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_regime_live_validation",
+   "id": "regime_live_validation",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live close vs lake validation'"
+   },
+   "trigger": "cron[hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_vcg_scan",
+   "id": "regime_vcg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime VCG scan'"
+   },
+   "trigger": "cron[minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_sector_rs_daily",
+   "id": "sector_rs_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Sector RS + breadth (gics ETFs + watchlist chains)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_markout_refresh",
+   "id": "skew_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_spx_density_forecast",
+   "id": "spx_density_forecast",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'SPX 1-5d density cone (v13 GJR-GARCH, display-only)'"
+   },
+   "trigger": "cron[day_of_week='tue-sat', hour='3', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_daily_refresh",
+   "id": "technical_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Technicals daily refresh (apex bars -> technical_daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_live_scan",
+   "id": "technical_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Live technicals coverage'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_theta_harvester_markout",
+   "id": "theta_harvester_markout",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester forward markout'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_scan",
+   "id": "theta_harvester_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester short-strangle scan'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insight_outcome_backfill",
+   "id": "trade_insight_outcome_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Trade insight outcome backfill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_index_lake_sync",
+   "id": "vol_index_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vol-complex parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_backtest_refresh",
+   "id": "vrp_backtest_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP condor backtest (weekly)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='6', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_candidates_refresh",
+   "id": "vrp_candidates_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP iron-condor candidate emit'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_eod",
+   "id": "vrp_macro_entry_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (EOD mark, last-resort birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='15', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_grid_refresh",
+   "id": "vrp_macro_entry_grid_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (nightly strike-grid cache)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_postclose",
+   "id": "vrp_macro_entry_postclose",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (post-close mark)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_rth",
+   "id": "vrp_macro_entry_rth",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (RTH marks, birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_signal_refresh",
+   "id": "vrp_macro_signal_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro short-vol signal refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_markout_refresh",
+   "id": "vrp_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP harvest markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_mark",
+   "id": "vrp_paper_mark",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger mark/close'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_open",
+   "id": "vrp_paper_open",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger open'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_research_refresh",
+   "id": "vrp_research_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP research expansion (validation/sector/horizon/directional/\u0394VRP)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/massive-1": [
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/uw-0": [
+  {
+   "func": "_cockpit_daily_snapshot",
+   "id": "cockpit_daily_snapshot",
+   "options": {
+    "name": "'Cockpit 6-dim matrix daily snapshot'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_company_sector_refresh",
+   "id": "company_sector_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vendor sector fill for company_type routing (daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_data_freshness_monitor",
+   "id": "data_freshness_monitor",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Data-date freshness monitor (prevention)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_data_gap_healer",
+   "id": "data_gap_healer",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly data gap healer'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-5', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_discovery_scan",
+   "id": "discovery_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-wide discovery scan (UW)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='15,45'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan_hot",
+   "id": "full_scan_hot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Hot-subset full_scan (fast lane)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='*/5'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_concentration_capture",
+   "id": "fundamental_concentration_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental revenue-breakdown capture (monthly)'"
+   },
+   "trigger": "cron[month='*', day='3', day_of_week='*', hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest",
+   "id": "fundamental_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (monthly)'"
+   },
+   "trigger": "cron[month='*', day='2', day_of_week='*', hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest_daily",
+   "id": "fundamental_ingest_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (daily, calendar-driven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_greek_exposure_daily_refresh",
+   "id": "greek_exposure_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Single-name greek_exposure_daily refresh (#179)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_intraday_oi_refresh",
+   "id": "intraday_oi_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Intraday OI mover refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_macro_release_calendar_capture",
+   "id": "macro_release_calendar_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Economic-release calendar capture + FRED fill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_market_tide_sentiment_eod",
+   "id": "market_tide_sentiment_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-tide EOD sentiment (DB)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='16', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_capture",
+   "id": "option_surface_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface full-chain capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_iv_canary",
+   "id": "option_surface_iv_canary",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface IB-vs-UW IV canary'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_capture",
+   "id": "option_surface_research_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface capture (research cohort)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_catchup",
+   "id": "option_surface_research_catchup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface catch-up (research cohort history)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_pipeline_benchmark_snapshot",
+   "id": "pipeline_benchmark_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Pipeline benchmark snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rates_fred_ingest",
+   "id": "rates_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Rates: FRED curve and macro refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "record_health_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "300",
+    "name": "'Record health snapshot'"
+   },
+   "trigger": "interval[0:15:00]"
+  },
+  {
+   "func": "_regime_gex_scan",
+   "id": "regime_gex_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GEX scan (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9-16', minute='*/2'], cron[day_of_week='mon-fri', hour='0-8,17-23', minute='*/15']]"
+  },
+  {
+   "func": "_regime_grg_scan",
+   "id": "regime_grg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GRG scan (UW)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='9-18', minute='*/15'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_market_tide_scan",
+   "id": "regime_market_tide_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime market-tide capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30-55/5'], cron[day_of_week='mon-fri', hour='10-15', minute='*/5'], cron[day_of_week='mon-fri', hour='16', minute='0,5,10']]"
+  },
+  {
+   "func": "_regime_top_net_impact_scan",
+   "id": "regime_top_net_impact_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime top-net-impact capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30,45'], cron[day_of_week='mon-fri', hour='10-15', minute='*/15'], cron[day_of_week='mon-fri', hour='16', minute='0,15']]"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "1",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "_skew_swing_greeks_refresh",
+   "id": "skew_swing_greeks_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew swing-DTE greeks refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_dark_lit_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_dark_lit_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_gex_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_gex_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_intraday_flow_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_intraday_flow_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_short_pressure_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_short_pressure_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_job",
+   "id": "uw_alpha_volatility_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'UW alpha capture: uw_alpha_volatility_capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_volatility_backfill_tick",
+   "id": "volatility_backfill_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'On-demand volatility backfill queue'"
+   },
+   "trigger": "interval[0:00:10]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "all_enabled/uw-1": [
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "1",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-0": [
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-1": [
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-claude-0": [
+  {
+   "func": "_trade_insights_ai_tick_claude",
+   "id": "trade_insights_ai_tick_claude",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (claude)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-claude-1": [
+  {
+   "func": "_trade_insights_ai_tick_claude",
+   "id": "trade_insights_ai_tick_claude",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (claude)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-codex-0": [
+  {
+   "func": "_trade_insights_ai_tick_codex",
+   "id": "trade_insights_ai_tick_codex",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (codex)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-codex-1": [
+  {
+   "func": "_trade_insights_ai_tick_codex",
+   "id": "trade_insights_ai_tick_codex",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (codex)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-deepseek-0": [
+  {
+   "func": "_trade_insights_ai_tick_deepseek",
+   "id": "trade_insights_ai_tick_deepseek",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (deepseek)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/ai-deepseek-1": [
+  {
+   "func": "_trade_insights_ai_tick_deepseek",
+   "id": "trade_insights_ai_tick_deepseek",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (deepseek)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/all-0": [
+  {
+   "func": "_cockpit_daily_snapshot",
+   "id": "cockpit_daily_snapshot",
+   "options": {
+    "name": "'Cockpit 6-dim matrix daily snapshot'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_company_sector_refresh",
+   "id": "company_sector_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vendor sector fill for company_type routing (daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_corporate_actions_refresh",
+   "id": "corporate_actions_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Corporate-actions ingestion'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_credit_etf_lake_sync",
+   "id": "credit_etf_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Credit-ETF parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_spy_ohlc_refresh",
+   "id": "daily_spy_ohlc_refresh",
+   "options": {
+    "name": "'Daily SPY OHLC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_data_freshness_monitor",
+   "id": "data_freshness_monitor",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Data-date freshness monitor (prevention)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_discovery_scan",
+   "id": "discovery_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-wide discovery scan (UW)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='15,45'] tz=America/New_York"
+  },
+  {
+   "func": "_earnings_reactions_compute",
+   "id": "earnings_reactions_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Earnings reaction history (calendar x OHLC)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='41'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan_hot",
+   "id": "full_scan_hot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Hot-subset full_scan (fast lane)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='*/5'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_change_events",
+   "id": "fundamental_change_events",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental delta-rail change events'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_concentration_capture",
+   "id": "fundamental_concentration_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental revenue-breakdown capture (monthly)'"
+   },
+   "trigger": "cron[month='*', day='3', day_of_week='*', hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest",
+   "id": "fundamental_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (monthly)'"
+   },
+   "trigger": "cron[month='*', day='2', day_of_week='*', hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest_daily",
+   "id": "fundamental_ingest_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (daily, calendar-driven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_refresh",
+   "id": "fundamental_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental routing + subscores + valuation anchors'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_desk_rollup",
+   "id": "fundamentals_desk_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamentals desk matrix rollup (rev YoY, gross margin)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_cftc_cot_ingest",
+   "id": "gold_cftc_cot_ingest",
+   "options": {
+    "name": "'Gold: CFTC COT weekly (Fridays)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_etf_holdings_ingest",
+   "id": "gold_etf_holdings_ingest",
+   "options": {
+    "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_fred_ingest",
+   "id": "gold_fred_ingest",
+   "options": {
+    "name": "'Gold: FRED daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_gpr_ingest",
+   "id": "gold_gpr_ingest",
+   "options": {
+    "name": "'Gold: GPR daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_lbma_vault_ingest",
+   "id": "gold_lbma_vault_ingest",
+   "options": {
+    "name": "'Gold: LBMA vault monthly'"
+   },
+   "trigger": "cron[month='*', day='8', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_posture_compute",
+   "id": "gold_posture_compute",
+   "options": {
+    "name": "'Gold: posture row compute (post-ingest)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_spot_ingest",
+   "id": "gold_spot_ingest",
+   "options": {
+    "name": "'Gold: spot price (GLD daily bars via massive)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_uw_options_ingest",
+   "id": "gold_uw_options_ingest",
+   "options": {
+    "name": "'Gold: UW options snapshot (GLD/GDX/IAU)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_wgc_cb_ingest",
+   "id": "gold_wgc_cb_ingest",
+   "options": {
+    "name": "'Gold: WGC CB reserves monthly'"
+   },
+   "trigger": "cron[month='*', day='10', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_greek_exposure_daily_refresh",
+   "id": "greek_exposure_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Single-name greek_exposure_daily refresh (#179)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_implied_move_snapshot",
+   "id": "implied_move_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Implied move snapshot (option surface grid)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='20', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_intraday_oi_refresh",
+   "id": "intraday_oi_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Intraday OI mover refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_market_tide_sentiment_eod",
+   "id": "market_tide_sentiment_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-tide EOD sentiment (DB)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='16', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_mcp_event_retention",
+   "id": "mcp_event_retention",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'MCP event retention (purge >30d)'"
+   },
+   "trigger": "cron[hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_analytics_rollup",
+   "id": "nightly_skew_analytics_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly skew analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_analytics_rollup",
+   "id": "nightly_vol_analytics_rollup",
+   "options": {
+    "name": "'Nightly vol analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_capture",
+   "id": "option_surface_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface full-chain capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_iv_canary",
+   "id": "option_surface_iv_canary",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface IB-vs-UW IV canary'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_capture",
+   "id": "option_surface_research_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface capture (research cohort)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_catchup",
+   "id": "option_surface_research_catchup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface catch-up (research cohort history)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_pipeline_benchmark_snapshot",
+   "id": "pipeline_benchmark_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Pipeline benchmark snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rates_fred_ingest",
+   "id": "rates_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Rates: FRED curve and macro refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "record_health_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "300",
+    "name": "'Record health snapshot'"
+   },
+   "trigger": "interval[0:15:00]"
+  },
+  {
+   "func": "_regime_canary_scan",
+   "id": "regime_canary_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime 5% Canary scan'"
+   },
+   "trigger": "cron[minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_cri_scan",
+   "id": "regime_cri_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime CRI scan'"
+   },
+   "trigger": "cron[minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_fred_ingest",
+   "id": "regime_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime: FRED NFCI/ANFCI/USREC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='22'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_gex_scan",
+   "id": "regime_gex_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GEX scan (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9-16', minute='*/2'], cron[day_of_week='mon-fri', hour='0-8,17-23', minute='*/15']]"
+  },
+  {
+   "func": "_regime_grg_scan",
+   "id": "regime_grg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GRG scan (UW)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='9-18', minute='*/15'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_live_scan",
+   "id": "regime_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live CRI/VCG snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_regime_live_validation",
+   "id": "regime_live_validation",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live close vs lake validation'"
+   },
+   "trigger": "cron[hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_market_tide_scan",
+   "id": "regime_market_tide_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime market-tide capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30-55/5'], cron[day_of_week='mon-fri', hour='10-15', minute='*/5'], cron[day_of_week='mon-fri', hour='16', minute='0,5,10']]"
+  },
+  {
+   "func": "_regime_top_net_impact_scan",
+   "id": "regime_top_net_impact_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime top-net-impact capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30,45'], cron[day_of_week='mon-fri', hour='10-15', minute='*/15'], cron[day_of_week='mon-fri', hour='16', minute='0,15']]"
+  },
+  {
+   "func": "_regime_vcg_scan",
+   "id": "regime_vcg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime VCG scan'"
+   },
+   "trigger": "cron[minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "2",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "_skew_markout_refresh",
+   "id": "skew_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_swing_greeks_refresh",
+   "id": "skew_swing_greeks_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew swing-DTE greeks refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_daily_refresh",
+   "id": "technical_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Technicals daily refresh (apex bars -> technical_daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_markout",
+   "id": "theta_harvester_markout",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester forward markout'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_scan",
+   "id": "theta_harvester_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester short-strangle scan'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insight_outcome_backfill",
+   "id": "trade_insight_outcome_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Trade insight outcome backfill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insights_ai_tick_any",
+   "id": "trade_insights_ai_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "30",
+    "name": "'Trade Insights AI analysis poll (any provider)'"
+   },
+   "trigger": "interval[0:00:03]"
+  },
+  {
+   "func": "_vol_index_lake_sync",
+   "id": "vol_index_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vol-complex parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_volatility_backfill_tick",
+   "id": "volatility_backfill_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'On-demand volatility backfill queue'"
+   },
+   "trigger": "interval[0:00:10]"
+  },
+  {
+   "func": "_vrp_backtest_refresh",
+   "id": "vrp_backtest_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP condor backtest (weekly)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='6', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_candidates_refresh",
+   "id": "vrp_candidates_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP iron-condor candidate emit'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_eod",
+   "id": "vrp_macro_entry_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (EOD mark, last-resort birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='15', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_grid_refresh",
+   "id": "vrp_macro_entry_grid_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (nightly strike-grid cache)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_postclose",
+   "id": "vrp_macro_entry_postclose",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (post-close mark)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_rth",
+   "id": "vrp_macro_entry_rth",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (RTH marks, birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_signal_refresh",
+   "id": "vrp_macro_signal_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro short-vol signal refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_markout_refresh",
+   "id": "vrp_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP harvest markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_mark",
+   "id": "vrp_paper_mark",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger mark/close'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_open",
+   "id": "vrp_paper_open",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger open'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_research_refresh",
+   "id": "vrp_research_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP research expansion (validation/sector/horizon/directional/\u0394VRP)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/massive-0": [
+  {
+   "func": "_corporate_actions_refresh",
+   "id": "corporate_actions_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Corporate-actions ingestion'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_credit_etf_lake_sync",
+   "id": "credit_etf_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Credit-ETF parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_spy_ohlc_refresh",
+   "id": "daily_spy_ohlc_refresh",
+   "options": {
+    "name": "'Daily SPY OHLC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_earnings_reactions_compute",
+   "id": "earnings_reactions_compute",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Earnings reaction history (calendar x OHLC)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='41'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_change_events",
+   "id": "fundamental_change_events",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental delta-rail change events'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_refresh",
+   "id": "fundamental_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental routing + subscores + valuation anchors'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_desk_rollup",
+   "id": "fundamentals_desk_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamentals desk matrix rollup (rev YoY, gross margin)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='21', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_cftc_cot_ingest",
+   "id": "gold_cftc_cot_ingest",
+   "options": {
+    "name": "'Gold: CFTC COT weekly (Fridays)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_etf_holdings_ingest",
+   "id": "gold_etf_holdings_ingest",
+   "options": {
+    "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_fred_ingest",
+   "id": "gold_fred_ingest",
+   "options": {
+    "name": "'Gold: FRED daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_gpr_ingest",
+   "id": "gold_gpr_ingest",
+   "options": {
+    "name": "'Gold: GPR daily refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='35'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_lbma_vault_ingest",
+   "id": "gold_lbma_vault_ingest",
+   "options": {
+    "name": "'Gold: LBMA vault monthly'"
+   },
+   "trigger": "cron[month='*', day='8', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_posture_compute",
+   "id": "gold_posture_compute",
+   "options": {
+    "name": "'Gold: posture row compute (post-ingest)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_spot_ingest",
+   "id": "gold_spot_ingest",
+   "options": {
+    "name": "'Gold: spot price (GLD daily bars via massive)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='5'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_uw_options_ingest",
+   "id": "gold_uw_options_ingest",
+   "options": {
+    "name": "'Gold: UW options snapshot (GLD/GDX/IAU)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_wgc_cb_ingest",
+   "id": "gold_wgc_cb_ingest",
+   "options": {
+    "name": "'Gold: WGC CB reserves monthly'"
+   },
+   "trigger": "cron[month='*', day='10', day_of_week='*', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_implied_move_snapshot",
+   "id": "implied_move_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Implied move snapshot (option surface grid)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='20', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_mcp_event_retention",
+   "id": "mcp_event_retention",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'MCP event retention (purge >30d)'"
+   },
+   "trigger": "cron[hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_analytics_rollup",
+   "id": "nightly_skew_analytics_rollup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly skew analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_analytics_rollup",
+   "id": "nightly_vol_analytics_rollup",
+   "options": {
+    "name": "'Nightly vol analytics rollup'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_canary_scan",
+   "id": "regime_canary_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime 5% Canary scan'"
+   },
+   "trigger": "cron[minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_cri_scan",
+   "id": "regime_cri_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime CRI scan'"
+   },
+   "trigger": "cron[minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_fred_ingest",
+   "id": "regime_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime: FRED NFCI/ANFCI/USREC refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='19', minute='22'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_live_scan",
+   "id": "regime_live_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live CRI/VCG snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_regime_live_validation",
+   "id": "regime_live_validation",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime live close vs lake validation'"
+   },
+   "trigger": "cron[hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_vcg_scan",
+   "id": "regime_vcg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime VCG scan'"
+   },
+   "trigger": "cron[minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_skew_markout_refresh",
+   "id": "skew_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_technical_daily_refresh",
+   "id": "technical_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Technicals daily refresh (apex bars -> technical_daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_markout",
+   "id": "theta_harvester_markout",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester forward markout'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_theta_harvester_scan",
+   "id": "theta_harvester_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Theta Harvester short-strangle scan'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_trade_insight_outcome_backfill",
+   "id": "trade_insight_outcome_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Trade insight outcome backfill'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vol_index_lake_sync",
+   "id": "vol_index_lake_sync",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vol-complex parquet lake sync'"
+   },
+   "trigger": "cron[hour='3', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_backtest_refresh",
+   "id": "vrp_backtest_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP condor backtest (weekly)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='6', hour='20', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_candidates_refresh",
+   "id": "vrp_candidates_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP iron-condor candidate emit'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_eod",
+   "id": "vrp_macro_entry_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (EOD mark, last-resort birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='15', minute='55'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_grid_refresh",
+   "id": "vrp_macro_entry_grid_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (nightly strike-grid cache)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_postclose",
+   "id": "vrp_macro_entry_postclose",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (post-close mark)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_entry_rth",
+   "id": "vrp_macro_entry_rth",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro entry-capture (RTH marks, birth)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_macro_signal_refresh",
+   "id": "vrp_macro_signal_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP macro short-vol signal refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_markout_refresh",
+   "id": "vrp_markout_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP harvest markout verdict refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='50'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_mark",
+   "id": "vrp_paper_mark",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger mark/close'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_paper_open",
+   "id": "vrp_paper_open",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP paper-ledger open'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_vrp_research_refresh",
+   "id": "vrp_research_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'VRP research expansion (validation/sector/horizon/directional/\u0394VRP)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/massive-1": [
+  {
+   "func": "_fundamentals_refresh",
+   "id": "fundamentals_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Nightly massive fundamentals refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_ohlc_pull",
+   "id": "ohlc_pull",
+   "options": {
+    "name": "'Daily OHLC pull'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/uw-0": [
+  {
+   "func": "_cockpit_daily_snapshot",
+   "id": "cockpit_daily_snapshot",
+   "options": {
+    "name": "'Cockpit 6-dim matrix daily snapshot'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_company_sector_refresh",
+   "id": "company_sector_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Vendor sector fill for company_type routing (daily)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_data_freshness_monitor",
+   "id": "data_freshness_monitor",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Data-date freshness monitor (prevention)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='21', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_discovery_scan",
+   "id": "discovery_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-wide discovery scan (UW)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='15,45'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan_hot",
+   "id": "full_scan_hot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Hot-subset full_scan (fast lane)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9-16', minute='*/5'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_concentration_capture",
+   "id": "fundamental_concentration_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental revenue-breakdown capture (monthly)'"
+   },
+   "trigger": "cron[month='*', day='3', day_of_week='*', hour='4', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest",
+   "id": "fundamental_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (monthly)'"
+   },
+   "trigger": "cron[month='*', day='2', day_of_week='*', hour='3', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_fundamental_ingest_daily",
+   "id": "fundamental_ingest_daily",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Fundamental statement ingest (daily, calendar-driven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_greek_exposure_daily_refresh",
+   "id": "greek_exposure_daily_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Single-name greek_exposure_daily refresh (#179)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_intraday_oi_refresh",
+   "id": "intraday_oi_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Intraday OI mover refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_market_tide_sentiment_eod",
+   "id": "market_tide_sentiment_eod",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Market-tide EOD sentiment (DB)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='16', minute='25'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_capture",
+   "id": "option_surface_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface full-chain capture'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_iv_canary",
+   "id": "option_surface_iv_canary",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface IB-vs-UW IV canary'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_capture",
+   "id": "option_surface_research_capture",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface capture (research cohort)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='19', minute='10'] tz=America/New_York"
+  },
+  {
+   "func": "_option_surface_research_catchup",
+   "id": "option_surface_research_catchup",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Option surface catch-up (research cohort history)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='3', minute='20'] tz=America/New_York"
+  },
+  {
+   "func": "_pipeline_benchmark_snapshot",
+   "id": "pipeline_benchmark_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Pipeline benchmark snapshot'"
+   },
+   "trigger": "interval[0:05:00]"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rates_fred_ingest",
+   "id": "rates_fred_ingest",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Rates: FRED curve and macro refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='45'] tz=America/New_York"
+  },
+  {
+   "func": "<lambda>",
+   "id": "record_health_snapshot",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "misfire_grace_time": "300",
+    "name": "'Record health snapshot'"
+   },
+   "trigger": "interval[0:15:00]"
+  },
+  {
+   "func": "_regime_gex_scan",
+   "id": "regime_gex_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GEX scan (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9-16', minute='*/2'], cron[day_of_week='mon-fri', hour='0-8,17-23', minute='*/15']]"
+  },
+  {
+   "func": "_regime_grg_scan",
+   "id": "regime_grg_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime GRG scan (UW)'"
+   },
+   "trigger": "cron[day_of_week='mon-fri', hour='9-18', minute='*/15'] tz=America/New_York"
+  },
+  {
+   "func": "_regime_market_tide_scan",
+   "id": "regime_market_tide_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime market-tide capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30-55/5'], cron[day_of_week='mon-fri', hour='10-15', minute='*/5'], cron[day_of_week='mon-fri', hour='16', minute='0,5,10']]"
+  },
+  {
+   "func": "_regime_top_net_impact_scan",
+   "id": "regime_top_net_impact_scan",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Regime top-net-impact capture (UW)'"
+   },
+   "trigger": "or[cron[day_of_week='mon-fri', hour='9', minute='30,45'], cron[day_of_week='mon-fri', hour='10-15', minute='*/15'], cron[day_of_week='mon-fri', hour='16', minute='0,15']]"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "1",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "_skew_swing_greeks_refresh",
+   "id": "skew_swing_greeks_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Skew swing-DTE greeks refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_volatility_backfill_tick",
+   "id": "volatility_backfill_tick",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'On-demand volatility backfill queue'"
+   },
+   "trigger": "interval[0:00:10]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ],
+ "defaults/uw-1": [
+  {
+   "func": "_full_scan",
+   "id": "full_scan_0",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 4 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='4', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_1",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 9 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='9', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_2",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0,30 10-15 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='10-15', minute='0,30'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_3",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (0 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_full_scan",
+   "id": "full_scan_4",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Full UW scan (30 16 * * 0-4)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_flow_data_refresh",
+   "id": "nightly_flow_data_refresh",
+   "options": {
+    "name": "'Nightly Flow tab data refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='15'] tz=America/New_York"
+  },
+  {
+   "func": "_positioning_refresh",
+   "id": "positioning_refresh",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Daily UW positioning refresh'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='6', minute='0'] tz=America/New_York"
+  },
+  {
+   "func": "_rescan",
+   "id": "rescan_tick",
+   "options": {
+    "max_instances": "1",
+    "name": "'Ad-hoc rescan poll'"
+   },
+   "trigger": "interval[0:00:01]"
+  },
+  {
+   "func": "<lambda>",
+   "id": "worker_heartbeat",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Worker heartbeat'"
+   },
+   "trigger": "interval[0:00:15]"
+  }
+ ]
+}
