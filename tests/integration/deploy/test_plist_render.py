@@ -109,12 +109,12 @@ def test_services_list_matches_template_set() -> None:
         for line in services_path.read_text().splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    assert len(labels) == 13, f"expected 13 services, found {len(labels)}: {labels}"
+    assert len(labels) == 9, f"expected 9 services, found {len(labels)}: {labels}"
 
     # Static labels (one plist each).
     static = {"com.argon.api", "com.argon.web", "com.argon.massive-ws"}
-    # Parameterized worker labels: 5 roles × 2 indices = 10.
-    worker_roles = {"uw", "massive", "ai-codex", "ai-claude", "ai-deepseek"}
+    # Parameterized worker labels: 3 roles × 2 indices = 6.
+    worker_roles = {"uw", "massive", "ai-deepseek"}
     expected_workers = {
         f"com.argon.worker.{role}-{idx}" for role in worker_roles for idx in (0, 1)
     }

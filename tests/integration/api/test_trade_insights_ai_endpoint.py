@@ -44,39 +44,23 @@ def _claim(repo, analysis_id):
 def _settings_for_repo(
     repo: Repository,
     *,
-    enabled: bool = True,
-    claude_enabled: bool = False,
-    deepseek_enabled: bool = False,
+    deepseek_enabled: bool = True,
 ) -> Settings:
-    """Test settings. Defaults to codex-only for backwards-compatibility with
-    the pre-existing tests; set claude_enabled / deepseek_enabled to exercise
-    those providers. The defaults intentionally leave the secondary providers
-    OFF so single-provider tests don't have to count three stubs."""
+    """Test settings. DeepSeek is the only provider; the default keeps it ON
+    so tests don't have to pass it explicitly."""
     return Settings.from_env().model_copy(
         update={
             "db_name": repo.conn.info.dbname,
             "db_schema": repo._schema,
-            "trade_insights_ai_enabled": enabled,
-            "trade_insights_ai_model": "",
-            "trade_insights_ai_claude_enabled": claude_enabled,
-            "trade_insights_ai_claude_model": "",
             "trade_insights_ai_deepseek_enabled": deepseek_enabled,
             "trade_insights_ai_deepseek_model": "",
         }
     )
 
 
-def _codex_stub(body: dict) -> dict:
-    """Extract the codex stub from a paired POST response."""
-    return next(a for a in body["analyses"] if a["provider"] == "codex")
-
-
-def _claude_stub(body: dict) -> dict | None:
-    """Extract the claude stub if present, else None."""
-    for a in body["analyses"]:
-        if a["provider"] == "claude":
-            return a
-    return None
+def _deepseek_stub(body: dict) -> dict:
+    """Extract the deepseek stub from a POST response."""
+    return next(a for a in body["analyses"] if a["provider"] == "deepseek")
 
 
 def _client_for_settings(settings: Settings) -> TestClient:
@@ -203,11 +187,11 @@ def test_trade_insights_ai_post_returns_503_when_disabled(
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(_settings_for_repo(repo, enabled=False))
+    client = _client_for_settings(_settings_for_repo(repo, deepseek_enabled=False))
 
     response = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={})
 
-    # Both providers disabled → 503
+    # The only provider is disabled → 503
     assert response.status_code == 503
     with repo.conn.cursor() as cur:
         cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_ai_analyses")
@@ -218,32 +202,32 @@ def test_trade_insights_ai_post_queues_and_get_fetches_status(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """Codex-only mode: POST returns one stub; GET by id works."""
+    """POST returns the single deepseek stub; GET by id works."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(_settings_for_repo(repo, claude_enabled=False))
+    client = _client_for_settings(_settings_for_repo(repo))
 
     response = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={})
 
     assert response.status_code == 202
     body = response.json()
     assert "analyses" in body and len(body["analyses"]) == 1
-    codex = _codex_stub(body)
-    assert codex["provider"] == "codex"
-    assert codex["status"] == "queued"
-    assert codex["model"] == "codex-default"
-    assert codex["reused"] is False
+    deepseek = _deepseek_stub(body)
+    assert deepseek["provider"] == "deepseek"
+    assert deepseek["status"] == "queued"
+    assert deepseek["model"] == "deepseek-default"
+    assert deepseek["reused"] is False
 
     status = client.get(
-        f"/api/stock/TSLA/trade-insights/ai-analysis/{codex['analysis_id']}"
+        f"/api/stock/TSLA/trade-insights/ai-analysis/{deepseek['analysis_id']}"
     )
     assert status.status_code == 200
-    assert status.json()["analysis_id"] == codex["analysis_id"]
-    assert status.json()["provider"] == "codex"
+    assert status.json()["analysis_id"] == deepseek["analysis_id"]
+    assert status.json()["provider"] == "deepseek"
     assert (
         client.get(
-            f"/api/stock/AAPL/trade-insights/ai-analysis/{codex['analysis_id']}"
+            f"/api/stock/AAPL/trade-insights/ai-analysis/{deepseek['analysis_id']}"
         ).status_code
         == 404
     )
@@ -258,68 +242,74 @@ def test_trade_insights_ai_latest_resumes_active_progress(
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(_settings_for_repo(repo, claude_enabled=False))
+    client = _client_for_settings(_settings_for_repo(repo))
 
     first = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
-    first_codex = _codex_stub(first)
+    first_ds = _deepseek_stub(first)
     latest = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
 
     assert latest.status_code == 200
     pair = latest.json()
-    # No succeeded rows yet → both slots null
+    # No succeeded rows yet → every provider slot null
     assert pair["codex"] is None
     assert pair["claude"] is None
+    assert pair["deepseek"] is None
 
-    row = repo.get_trade_insight_ai_analysis(first_codex["analysis_id"], ticker="TSLA")
+    row = repo.get_trade_insight_ai_analysis(first_ds["analysis_id"], ticker="TSLA")
     assert row is not None
     repo.complete_trade_insight_ai_analysis(
-        first_codex["analysis_id"],
+        first_ds["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
-        claim_token=_claim(repo, first_codex["analysis_id"]),
+        claim_token=_claim(repo, first_ds["analysis_id"]),
     )
     repo.conn.commit()
 
     latest_after_complete = client.get(
         "/api/stock/TSLA/trade-insights/ai-analysis/latest"
     ).json()
-    assert latest_after_complete["codex"]["analysis_id"] == first_codex["analysis_id"]
-    assert latest_after_complete["codex"]["status"] == "succeeded"
+    assert (
+        latest_after_complete["deepseek"]["analysis_id"] == first_ds["analysis_id"]
+    )
+    assert latest_after_complete["deepseek"]["status"] == "succeeded"
+    assert latest_after_complete["codex"] is None
     assert latest_after_complete["claude"] is None
 
     forced = client.post(
         "/api/stock/TSLA/trade-insights/ai-analysis",
         json={"force_rerun": True},
     ).json()
-    forced_codex = _codex_stub(forced)
-    assert forced_codex["analysis_id"] != first_codex["analysis_id"]
+    forced_ds = _deepseek_stub(forced)
+    assert forced_ds["analysis_id"] != first_ds["analysis_id"]
 
     # Latest still shows the prior succeeded row — the new one is queued, not
     # yet succeeded.
     latest_after_rerun = client.get(
         "/api/stock/TSLA/trade-insights/ai-analysis/latest"
     ).json()
-    assert latest_after_rerun["codex"]["analysis_id"] == first_codex["analysis_id"]
+    assert (
+        latest_after_rerun["deepseek"]["analysis_id"] == first_ds["analysis_id"]
+    )
 
 
 def test_trade_insights_ai_post_reuses_active_analysis_for_same_input(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """Codex-only mode: second POST reuses the queued codex row."""
+    """Second POST reuses the queued deepseek row."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(_settings_for_repo(repo, claude_enabled=False))
+    client = _client_for_settings(_settings_for_repo(repo))
 
     first = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
     second = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
-    first_codex = _codex_stub(first)
-    second_codex = _codex_stub(second)
+    first_ds = _deepseek_stub(first)
+    second_ds = _deepseek_stub(second)
 
-    assert second_codex["analysis_id"] == first_codex["analysis_id"]
-    assert second_codex["status"] == "queued"
-    assert second_codex["reused"] is True
+    assert second_ds["analysis_id"] == first_ds["analysis_id"]
+    assert second_ds["status"] == "queued"
+    assert second_ds["reused"] is True
     with repo.conn.cursor() as cur:
         cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_ai_analyses")
         assert cur.fetchone()[0] == 1
@@ -343,39 +333,39 @@ def test_trade_insights_ai_post_reuses_success_and_force_rerun_creates_new(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """Codex-only mode: second POST reuses succeeded row; force_rerun makes a
-    new queued row."""
+    """Second POST reuses the succeeded row; force_rerun makes a new queued
+    row."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(_settings_for_repo(repo, claude_enabled=False))
+    client = _client_for_settings(_settings_for_repo(repo))
 
     first = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
-    first_codex = _codex_stub(first)
-    row = repo.get_trade_insight_ai_analysis(first_codex["analysis_id"], ticker="TSLA")
+    first_ds = _deepseek_stub(first)
+    row = repo.get_trade_insight_ai_analysis(first_ds["analysis_id"], ticker="TSLA")
     assert row is not None
     repo.complete_trade_insight_ai_analysis(
-        first_codex["analysis_id"],
+        first_ds["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
-        claim_token=_claim(repo, first_codex["analysis_id"]),
+        claim_token=_claim(repo, first_ds["analysis_id"]),
     )
     repo.conn.commit()
 
-    reused = _codex_stub(
+    reused = _deepseek_stub(
         client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
     )
-    forced = _codex_stub(
+    forced = _deepseek_stub(
         client.post(
             "/api/stock/TSLA/trade-insights/ai-analysis",
             json={"force_rerun": True},
         ).json()
     )
 
-    assert reused["analysis_id"] == first_codex["analysis_id"]
+    assert reused["analysis_id"] == first_ds["analysis_id"]
     assert reused["status"] == "succeeded"
     assert reused["reused"] is True
-    assert forced["analysis_id"] != first_codex["analysis_id"]
+    assert forced["analysis_id"] != first_ds["analysis_id"]
     assert forced["status"] == "queued"
 
 
@@ -389,13 +379,13 @@ def test_trade_insights_ai_analysis_hash_changes_when_source_tabs_change(
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch, net_premium="100")
-    client = _client_for_settings(_settings_for_repo(repo, claude_enabled=False))
-    first = _codex_stub(
+    client = _client_for_settings(_settings_for_repo(repo))
+    first = _deepseek_stub(
         client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
     )
 
     _patch_api_sources(monkeypatch, net_premium="999")
-    second = _codex_stub(
+    second = _deepseek_stub(
         client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
     )
 
@@ -411,58 +401,56 @@ def test_trade_insights_ai_analysis_hash_changes_when_source_tabs_change(
     assert first_row["analysis_input_hash"] != second_row["analysis_input_hash"]
 
 
-# --- new paired-mode tests (both providers enabled) ---
+# --- single-provider mode (deepseek is the only provider) ---
 
 
-def test_trade_insights_ai_post_returns_one_stub_per_enabled_provider(
+def test_trade_insights_ai_post_returns_single_deepseek_stub(
     seeded_db_empty_cards,
     monkeypatch,
 ):
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=True)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     response = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={})
     assert response.status_code == 202
     body = response.json()
     providers = {a["provider"] for a in body["analyses"]}
-    assert providers == {"codex", "claude"}
+    assert providers == {"deepseek"}
     for stub in body["analyses"]:
         assert "analysis_id" in stub
         assert stub["status"] == "queued"
         assert stub["reused"] is False
 
 
-def test_trade_insights_ai_post_skips_disabled_provider(
+def test_trade_insights_ai_post_providers_filter_without_deepseek_is_empty(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """When claude is disabled, only codex is returned."""
+    """A providers filter naming only removed/unknown providers yields an
+    empty analyses list — deepseek is enabled but unlisted."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=False)
+    client = _client_for_settings(_settings_for_repo(repo))
+
+    response = client.post(
+        "/api/stock/TSLA/trade-insights/ai-analysis",
+        json={"providers": ["codex", "claude"]},
     )
-
-    body = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
-    providers = {a["provider"] for a in body["analyses"]}
-    assert providers == {"codex"}
+    assert response.status_code == 202
+    assert response.json()["analyses"] == []
 
 
-def test_trade_insights_ai_latest_returns_keyed_dict_both_null_initially(
+def test_trade_insights_ai_latest_returns_keyed_dict_all_null_initially(
     seeded_db_empty_cards,
     monkeypatch,
 ):
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=True)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     response = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest")
     assert response.status_code == 200
@@ -473,94 +461,89 @@ def test_trade_insights_ai_latest_returns_keyed_dict_both_null_initially(
     )
     assert body["codex"] is None
     assert body["claude"] is None
+    assert body["deepseek"] is None
     # v5.2: provider_consensus is computed at GET time; with no rows it
     # reports consensus_grade='missing' and the agreement booleans default
     # to False.
     assert body["provider_consensus"]["consensus_grade"] == "missing"
 
 
-def test_trade_insights_ai_latest_with_one_provider_succeeded(
+def test_trade_insights_ai_latest_with_deepseek_succeeded(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """Cache-mixed case: complete one provider's row, leave the other queued."""
+    """Complete the deepseek row; the removed providers' slots stay null."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=True)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     body = client.post("/api/stock/TSLA/trade-insights/ai-analysis", json={}).json()
-    codex = _codex_stub(body)
-    claude = _claude_stub(body)
-    assert codex is not None and claude is not None
+    deepseek = _deepseek_stub(body)
+    assert deepseek is not None
 
-    row = repo.get_trade_insight_ai_analysis(codex["analysis_id"], ticker="TSLA")
+    row = repo.get_trade_insight_ai_analysis(
+        deepseek["analysis_id"], ticker="TSLA"
+    )
     assert row is not None
     repo.complete_trade_insight_ai_analysis(
-        codex["analysis_id"],
+        deepseek["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
-        markdown="codex-done",
-        claim_token=_claim(repo, codex["analysis_id"]),
+        markdown="deepseek-done",
+        claim_token=_claim(repo, deepseek["analysis_id"]),
     )
     repo.conn.commit()
 
     pair = client.get("/api/stock/TSLA/trade-insights/ai-analysis/latest").json()
-    assert pair["codex"]["analysis_id"] == codex["analysis_id"]
-    assert pair["codex"]["status"] == "succeeded"
+    assert pair["deepseek"]["analysis_id"] == deepseek["analysis_id"]
+    assert pair["deepseek"]["status"] == "succeeded"
+    assert pair["codex"] is None
     assert pair["claude"] is None
 
 
-def test_trade_insights_ai_post_providers_filter_runs_only_listed(
+def test_trade_insights_ai_post_providers_filter_runs_only_deepseek(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """{providers: ['claude']} enqueues only claude — codex is skipped even though enabled.
-
-    Models the UI 'skip stuck provider' flow: if codex is already in-flight,
-    the next Run sends providers=['claude'] so codex is not re-enqueued.
-    """
+    """{providers: ['deepseek']} enqueues the deepseek row."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=True)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     body = client.post(
         "/api/stock/TSLA/trade-insights/ai-analysis",
-        json={"providers": ["claude"]},
+        json={"providers": ["deepseek"]},
     ).json()
     providers = {a["provider"] for a in body["analyses"]}
-    assert providers == {"claude"}
+    assert providers == {"deepseek"}
 
 
 def test_trade_insights_ai_post_providers_filter_intersects_with_enabled(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """providers=['codex','claude'] with claude disabled still only returns codex."""
+    """providers=['codex','deepseek'] intersects the single enabled provider
+    to deepseek only."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=False)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     body = client.post(
         "/api/stock/TSLA/trade-insights/ai-analysis",
-        json={"providers": ["codex", "claude"]},
+        json={"providers": ["codex", "deepseek"]},
     ).json()
     providers = {a["provider"] for a in body["analyses"]}
-    assert providers == {"codex"}
+    assert providers == {"deepseek"}
 
 
 def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """providers=[] (empty list) is treated as "no filter" — legacy all-enabled behavior.
+    """providers=[] (empty list) is treated as "no filter" — legacy all-enabled
+    behavior.
 
     Empty list is falsy in Python, so the server-side filter resolves to None.
     The UI guards against sending [] but the backend tolerates it without crashing.
@@ -568,9 +551,7 @@ def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
-    client = _client_for_settings(
-        _settings_for_repo(repo, enabled=True, claude_enabled=True)
-    )
+    client = _client_for_settings(_settings_for_repo(repo))
 
     response = client.post(
         "/api/stock/TSLA/trade-insights/ai-analysis",
@@ -578,10 +559,10 @@ def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     )
     assert response.status_code == 202
     # Empty `providers` list is treated as "no providers" (falsy → server-side
-    # filter is None → legacy all-enabled behavior). This is intentional so
+    # filter is None → all-enabled behavior). This is intentional so
     # the UI's "Run with everything" path with `providers=[]` doesn't no-op.
     providers = {a["provider"] for a in response.json()["analyses"]}
-    assert providers == {"codex", "claude"}
+    assert providers == {"deepseek"}
 
 
 def test_trade_insights_get_writes_nothing_and_refresh_persists(

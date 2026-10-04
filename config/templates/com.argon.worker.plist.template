@@ -37,10 +37,6 @@
         <string>2</string>
         <key>UW_SCAN_AI_WORKER_COUNT</key>
         <string>2</string>
-        <key>TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT</key>
-        <string>2</string>
-        <key>TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT</key>
-        <string>2</string>
         <key>TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT</key>
         <string>2</string>
         <key>MASSIVE_WS_ENABLED</key>

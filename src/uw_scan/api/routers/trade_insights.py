@@ -301,14 +301,10 @@ def post_trade_insights_ai_analysis(
     run_id = repo.latest_run_id(t)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {t}")
-    if not (
-        settings.trade_insights_ai_enabled
-        or settings.trade_insights_ai_claude_enabled
-        or settings.trade_insights_ai_deepseek_enabled
-    ):
+    if not settings.trade_insights_ai_deepseek_enabled:
         raise HTTPException(
             status_code=503,
-            detail="Trade Insights AI analysis is disabled (all providers)",
+            detail="Trade Insights AI analysis is disabled",
         )
 
     is_blast = kind == "blast"
@@ -363,48 +359,6 @@ def post_trade_insights_ai_analysis(
     analysis_hash = _hash_analysis_input(analysis_input)
 
     stubs: list[TradeInsightAiAnalysisStub] = []
-    if settings.trade_insights_ai_enabled and (
-        provider_filter is None or "codex" in provider_filter
-    ):
-        model_label = settings.trade_insights_ai_model.strip() or "codex-default"
-        stubs.append(
-            _enqueue_one_provider(
-                t=t,
-                run_id=run_id,
-                snapshot_id=snapshot_id,
-                trade_input_hash=trade_input_hash,
-                analysis_hash=analysis_hash,
-                analysis_input=analysis_input,
-                provider="codex",
-                model_label=model_label,
-                force_rerun=force_rerun,
-                repo=repo,
-                prompt_version=lane_prompt_version,
-                analysis_kind=lane_analysis_kind,
-            )
-        )
-    if settings.trade_insights_ai_claude_enabled and (
-        provider_filter is None or "claude" in provider_filter
-    ):
-        model_label = (
-            settings.trade_insights_ai_claude_model.strip() or "claude-default"
-        )
-        stubs.append(
-            _enqueue_one_provider(
-                t=t,
-                run_id=run_id,
-                snapshot_id=snapshot_id,
-                trade_input_hash=trade_input_hash,
-                analysis_hash=analysis_hash,
-                analysis_input=analysis_input,
-                provider="claude",
-                model_label=model_label,
-                force_rerun=force_rerun,
-                repo=repo,
-                prompt_version=lane_prompt_version,
-                analysis_kind=lane_analysis_kind,
-            )
-        )
     if settings.trade_insights_ai_deepseek_enabled and (
         provider_filter is None or "deepseek" in provider_filter
     ):

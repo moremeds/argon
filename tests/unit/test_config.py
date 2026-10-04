@@ -45,7 +45,7 @@ def test_trade_insights_ai_default_timeout_matches_deep_prompt_budget():
         api_key="dummy",
     )
 
-    assert settings.trade_insights_ai_timeout_seconds == 300.0
+    assert settings.trade_insights_ai_deepseek_timeout_seconds == 300.0
 
 
 def test_uw_alpha_capture_flag_default_off():

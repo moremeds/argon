@@ -9,7 +9,7 @@ from typing import Literal
 from uw_scan.config import Settings
 from uw_scan.sources.lake_resolver import _r2_fully_configured
 
-WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
+WorkerGroup = Literal["uw", "massive", "ai", "ai-deepseek"]
 
 
 def _pinned(settings: Settings, role: str) -> bool:
@@ -41,15 +41,11 @@ def _worker_groups(settings: Settings) -> set[WorkerGroup]:
         return {"massive"}
     if role == "ai":
         return {"ai"}
-    if role == "ai-codex":
-        return {"ai-codex"}
-    if role == "ai-claude":
-        return {"ai-claude"}
     if role == "ai-deepseek":
         return {"ai-deepseek"}
     raise RuntimeError(
         "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
-        "ai-codex, ai-claude "
+        "ai-deepseek "
         f"(got {settings.worker_role!r})"
     )
 
@@ -63,8 +59,6 @@ WORKER_ROLES: set[str] = {
     "uw",
     "massive",
     "ai",
-    "ai-codex",
-    "ai-claude",
     "ai-deepseek",
 }
 
@@ -74,7 +68,7 @@ def _validate_worker_settings(settings: Settings) -> None:
     if role not in WORKER_ROLES:
         raise RuntimeError(
             "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
-            "ai-codex, ai-claude, ai-deepseek "
+            "ai-deepseek "
             f"(got {settings.worker_role!r})"
         )
     if settings.worker_count < 1:
