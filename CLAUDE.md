@@ -38,7 +38,7 @@ Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual 
 | `127.0.0.1` (MacBook / CI)  | `option_wizard_local` | local `control-argon up`    | persistent (dev-owned)                                                 |
 | either host                 | `option_wizard_test`  | `uv run pytest`             | DROP SCHEMA CASCADE once per session; per-test TRUNCATE + COPY-restore |
 
-`localhost` is a legal host for `{option_wizard_local, option_wizard_test}` and `host.docker.internal` for all three (the container path is a legal pair, so the container `.env` must NOT carry `UW_SCAN_ALLOW_DB_MISMATCH=1`, which bypasses every check); any `option_wizard_test_*` prefix passes wherever the bare test DB does, for pytest-xdist per-worker DBs (`config.py:70-98`).
+`localhost` is a legal host for `{option_wizard_local, option_wizard_test}` and `host.docker.internal` for all three (the container path is a legal pair, so the container `.env` must NOT carry `UW_SCAN_ALLOW_DB_MISMATCH=1`, which bypasses every check); any `option_wizard_test_*` prefix passes wherever the bare test DB does, for pytest-xdist per-worker DBs (`config/db_isolation.py`).
 
 The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wizard`, and `UW_SCAN_ALLOW_DB_MISMATCH=1` for the same-host prodlike route. MacBook runs fully local by default. To point at the mini for a browse session, `.env.local` must override BOTH `UW_SCAN_DB_HOST=100.66.147.98` AND `UW_SCAN_DB_NAME=option_wizard` (otherwise the tripwire blocks mini+local-name). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
 
