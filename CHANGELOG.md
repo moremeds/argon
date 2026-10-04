@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Settings golden (D6 batch 0, I-70).** `tests/unit/test_settings_golden.py` with `tests/unit/fixtures/settings_golden.json` freezes all 181 `Settings` fields. For each field it records the env names `from_env` reads (derived from the source by AST, including the lake roots' `MARKET_WAREHOUSE_LAKE` fallback), the type, the class default (bare `Settings()`), the `from_env` default, and the parsed value or exception type for a fixed set of input strings per type. Among other quirks, the probes record that `XENON_WS_ENABLED=1` parses as false. A behavioural check sets each env name and asserts that its field changes or is rejected, so a name that appears only in the source cannot pass. The run is hermetic: every known env name is removed and an empty env file is loaded. Regenerate on purpose with `UPDATE_SETTINGS_GOLDEN=1`. Tests only; no runtime behaviour changes. The config refactor batches that follow must leave this golden byte-identical.
+
 ## [0.13.23] — 2026-10-04
 
 

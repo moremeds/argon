@@ -1,0 +1,3095 @@
+{
+ "agent_ingest_token": {
+  "class_default": null,
+  "env": [
+   "UW_SCAN_AGENT_INGEST_TOKEN"
+  ],
+  "env_default": null,
+  "probes": {
+   "UW_SCAN_AGENT_INGEST_TOKEN": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "ai_worker_count": {
+  "class_default": 0,
+  "env": [
+   "UW_SCAN_AI_WORKER_COUNT"
+  ],
+  "env_default": 0,
+  "probes": {
+   "UW_SCAN_AI_WORKER_COUNT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "apex_api_url": {
+  "class_default": "http://100.66.147.98:8322",
+  "env": [
+   "APEX_API_URL"
+  ],
+  "env_default": "http://100.66.147.98:8322",
+  "probes": {
+   "APEX_API_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "api_key": {
+  "class_default": "<required>",
+  "env": [
+   "UW_SCAN_API_KEY"
+  ],
+  "env_default": "secret:golden-key",
+  "probes": {
+   "UW_SCAN_API_KEY": {
+    "''": {
+     "error": "RuntimeError"
+    },
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr"
+ },
+ "base_url": {
+  "class_default": "https://api.unusualwhales.com",
+  "env": [
+   "UW_SCAN_BASE_URL"
+  ],
+  "env_default": "https://api.unusualwhales.com",
+  "probes": {
+   "UW_SCAN_BASE_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "cockpit_oi_band_pct": {
+  "class_default": "Decimal:0.10",
+  "env": [
+   "COCKPIT_OI_BAND_PCT"
+  ],
+  "env_default": "Decimal:0.10",
+  "probes": {
+   "COCKPIT_OI_BAND_PCT": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "cockpit_oi_max_dte": {
+  "class_default": 7,
+  "env": [
+   "COCKPIT_OI_MAX_DTE"
+  ],
+  "env_default": 7,
+  "probes": {
+   "COCKPIT_OI_MAX_DTE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "cockpit_snapshot_cron": {
+  "class_default": "30 16 * * 0-4",
+  "env": [
+   "COCKPIT_SNAPSHOT_CRON"
+  ],
+  "env_default": "30 16 * * 0-4",
+  "probes": {
+   "COCKPIT_SNAPSHOT_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "cockpit_target_dtes": {
+  "class_default": [
+   0,
+   14,
+   30,
+   90
+  ],
+  "env": [
+   "COCKPIT_TARGET_DTES"
+  ],
+  "env_default": [
+   0,
+   14,
+   30,
+   90
+  ],
+  "probes": {
+   "COCKPIT_TARGET_DTES": {
+    "''": [
+     0,
+     14,
+     30,
+     90
+    ],
+    "'1, 2'": [
+     1,
+     2
+    ]
+   }
+  },
+  "type": "list[int]"
+ },
+ "cockpit_tickers": {
+  "class_default": [
+   "SPX",
+   "SPY",
+   "QQQ",
+   "IWM"
+  ],
+  "env": [
+   "COCKPIT_TICKERS"
+  ],
+  "env_default": [
+   "SPX",
+   "SPY",
+   "QQQ",
+   "IWM"
+  ],
+  "probes": {
+   "COCKPIT_TICKERS": {
+    "''": [
+     "SPX",
+     "SPY",
+     "QQQ",
+     "IWM"
+    ],
+    "'a, b'": [
+     "A",
+     "B"
+    ]
+   }
+  },
+  "type": "list[str]"
+ },
+ "company_sector_refresh_cron": {
+  "class_default": "40 4 * * *",
+  "env": [
+   "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON"
+  ],
+  "env_default": "40 4 * * *",
+  "probes": {
+   "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "company_sector_refresh_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "credit_etf_symbols": {
+  "class_default": [
+   "HYG",
+   "JNK",
+   "LQD"
+  ],
+  "env": [
+   "CREDIT_ETF_SYMBOLS"
+  ],
+  "env_default": [
+   "HYG",
+   "JNK",
+   "LQD"
+  ],
+  "probes": {
+   "CREDIT_ETF_SYMBOLS": {
+    "''": [
+     "HYG",
+     "JNK",
+     "LQD"
+    ],
+    "'a, b'": [
+     "A",
+     "B"
+    ]
+   }
+  },
+  "type": "list[str]"
+ },
+ "data_freshness_autoheal_circuit_breaker_nights": {
+  "class_default": 3,
+  "env": [
+   "DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS"
+  ],
+  "env_default": 3,
+  "probes": {
+   "DATA_FRESHNESS_AUTOHEAL_CIRCUIT_BREAKER_NIGHTS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "data_freshness_autoheal_enabled": {
+  "class_default": false,
+  "env": [
+   "DATA_FRESHNESS_AUTOHEAL_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "DATA_FRESHNESS_AUTOHEAL_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "data_freshness_autoheal_max_uw_calls": {
+  "class_default": 500,
+  "env": [
+   "DATA_FRESHNESS_AUTOHEAL_MAX_UW_CALLS"
+  ],
+  "env_default": 500,
+  "probes": {
+   "DATA_FRESHNESS_AUTOHEAL_MAX_UW_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "data_gap_healer_cron_et": {
+  "class_default": "0 20 * * 0-5",
+  "env": [
+   "DATA_GAP_HEALER_CRON_ET"
+  ],
+  "env_default": "0 20 * * 0-5",
+  "probes": {
+   "DATA_GAP_HEALER_CRON_ET": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "data_gap_healer_dataset_share": {
+  "class_default": 0.4,
+  "env": [
+   "DATA_GAP_HEALER_DATASET_SHARE"
+  ],
+  "env_default": 0.4,
+  "probes": {
+   "DATA_GAP_HEALER_DATASET_SHARE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "data_gap_healer_datasets": {
+  "class_default": "",
+  "env": [
+   "DATA_GAP_HEALER_DATASETS"
+  ],
+  "env_default": "",
+  "probes": {
+   "DATA_GAP_HEALER_DATASETS": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "data_gap_healer_enabled": {
+  "class_default": false,
+  "env": [
+   "DATA_GAP_HEALER_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "DATA_GAP_HEALER_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "data_gap_healer_max_uw_calls": {
+  "class_default": 20000,
+  "env": [
+   "DATA_GAP_HEALER_MAX_UW_CALLS"
+  ],
+  "env_default": 20000,
+  "probes": {
+   "DATA_GAP_HEALER_MAX_UW_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "data_gap_healer_max_uw_calls_weekend": {
+  "class_default": 90000,
+  "env": [
+   "DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND"
+  ],
+  "env_default": 90000,
+  "probes": {
+   "DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "data_gap_healer_no_data_caveat_after": {
+  "class_default": 3,
+  "env": [
+   "DATA_GAP_HEALER_NO_DATA_CAVEAT_AFTER"
+  ],
+  "env_default": 3,
+  "probes": {
+   "DATA_GAP_HEALER_NO_DATA_CAVEAT_AFTER": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "data_gap_healer_start": {
+  "class_default": "2026-01-01",
+  "env": [
+   "DATA_GAP_HEALER_START"
+  ],
+  "env_default": "2026-01-01",
+  "probes": {
+   "DATA_GAP_HEALER_START": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "db_host": {
+  "class_default": "127.0.0.1",
+  "env": [
+   "UW_SCAN_DB_HOST"
+  ],
+  "env_default": "127.0.0.1",
+  "probes": {
+   "UW_SCAN_DB_HOST": {
+    "''": "",
+    "'localhost'": "localhost"
+   }
+  },
+  "type": "str"
+ },
+ "db_name": {
+  "class_default": "option_wizard_local",
+  "env": [
+   "UW_SCAN_DB_NAME"
+  ],
+  "env_default": "option_wizard_local",
+  "probes": {
+   "UW_SCAN_DB_NAME": {
+    "''": {
+     "error": "RuntimeError"
+    },
+    "'option_wizard_test'": "option_wizard_test"
+   }
+  },
+  "type": "str"
+ },
+ "db_password": {
+  "class_default": "secret:",
+  "env": [
+   "UW_SCAN_DB_PASSWORD"
+  ],
+  "env_default": "secret:",
+  "probes": {
+   "UW_SCAN_DB_PASSWORD": {
+    "''": "secret:",
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr"
+ },
+ "db_port": {
+  "class_default": 5432,
+  "env": [
+   "UW_SCAN_DB_PORT"
+  ],
+  "env_default": 5432,
+  "probes": {
+   "UW_SCAN_DB_PORT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "db_schema": {
+  "class_default": "uw_scan",
+  "env": [
+   "UW_SCAN_DB_SCHEMA"
+  ],
+  "env_default": "uw_scan",
+  "probes": {
+   "UW_SCAN_DB_SCHEMA": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "db_user": {
+  "class_default": "argon_app",
+  "env": [
+   "UW_SCAN_DB_USER"
+  ],
+  "env_default": "argon_app",
+  "probes": {
+   "UW_SCAN_DB_USER": {
+    "''": "argon_app",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "deepseek_api_key": {
+  "class_default": null,
+  "env": [
+   "DEEPSEEK_API_KEY"
+  ],
+  "env_default": null,
+  "probes": {
+   "DEEPSEEK_API_KEY": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "earnings_reactions_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_EARNINGS_REACTIONS_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_EARNINGS_REACTIONS_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fred_api_key": {
+  "class_default": null,
+  "env": [
+   "FRED_API_KEY"
+  ],
+  "env_default": null,
+  "probes": {
+   "FRED_API_KEY": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "full_scan_crons": {
+  "class_default": [
+   "0 4 * * 0-4",
+   "30 9 * * 0-4",
+   "0,30 10-15 * * 0-4",
+   "0 16 * * 0-4",
+   "30 16 * * 0-4"
+  ],
+  "env": null,
+  "env_default": [
+   "0 4 * * 0-4",
+   "30 9 * * 0-4",
+   "0,30 10-15 * * 0-4",
+   "0 16 * * 0-4",
+   "30 16 * * 0-4"
+  ],
+  "type": "list[str]"
+ },
+ "full_scan_hot_cron": {
+  "class_default": "*/5 9-16 * * 0-4",
+  "env": [
+   "FULL_SCAN_HOT_CRON"
+  ],
+  "env_default": "*/5 9-16 * * 0-4",
+  "probes": {
+   "FULL_SCAN_HOT_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "full_scan_hot_enabled": {
+  "class_default": true,
+  "env": [
+   "FULL_SCAN_HOT_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "FULL_SCAN_HOT_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "full_scan_hot_max_tickers": {
+  "class_default": 25,
+  "env": [
+   "FULL_SCAN_HOT_MAX_TICKERS"
+  ],
+  "env_default": 25,
+  "probes": {
+   "FULL_SCAN_HOT_MAX_TICKERS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "full_scan_hot_stale_minutes": {
+  "class_default": 4,
+  "env": [
+   "FULL_SCAN_HOT_STALE_MINUTES"
+  ],
+  "env_default": 4,
+  "probes": {
+   "FULL_SCAN_HOT_STALE_MINUTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "full_scan_stale_after_hours": {
+  "class_default": 0.33,
+  "env": [
+   "UW_SCAN_FULL_SCAN_STALE_HOURS"
+  ],
+  "env_default": 0.33,
+  "probes": {
+   "UW_SCAN_FULL_SCAN_STALE_HOURS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "fundamental_change_events_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamental_concentration_capture_cron": {
+  "class_default": "10 4 3 * *",
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_CRON"
+  ],
+  "env_default": "10 4 3 * *",
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "fundamental_concentration_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamental_ingest_cron": {
+  "class_default": "40 3 2 * *",
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_CRON"
+  ],
+  "env_default": "40 3 2 * *",
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "fundamental_ingest_daily_cron": {
+  "class_default": "20 4 * * *",
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_CRON"
+  ],
+  "env_default": "20 4 * * *",
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "fundamental_ingest_daily_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamental_ingest_daily_forward_days": {
+  "class_default": 14,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS"
+  ],
+  "env_default": 14,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "fundamental_ingest_daily_lookback_days": {
+  "class_default": 3,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_LOOKBACK_DAYS"
+  ],
+  "env_default": 3,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_LOOKBACK_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "fundamental_ingest_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_INGEST_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamental_refresh_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamentals_desk_rollup_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "fundamentals_refresh_cron": {
+  "class_default": "0 19 * * 0-4",
+  "env": [
+   "UW_SCAN_FUNDAMENTALS_REFRESH_CRON"
+  ],
+  "env_default": "0 19 * * 0-4",
+  "probes": {
+   "UW_SCAN_FUNDAMENTALS_REFRESH_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "gex_scan_offhours_interval_minutes": {
+  "class_default": 15,
+  "env": [
+   "GEX_SCAN_OFFHOURS_INTERVAL_MINUTES"
+  ],
+  "env_default": 15,
+  "probes": {
+   "GEX_SCAN_OFFHOURS_INTERVAL_MINUTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "gex_scan_rth_interval_minutes": {
+  "class_default": 2,
+  "env": [
+   "GEX_SCAN_RTH_INTERVAL_MINUTES"
+  ],
+  "env_default": 2,
+  "probes": {
+   "GEX_SCAN_RTH_INTERVAL_MINUTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "gex_scan_tickers": {
+  "class_default": [
+   "SPX",
+   "SPY",
+   "QQQ",
+   "IWM",
+   "TLT",
+   "NVDA",
+   "AAPL",
+   "MSFT",
+   "AMZN",
+   "META",
+   "GOOGL",
+   "TSLA"
+  ],
+  "env": [
+   "GEX_SCAN_TICKERS"
+  ],
+  "env_default": [
+   "SPX",
+   "SPY",
+   "QQQ",
+   "IWM",
+   "TLT",
+   "NVDA",
+   "AAPL",
+   "MSFT",
+   "AMZN",
+   "META",
+   "GOOGL",
+   "TSLA"
+  ],
+  "probes": {
+   "GEX_SCAN_TICKERS": {
+    "''": [
+     "SPX",
+     "SPY",
+     "QQQ",
+     "IWM",
+     "TLT",
+     "NVDA",
+     "AAPL",
+     "MSFT",
+     "AMZN",
+     "META",
+     "GOOGL",
+     "TSLA"
+    ],
+    "'a, b'": [
+     "A",
+     "B"
+    ]
+   }
+  },
+  "type": "list[str]"
+ },
+ "health_full_scan_missed_grace_hours": {
+  "class_default": 1.0,
+  "env": [
+   "UW_SCAN_HEALTH_FULL_SCAN_MISSED_GRACE_HOURS"
+  ],
+  "env_default": 1.0,
+  "probes": {
+   "UW_SCAN_HEALTH_FULL_SCAN_MISSED_GRACE_HOURS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "implied_move_snapshot_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "lake_credit_etf_root": {
+  "class_default": "~/market-warehouse/data-lake/bronze/asset_class=equity",
+  "env": [
+   "LAKE_CREDIT_ETF_ROOT"
+  ],
+  "env_default": "~/market-warehouse/data-lake/bronze/asset_class=equity",
+  "env_fallback": [
+   "MARKET_WAREHOUSE_LAKE"
+  ],
+  "fallback_probes": {
+   "MARKET_WAREHOUSE_LAKE=/probe": "/probe/bronze/asset_class=equity"
+  },
+  "probes": {
+   "LAKE_CREDIT_ETF_ROOT": {
+    "''": "~/market-warehouse/data-lake/bronze/asset_class=equity",
+    "'/probe'": "/probe"
+   }
+  },
+  "type": "Path"
+ },
+ "lake_fx_root": {
+  "class_default": "~/market-warehouse/data-lake/bronze/asset_class=fx",
+  "env": [
+   "LAKE_FX_ROOT"
+  ],
+  "env_default": "~/market-warehouse/data-lake/bronze/asset_class=fx",
+  "env_fallback": [
+   "MARKET_WAREHOUSE_LAKE"
+  ],
+  "fallback_probes": {
+   "MARKET_WAREHOUSE_LAKE=/probe": "/probe/bronze/asset_class=fx"
+  },
+  "probes": {
+   "LAKE_FX_ROOT": {
+    "''": "~/market-warehouse/data-lake/bronze/asset_class=fx",
+    "'/probe'": "/probe"
+   }
+  },
+  "type": "Path"
+ },
+ "lake_vol_index_root": {
+  "class_default": "~/market-warehouse/data-lake/bronze/asset_class=volatility",
+  "env": [
+   "LAKE_VOL_INDEX_ROOT"
+  ],
+  "env_default": "~/market-warehouse/data-lake/bronze/asset_class=volatility",
+  "env_fallback": [
+   "MARKET_WAREHOUSE_LAKE"
+  ],
+  "fallback_probes": {
+   "MARKET_WAREHOUSE_LAKE=/probe": "/probe/bronze/asset_class=volatility"
+  },
+  "probes": {
+   "LAKE_VOL_INDEX_ROOT": {
+    "''": "~/market-warehouse/data-lake/bronze/asset_class=volatility",
+    "'/probe'": "/probe"
+   }
+  },
+  "type": "Path"
+ },
+ "macro_fomc_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_FOMC_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_FOMC_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_gold_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_GOLD_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_GOLD_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_market_layer_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_market_shadow_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_MARKET_SHADOW_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_MARKET_SHADOW_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_release_calendar_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_sep_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_SEP_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_SEP_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_series_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_SERIES_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_SERIES_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_sme_ingest_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_SME_INGEST_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_SME_INGEST_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "macro_state_compute_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_MACRO_STATE_COMPUTE_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_MACRO_STATE_COMPUTE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "market_tide_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "MARKET_TIDE_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "MARKET_TIDE_CAPTURE_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "market_tide_spot_ticker": {
+  "class_default": "SPY",
+  "env": [
+   "MARKET_TIDE_SPOT_TICKER"
+  ],
+  "env_default": "SPY",
+  "probes": {
+   "MARKET_TIDE_SPOT_TICKER": {
+    "''": "",
+    "'probe'": "PROBE"
+   }
+  },
+  "type": "str"
+ },
+ "market_warehouse_lake_root": {
+  "class_default": "~/market-warehouse/data-lake",
+  "env": [
+   "MARKET_WAREHOUSE_LAKE"
+  ],
+  "env_default": "~/market-warehouse/data-lake",
+  "probes": {
+   "MARKET_WAREHOUSE_LAKE": {
+    "''": "~/market-warehouse/data-lake",
+    "'/probe'": "/probe"
+   }
+  },
+  "type": "Path"
+ },
+ "massive_api_key": {
+  "class_default": null,
+  "env": [
+   "MASSIVE_API_KEY"
+  ],
+  "env_default": null,
+  "probes": {
+   "MASSIVE_API_KEY": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "massive_base_url": {
+  "class_default": "https://api.massive.com",
+  "env": [
+   "MASSIVE_BASE_URL"
+  ],
+  "env_default": "https://api.massive.com",
+  "probes": {
+   "MASSIVE_BASE_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "massive_worker_count": {
+  "class_default": 0,
+  "env": [
+   "UW_SCAN_MASSIVE_WORKER_COUNT"
+  ],
+  "env_default": 0,
+  "probes": {
+   "UW_SCAN_MASSIVE_WORKER_COUNT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "massive_ws_channel": {
+  "class_default": "A",
+  "env": [
+   "MASSIVE_WS_CHANNEL"
+  ],
+  "env_default": "A",
+  "probes": {
+   "MASSIVE_WS_CHANNEL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "massive_ws_enabled": {
+  "class_default": false,
+  "env": [
+   "MASSIVE_WS_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "MASSIVE_WS_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": false,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": false
+   }
+  },
+  "type": "bool"
+ },
+ "massive_ws_flush_interval_seconds": {
+  "class_default": 1.0,
+  "env": [
+   "MASSIVE_WS_FLUSH_INTERVAL_SECONDS"
+  ],
+  "env_default": 1.0,
+  "probes": {
+   "MASSIVE_WS_FLUSH_INTERVAL_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "massive_ws_heartbeat_stale_after_seconds": {
+  "class_default": 120.0,
+  "env": [
+   "MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS"
+  ],
+  "env_default": 120.0,
+  "probes": {
+   "MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "massive_ws_reconnect_backoff_initial_seconds": {
+  "class_default": 1.0,
+  "env": [
+   "MASSIVE_WS_RECONNECT_BACKOFF_INITIAL_SECONDS"
+  ],
+  "env_default": 1.0,
+  "probes": {
+   "MASSIVE_WS_RECONNECT_BACKOFF_INITIAL_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "massive_ws_reconnect_backoff_max_seconds": {
+  "class_default": 60.0,
+  "env": [
+   "MASSIVE_WS_RECONNECT_BACKOFF_MAX_SECONDS"
+  ],
+  "env_default": 60.0,
+  "probes": {
+   "MASSIVE_WS_RECONNECT_BACKOFF_MAX_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "massive_ws_url": {
+  "class_default": "wss://delayed.massive.com/stocks",
+  "env": [
+   "MASSIVE_WS_URL"
+  ],
+  "env_default": "wss://delayed.massive.com/stocks",
+  "probes": {
+   "MASSIVE_WS_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "massive_ws_watchlist_poll_interval_seconds": {
+  "class_default": 30.0,
+  "env": [
+   "MASSIVE_WS_WATCHLIST_POLL_INTERVAL_SECONDS"
+  ],
+  "env_default": 30.0,
+  "probes": {
+   "MASSIVE_WS_WATCHLIST_POLL_INTERVAL_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "max_requests_per_minute": {
+  "class_default": 110,
+  "env": [
+   "UW_SCAN_MAX_REQUESTS_PER_MINUTE"
+  ],
+  "env_default": 110,
+  "probes": {
+   "UW_SCAN_MAX_REQUESTS_PER_MINUTE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "ohlc_pull_cron": {
+  "class_default": "30 17 * * 0-4",
+  "env": [
+   "UW_SCAN_OHLC_PULL_CRON"
+  ],
+  "env_default": "30 17 * * 0-4",
+  "probes": {
+   "UW_SCAN_OHLC_PULL_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "ops_alert_webhook_url": {
+  "class_default": "",
+  "env": [
+   "UW_SCAN_OPS_ALERT_WEBHOOK_URL"
+  ],
+  "env_default": "",
+  "probes": {
+   "UW_SCAN_OPS_ALERT_WEBHOOK_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "option_surface_backfill_days": {
+  "class_default": 4,
+  "env": [
+   "OPTION_SURFACE_BACKFILL_DAYS"
+  ],
+  "env_default": 4,
+  "probes": {
+   "OPTION_SURFACE_BACKFILL_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "option_surface_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "OPTION_SURFACE_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "OPTION_SURFACE_CAPTURE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "option_surface_iv_canary_enabled": {
+  "class_default": true,
+  "env": [
+   "OPTION_SURFACE_IV_CANARY_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "OPTION_SURFACE_IV_CANARY_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "option_surface_iv_canary_warn_threshold": {
+  "class_default": 0.02,
+  "env": [
+   "OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD"
+  ],
+  "env_default": 0.02,
+  "probes": {
+   "OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "option_surface_research_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "OPTION_SURFACE_RESEARCH_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "OPTION_SURFACE_RESEARCH_CAPTURE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "option_surface_research_catchup_enabled": {
+  "class_default": true,
+  "env": [
+   "OPTION_SURFACE_RESEARCH_CATCHUP_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "OPTION_SURFACE_RESEARCH_CATCHUP_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "option_surface_research_catchup_max_calls": {
+  "class_default": 1500,
+  "env": [
+   "OPTION_SURFACE_RESEARCH_CATCHUP_MAX_CALLS"
+  ],
+  "env_default": 1500,
+  "probes": {
+   "OPTION_SURFACE_RESEARCH_CATCHUP_MAX_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "option_surface_research_cohort": {
+  "class_default": "liquid_sector_balanced_v1",
+  "env": [
+   "OPTION_SURFACE_RESEARCH_COHORT"
+  ],
+  "env_default": "liquid_sector_balanced_v1",
+  "probes": {
+   "OPTION_SURFACE_RESEARCH_COHORT": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "positioning_refresh_cron": {
+  "class_default": "0 6 * * 0-4",
+  "env": [
+   "UW_SCAN_POSITIONING_REFRESH_CRON"
+  ],
+  "env_default": "0 6 * * 0-4",
+  "probes": {
+   "UW_SCAN_POSITIONING_REFRESH_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "r2_access_key_id": {
+  "class_default": null,
+  "env": [
+   "R2_ACCESS_KEY_ID"
+  ],
+  "env_default": null,
+  "probes": {
+   "R2_ACCESS_KEY_ID": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "r2_account_id": {
+  "class_default": null,
+  "env": [
+   "R2_ACCOUNT_ID"
+  ],
+  "env_default": null,
+  "probes": {
+   "R2_ACCOUNT_ID": {
+    "''": null,
+    "'probe'": "probe"
+   }
+  },
+  "type": "str | None"
+ },
+ "r2_bucket": {
+  "class_default": null,
+  "env": [
+   "R2_BUCKET"
+  ],
+  "env_default": null,
+  "probes": {
+   "R2_BUCKET": {
+    "''": null,
+    "'probe'": "probe"
+   }
+  },
+  "type": "str | None"
+ },
+ "r2_endpoint_override": {
+  "class_default": null,
+  "env": [
+   "R2_ENDPOINT_OVERRIDE"
+  ],
+  "env_default": null,
+  "probes": {
+   "R2_ENDPOINT_OVERRIDE": {
+    "''": null,
+    "'probe'": "probe"
+   }
+  },
+  "type": "str | None"
+ },
+ "r2_secret_access_key": {
+  "class_default": null,
+  "env": [
+   "R2_SECRET_ACCESS_KEY"
+  ],
+  "env_default": null,
+  "probes": {
+   "R2_SECRET_ACCESS_KEY": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "rates_policy_path_url": {
+  "class_default": "https://www.frenzycap.com/fedwatch",
+  "env": [
+   "RATES_POLICY_PATH_URL"
+  ],
+  "env_default": "https://www.frenzycap.com/fedwatch",
+  "probes": {
+   "RATES_POLICY_PATH_URL": {
+    "''": "https://www.frenzycap.com/fedwatch",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "rates_snapshot_state_block_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_RATES_SNAPSHOT_STATE_BLOCK_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_RATES_SNAPSHOT_STATE_BLOCK_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "record_health_daily_window_hours": {
+  "class_default": 26,
+  "env": null,
+  "env_default": 26,
+  "type": "int"
+ },
+ "record_health_window_hours": {
+  "class_default": 8.0,
+  "env": [
+   "RECORD_HEALTH_WINDOW_HOURS"
+  ],
+  "env_default": 8.0,
+  "probes": {
+   "RECORD_HEALTH_WINDOW_HOURS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "regime_live_quote_max_age_seconds": {
+  "class_default": 900,
+  "env": [
+   "REGIME_LIVE_QUOTE_MAX_AGE_SECONDS"
+  ],
+  "env_default": 900,
+  "probes": {
+   "REGIME_LIVE_QUOTE_MAX_AGE_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "regime_live_scan_interval_minutes": {
+  "class_default": 5,
+  "env": [
+   "REGIME_LIVE_SCAN_INTERVAL_MINUTES"
+  ],
+  "env_default": 5,
+  "probes": {
+   "REGIME_LIVE_SCAN_INTERVAL_MINUTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "regime_ws_symbols": {
+  "class_default": [
+   "VIX",
+   "VVIX",
+   "VIX3M",
+   "COR1M",
+   "SPX",
+   "HYG"
+  ],
+  "env": [
+   "REGIME_WS_SYMBOLS"
+  ],
+  "env_default": [
+   "VIX",
+   "VVIX",
+   "VIX3M",
+   "COR1M",
+   "SPX",
+   "HYG"
+  ],
+  "probes": {
+   "REGIME_WS_SYMBOLS": {
+    "''": [
+     "VIX",
+     "VVIX",
+     "VIX3M",
+     "COR1M",
+     "SPX",
+     "HYG"
+    ],
+    "'a, b'": [
+     "A",
+     "B"
+    ]
+   }
+  },
+  "type": "list[str]"
+ },
+ "request_timeout_seconds": {
+  "class_default": 30.0,
+  "env": [
+   "UW_SCAN_REQUEST_TIMEOUT_SECONDS"
+  ],
+  "env_default": 30.0,
+  "probes": {
+   "UW_SCAN_REQUEST_TIMEOUT_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "rth_tz": {
+  "class_default": "America/New_York",
+  "env": [
+   "UW_SCAN_RTH_TZ"
+  ],
+  "env_default": "America/New_York",
+  "probes": {
+   "UW_SCAN_RTH_TZ": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "scanner_dcf_max_moneyness": {
+  "class_default": "Decimal:0.12",
+  "env": [
+   "SCANNER_DCF_MAX_MONEYNESS"
+  ],
+  "env_default": "Decimal:0.12",
+  "probes": {
+   "SCANNER_DCF_MAX_MONEYNESS": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_dcf_min_ask_side": {
+  "class_default": "Decimal:0.80",
+  "env": [
+   "SCANNER_DCF_MIN_ASK_SIDE"
+  ],
+  "env_default": "Decimal:0.80",
+  "probes": {
+   "SCANNER_DCF_MIN_ASK_SIDE": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_dcf_min_dte": {
+  "class_default": 6,
+  "env": [
+   "SCANNER_DCF_MIN_DTE"
+  ],
+  "env_default": 6,
+  "probes": {
+   "SCANNER_DCF_MIN_DTE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_dcf_min_premium_usd": {
+  "class_default": "Decimal:500000",
+  "env": [
+   "SCANNER_DCF_MIN_PREMIUM_USD"
+  ],
+  "env_default": "Decimal:500000",
+  "probes": {
+   "SCANNER_DCF_MIN_PREMIUM_USD": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_discover_alerts_limit": {
+  "class_default": 200,
+  "env": [
+   "SCANNER_DISCOVER_ALERTS_LIMIT"
+  ],
+  "env_default": 200,
+  "probes": {
+   "SCANNER_DISCOVER_ALERTS_LIMIT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_discover_dp_lookback_days": {
+  "class_default": 3,
+  "env": [
+   "SCANNER_DISCOVER_DP_LOOKBACK_DAYS"
+  ],
+  "env_default": 3,
+  "probes": {
+   "SCANNER_DISCOVER_DP_LOOKBACK_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_discover_dp_sleep_ms": {
+  "class_default": 0,
+  "env": [
+   "SCANNER_DISCOVER_DP_SLEEP_MS"
+  ],
+  "env_default": 0,
+  "probes": {
+   "SCANNER_DISCOVER_DP_SLEEP_MS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_discover_dp_top_n": {
+  "class_default": 50,
+  "env": [
+   "SCANNER_DISCOVER_DP_TOP_N"
+  ],
+  "env_default": 50,
+  "probes": {
+   "SCANNER_DISCOVER_DP_TOP_N": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_discover_freshness_seconds": {
+  "class_default": 30,
+  "env": [
+   "SCANNER_DISCOVER_FRESHNESS_SECONDS"
+  ],
+  "env_default": 30,
+  "probes": {
+   "SCANNER_DISCOVER_FRESHNESS_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_discover_min_ask_side": {
+  "class_default": "Decimal:0.65",
+  "env": [
+   "SCANNER_DISCOVER_MIN_ASK_SIDE"
+  ],
+  "env_default": "Decimal:0.65",
+  "probes": {
+   "SCANNER_DISCOVER_MIN_ASK_SIDE": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_discover_min_premium_usd": {
+  "class_default": "Decimal:100000",
+  "env": [
+   "SCANNER_DISCOVER_MIN_PREMIUM_USD"
+  ],
+  "env_default": "Decimal:100000",
+  "probes": {
+   "SCANNER_DISCOVER_MIN_PREMIUM_USD": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_discover_scan_cron": {
+  "class_default": "15,45 9-16 * * 0-4",
+  "env": [
+   "SCANNER_DISCOVER_SCAN_CRON"
+  ],
+  "env_default": "15,45 9-16 * * 0-4",
+  "probes": {
+   "SCANNER_DISCOVER_SCAN_CRON": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "scanner_discover_scan_enabled": {
+  "class_default": true,
+  "env": [
+   "SCANNER_DISCOVER_SCAN_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "SCANNER_DISCOVER_SCAN_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "scanner_dp_lookback_days": {
+  "class_default": 5,
+  "env": [
+   "SCANNER_DP_LOOKBACK_DAYS"
+  ],
+  "env_default": 5,
+  "probes": {
+   "SCANNER_DP_LOOKBACK_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_dp_min_cluster_size": {
+  "class_default": 3,
+  "env": [
+   "SCANNER_DP_MIN_CLUSTER_SIZE"
+  ],
+  "env_default": 3,
+  "probes": {
+   "SCANNER_DP_MIN_CLUSTER_SIZE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_dp_min_print_premium_usd": {
+  "class_default": "Decimal:1000000",
+  "env": [
+   "SCANNER_DP_MIN_PRINT_PREMIUM_USD"
+  ],
+  "env_default": "Decimal:1000000",
+  "probes": {
+   "SCANNER_DP_MIN_PRINT_PREMIUM_USD": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_dp_price_spread_pct": {
+  "class_default": "Decimal:0.5",
+  "env": [
+   "SCANNER_DP_PRICE_SPREAD_PCT"
+  ],
+  "env_default": "Decimal:0.5",
+  "probes": {
+   "SCANNER_DP_PRICE_SPREAD_PCT": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_earnings_window_days": {
+  "class_default": 14,
+  "env": [
+   "SCANNER_EARNINGS_WINDOW_DAYS"
+  ],
+  "env_default": 14,
+  "probes": {
+   "SCANNER_EARNINGS_WINDOW_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_edge_quality_weight_confluence": {
+  "class_default": "Decimal:20",
+  "env": [
+   "SCANNER_EDGE_QUALITY_WEIGHT_CONFLUENCE"
+  ],
+  "env_default": "Decimal:20",
+  "probes": {
+   "SCANNER_EDGE_QUALITY_WEIGHT_CONFLUENCE": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_edge_quality_weight_dp_strength": {
+  "class_default": "Decimal:30",
+  "env": [
+   "SCANNER_EDGE_QUALITY_WEIGHT_DP_STRENGTH"
+  ],
+  "env_default": "Decimal:30",
+  "probes": {
+   "SCANNER_EDGE_QUALITY_WEIGHT_DP_STRENGTH": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_edge_quality_weight_dp_sustained": {
+  "class_default": "Decimal:20",
+  "env": [
+   "SCANNER_EDGE_QUALITY_WEIGHT_DP_SUSTAINED"
+  ],
+  "env_default": "Decimal:20",
+  "probes": {
+   "SCANNER_EDGE_QUALITY_WEIGHT_DP_SUSTAINED": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_edge_quality_weight_sweeps": {
+  "class_default": "Decimal:15",
+  "env": [
+   "SCANNER_EDGE_QUALITY_WEIGHT_SWEEPS"
+  ],
+  "env_default": "Decimal:15",
+  "probes": {
+   "SCANNER_EDGE_QUALITY_WEIGHT_SWEEPS": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_edge_quality_weight_vol_oi": {
+  "class_default": "Decimal:15",
+  "env": [
+   "SCANNER_EDGE_QUALITY_WEIGHT_VOL_OI"
+  ],
+  "env_default": "Decimal:15",
+  "probes": {
+   "SCANNER_EDGE_QUALITY_WEIGHT_VOL_OI": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_eic_min_iv_rank": {
+  "class_default": "Decimal:75.0",
+  "env": [
+   "SCANNER_EIC_MIN_IV_RANK"
+  ],
+  "env_default": "Decimal:75.0",
+  "probes": {
+   "SCANNER_EIC_MIN_IV_RANK": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_freshness_hours": {
+  "class_default": 72,
+  "env": [
+   "SCANNER_FRESHNESS_HOURS"
+  ],
+  "env_default": 72,
+  "probes": {
+   "SCANNER_FRESHNESS_HOURS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "scanner_gex_pin_min_gamma": {
+  "class_default": "Decimal:1.0",
+  "env": [
+   "SCANNER_GEX_PIN_MIN_GAMMA"
+  ],
+  "env_default": "Decimal:1.0",
+  "probes": {
+   "SCANNER_GEX_PIN_MIN_GAMMA": {
+    "''": {
+     "error": "InvalidOperation"
+    },
+    "'7.5'": "Decimal:7.5"
+   }
+  },
+  "type": "Decimal"
+ },
+ "scanner_liquidity_min_option_volume": {
+  "class_default": 1000,
+  "env": [
+   "SCANNER_LIQUIDITY_MIN_OPTION_VOLUME"
+  ],
+  "env_default": 1000,
+  "probes": {
+   "SCANNER_LIQUIDITY_MIN_OPTION_VOLUME": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "sector_rs_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_SECTOR_RS_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_SECTOR_RS_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "spx_density_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_SPX_DENSITY_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_SPX_DENSITY_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "technical_live_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_TECHNICAL_LIVE_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_TECHNICAL_LIVE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "technical_live_quote_max_age_seconds": {
+  "class_default": 900,
+  "env": [
+   "TECHNICAL_LIVE_QUOTE_MAX_AGE_SECONDS"
+  ],
+  "env_default": 900,
+  "probes": {
+   "TECHNICAL_LIVE_QUOTE_MAX_AGE_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "technical_live_scan_interval_minutes": {
+  "class_default": 5,
+  "env": [
+   "TECHNICAL_LIVE_SCAN_INTERVAL_MINUTES"
+  ],
+  "env_default": 5,
+  "probes": {
+   "TECHNICAL_LIVE_SCAN_INTERVAL_MINUTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "technicals_refresh_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_TECHNICALS_REFRESH_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_TECHNICALS_REFRESH_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "theta_harvester_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_THETA_HARVESTER_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_THETA_HARVESTER_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "top_net_impact_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "TOP_NET_IMPACT_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "TOP_NET_IMPACT_CAPTURE_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "trade_insights_ai_deepseek_enabled": {
+  "class_default": true,
+  "env": [
+   "TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "trade_insights_ai_deepseek_model": {
+  "class_default": "",
+  "env": [
+   "TRADE_INSIGHTS_AI_DEEPSEEK_MODEL"
+  ],
+  "env_default": "",
+  "probes": {
+   "TRADE_INSIGHTS_AI_DEEPSEEK_MODEL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "trade_insights_ai_deepseek_timeout_seconds": {
+  "class_default": 300.0,
+  "env": [
+   "TRADE_INSIGHTS_AI_DEEPSEEK_TIMEOUT_SECONDS"
+  ],
+  "env_default": 300.0,
+  "probes": {
+   "TRADE_INSIGHTS_AI_DEEPSEEK_TIMEOUT_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "trade_insights_ai_deepseek_worker_count": {
+  "class_default": 2,
+  "env": [
+   "TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT"
+  ],
+  "env_default": 2,
+  "probes": {
+   "TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "trade_insights_ai_max_output_bytes": {
+  "class_default": 262144,
+  "env": [
+   "TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES"
+  ],
+  "env_default": 262144,
+  "probes": {
+   "TRADE_INSIGHTS_AI_MAX_OUTPUT_BYTES": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "trade_insights_ai_poll_seconds": {
+  "class_default": 3,
+  "env": [
+   "TRADE_INSIGHTS_AI_POLL_SECONDS"
+  ],
+  "env_default": 3,
+  "probes": {
+   "TRADE_INSIGHTS_AI_POLL_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "uw_alpha_capture_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "uw_budget_governor_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_BUDGET_GOVERNOR_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_BUDGET_GOVERNOR_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "uw_daily_limit": {
+  "class_default": 120000,
+  "env": [
+   "UW_DAILY_LIMIT"
+  ],
+  "env_default": 120000,
+  "probes": {
+   "UW_DAILY_LIMIT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "uw_live_daily_ceiling": {
+  "class_default": 80000,
+  "env": [
+   "UW_LIVE_DAILY_CEILING"
+  ],
+  "env_default": 80000,
+  "probes": {
+   "UW_LIVE_DAILY_CEILING": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "uw_research_daily_ceiling": {
+  "class_default": 30000,
+  "env": [
+   "UW_RESEARCH_DAILY_CEILING"
+  ],
+  "env_default": 30000,
+  "probes": {
+   "UW_RESEARCH_DAILY_CEILING": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "uw_total_daily_guard": {
+  "class_default": 105000,
+  "env": [
+   "UW_TOTAL_DAILY_GUARD"
+  ],
+  "env_default": 105000,
+  "probes": {
+   "UW_TOTAL_DAILY_GUARD": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "uw_worker_count": {
+  "class_default": 0,
+  "env": [
+   "UW_SCAN_UW_WORKER_COUNT"
+  ],
+  "env_default": 0,
+  "probes": {
+   "UW_SCAN_UW_WORKER_COUNT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "vrp_cost_per_contract": {
+  "class_default": 0.65,
+  "env": [
+   "UW_SCAN_VRP_COST_PER_CONTRACT"
+  ],
+  "env_default": 0.65,
+  "probes": {
+   "UW_SCAN_VRP_COST_PER_CONTRACT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_cost_round_trip": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_VRP_COST_ROUND_TRIP"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_VRP_COST_ROUND_TRIP": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "vrp_hold_days": {
+  "class_default": 20,
+  "env": [
+   "UW_SCAN_VRP_HOLD_DAYS"
+  ],
+  "env_default": 20,
+  "probes": {
+   "UW_SCAN_VRP_HOLD_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "vrp_macro_entry_capture_enabled": {
+  "class_default": true,
+  "env": [
+   "UW_SCAN_VRP_MACRO_ENTRY_CAPTURE_ENABLED"
+  ],
+  "env_default": true,
+  "probes": {
+   "UW_SCAN_VRP_MACRO_ENTRY_CAPTURE_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "vrp_macro_entry_mark_budget_s": {
+  "class_default": 600.0,
+  "env": [
+   "UW_SCAN_VRP_MACRO_ENTRY_MARK_BUDGET_S"
+  ],
+  "env_default": 600.0,
+  "probes": {
+   "UW_SCAN_VRP_MACRO_ENTRY_MARK_BUDGET_S": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_macro_entry_quote_timeout_s": {
+  "class_default": 8.0,
+  "env": [
+   "UW_SCAN_VRP_MACRO_ENTRY_QUOTE_TIMEOUT_S"
+  ],
+  "env_default": 8.0,
+  "probes": {
+   "UW_SCAN_VRP_MACRO_ENTRY_QUOTE_TIMEOUT_S": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_macro_entry_taper_calendar_days": {
+  "class_default": 30,
+  "env": [
+   "UW_SCAN_VRP_MACRO_ENTRY_TAPER_CALENDAR_DAYS"
+  ],
+  "env_default": 30,
+  "probes": {
+   "UW_SCAN_VRP_MACRO_ENTRY_TAPER_CALENDAR_DAYS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "vrp_risk_free_rate": {
+  "class_default": 0.04,
+  "env": [
+   "UW_SCAN_VRP_RISK_FREE_RATE"
+  ],
+  "env_default": 0.04,
+  "probes": {
+   "UW_SCAN_VRP_RISK_FREE_RATE": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_short_delta": {
+  "class_default": 0.16,
+  "env": [
+   "UW_SCAN_VRP_SHORT_DELTA"
+  ],
+  "env_default": 0.16,
+  "probes": {
+   "UW_SCAN_VRP_SHORT_DELTA": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "float"
+ },
+ "vrp_slippage_frac": {
+  "class_default": 0.01,
+  "env": [
+   "UW_SCAN_VRP_SLIPPAGE_FRAC"
+  ],
+  "env_default": 0.01,
+  "probes": {
+   "UW_SCAN_VRP_SLIPPAGE_FRAC": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_slippage_min": {
+  "class_default": 0.05,
+  "env": [
+   "UW_SCAN_VRP_SLIPPAGE_MIN"
+  ],
+  "env_default": 0.05,
+  "probes": {
+   "UW_SCAN_VRP_SLIPPAGE_MIN": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "vrp_wing_delta": {
+  "class_default": 0.08,
+  "env": [
+   "UW_SCAN_VRP_WING_DELTA"
+  ],
+  "env_default": 0.08,
+  "probes": {
+   "UW_SCAN_VRP_WING_DELTA": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": {
+     "error": "ValidationError"
+    }
+   }
+  },
+  "type": "float"
+ },
+ "wgc_cb_reserves_workbook_path": {
+  "class_default": "",
+  "env": [
+   "WGC_CB_RESERVES_WORKBOOK_PATH"
+  ],
+  "env_default": "",
+  "probes": {
+   "WGC_CB_RESERVES_WORKBOOK_PATH": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "wgc_etf_flows_workbook_path": {
+  "class_default": "",
+  "env": [
+   "WGC_ETF_FLOWS_WORKBOOK_PATH"
+  ],
+  "env_default": "",
+  "probes": {
+   "WGC_ETF_FLOWS_WORKBOOK_PATH": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "wgc_goldhub_cookie": {
+  "class_default": null,
+  "env": [
+   "WGC_GOLDHUB_COOKIE"
+  ],
+  "env_default": null,
+  "probes": {
+   "WGC_GOLDHUB_COOKIE": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "worker_count": {
+  "class_default": 1,
+  "env": [
+   "UW_SCAN_WORKER_COUNT"
+  ],
+  "env_default": 1,
+  "probes": {
+   "UW_SCAN_WORKER_COUNT": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "worker_index": {
+  "class_default": 0,
+  "env": [
+   "UW_SCAN_WORKER_INDEX"
+  ],
+  "env_default": 0,
+  "probes": {
+   "UW_SCAN_WORKER_INDEX": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "worker_role": {
+  "class_default": "all",
+  "env": [
+   "UW_SCAN_WORKER_ROLE"
+  ],
+  "env_default": "all",
+  "probes": {
+   "UW_SCAN_WORKER_ROLE": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "xenon_query_api_key": {
+  "class_default": null,
+  "env": [
+   "XENON_QUERY_API_KEY"
+  ],
+  "env_default": null,
+  "probes": {
+   "XENON_QUERY_API_KEY": {
+    "''": null,
+    "'probe'": "secret:probe"
+   }
+  },
+  "type": "SecretStr | None"
+ },
+ "xenon_query_api_url": {
+  "class_default": "http://127.0.0.1:8321",
+  "env": [
+   "XENON_QUERY_API_URL"
+  ],
+  "env_default": "http://127.0.0.1:8321",
+  "probes": {
+   "XENON_QUERY_API_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "xenon_ws_enabled": {
+  "class_default": false,
+  "env": [
+   "XENON_WS_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "XENON_WS_ENABLED": {
+    "' true '": false,
+    "''": false,
+    "'1'": false,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": false,
+    "'true'": true,
+    "'yes'": false
+   }
+  },
+  "type": "bool"
+ },
+ "xenon_ws_port_file": {
+  "class_default": "/tmp/xenon-ib-realtime.json",
+  "env": [
+   "XENON_WS_PORT_FILE"
+  ],
+  "env_default": "/tmp/xenon-ib-realtime.json",
+  "probes": {
+   "XENON_WS_PORT_FILE": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ },
+ "xenon_ws_quiet_failover_seconds": {
+  "class_default": 120.0,
+  "env": [
+   "XENON_WS_QUIET_FAILOVER_SECONDS"
+  ],
+  "env_default": 120.0,
+  "probes": {
+   "XENON_WS_QUIET_FAILOVER_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "xenon_ws_retry_primary_seconds": {
+  "class_default": 300.0,
+  "env": [
+   "XENON_WS_RETRY_PRIMARY_SECONDS"
+  ],
+  "env_default": 300.0,
+  "probes": {
+   "XENON_WS_RETRY_PRIMARY_SECONDS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7.5'": 7.5
+   }
+  },
+  "type": "float"
+ },
+ "xenon_ws_url": {
+  "class_default": "ws://127.0.0.1:8765",
+  "env": [
+   "XENON_WS_URL"
+  ],
+  "env_default": "ws://127.0.0.1:8765",
+  "probes": {
+   "XENON_WS_URL": {
+    "''": "",
+    "'probe'": "probe"
+   }
+  },
+  "type": "str"
+ }
+}
