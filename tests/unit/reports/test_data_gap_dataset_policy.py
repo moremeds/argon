@@ -6,10 +6,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
-    render_dataset_policy_markdown,
-)
+from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown
+from uw_scan.reports.data_gap_registry import REGISTRY
 
 _DOC = Path("docs/runbooks/data-gap-dataset-policy.md")
 

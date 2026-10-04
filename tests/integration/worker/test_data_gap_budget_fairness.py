@@ -61,7 +61,7 @@ def test_uncapped_provider_is_unaffected() -> None:
 def _run_with_no_data(repo, dataset: str, ticker: str, d, *, settings, runs: int):
     """Drive N heal runs whose adapter writes nothing, so every item verifies
     false and is recorded provider_no_data."""
-    from uw_scan.reports.data_gap_healer import GapItem
+    from uw_scan.reports.data_gap_types import GapItem
     from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
     from uw_scan.worker.jobs.data_gap_adapters import (
         HealContext,
@@ -120,7 +120,7 @@ def test_our_own_bugs_are_never_caveated_away(seeded_db_empty_cards) -> None:
     from datetime import date
 
     from uw_scan.config import Settings
-    from uw_scan.reports.data_gap_healer import GapItem
+    from uw_scan.reports.data_gap_types import GapItem
     from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
     from uw_scan.worker.jobs.data_gap_adapters import (
         HealContext,

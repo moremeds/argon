@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uw_scan.reports.data_gap_healer import REGISTRY
+from uw_scan.reports.data_gap_registry import REGISTRY
 from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS
 
 

@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The data-gap healer's 2,715-line module is split; no behaviour change (I-85).** The REGISTRY moved to `reports/data_gap_registry/` (one file per data domain, concatenated in the original order), the entry/gap types to `reports/data_gap_types.py`; `reports/data_gap_healer.py` keeps the scanner (448 lines) and re-exports nothing. Names other modules imported privately are now public (`calendar_dates`, `REFERENCE_CALENDAR`, `detect_col`, `missing_ticker_date_pairs`, `another_run_active`, `option_surface_capture.build_ticker_rows`, `fundamental_scoring.knowledge_date`). The healer job's run-guard, stale-run reaper and heartbeat SQL are now schema-qualified, so they no longer depend on the search_path the healer repository sets (prerequisite for I-60). Proof: `repr(REGISTRY)` + the rendered dataset policy are byte-identical before and after.
+
 ## [0.13.21] — 2026-10-04
 
 

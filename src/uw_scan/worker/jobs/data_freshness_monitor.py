@@ -35,7 +35,7 @@ from uw_scan.worker.jobs.data_gap_adapters import run_refresh_adapters as _run_r
 from uw_scan.worker.jobs.data_gap_healer import (
     _LOCK_KEY as _GAP_HEALER_LOCK_KEY,
 )
-from uw_scan.worker.jobs.data_gap_healer import _another_run_active, execute_into_run
+from uw_scan.worker.jobs.data_gap_healer import another_run_active, execute_into_run
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def _autoheal_frozen_tables(
     attempted_no_change: list[str] = []  # heal ran, adapter invoked, still not fixed
 
     # Same advisory lock key the nightly gap-healer job holds for its whole
-    # run. A bare _another_run_active() SELECT is check-then-act -- it can't
+    # run. A bare another_run_active() SELECT is check-then-act -- it can't
     # see a nightly run that starts a moment later, so two execute_into_run
     # callers could both proceed and double-spend the same provider budget
     # in the same window. Taking the lock here makes the two mutually
@@ -84,7 +84,7 @@ def _autoheal_frozen_tables(
                 "skipped_no_adapter": [r.table_name for r in frozen_rows],
             }
 
-        if _another_run_active(gap):
+        if another_run_active(gap):
             logger.info("data_freshness autoheal: a gap-healer run is active; skipping")
             return {
                 "healed": healed,
