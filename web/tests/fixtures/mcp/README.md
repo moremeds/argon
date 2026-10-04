@@ -19,3 +19,4 @@ Captured 2026-10-02T09:31Z from the argon FastAPI (main @ 18e25964) over the loc
 - `watchlist.json`, `watchlist_chains.json`: `GET /watchlist`, `GET /watchlist/chains`.
 
 Do not hand-edit values. To refresh, re-capture all of them together.
+- `spx_regime_gex.json`, `regime_market_tide.json`: `GET /api/regime/gex?ticker=SPX` and `GET /api/regime/market-tide?sessions=5`, rendered on 2026-10-04 by the API code at main 042127bf (FastAPI `TestClient`, read-only) over the local `option_wizard_local` DB (GEX `data_date` 2026-09-23; tide `as_of` 2026-09-23, rendered in that DB session's +08:00 zone). Untrimmed. The GEX history carries real nulls (3 `spot`, 48 `atm_iv`).
