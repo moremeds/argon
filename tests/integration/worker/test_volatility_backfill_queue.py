@@ -8,6 +8,7 @@ import psycopg
 import pytest
 
 import uw_scan.worker.jobs.volatility_backfill as job_mod
+from uw_scan.storage.advisory_locks import ticker_key
 from uw_scan.storage.repository import Repository
 
 
@@ -20,6 +21,15 @@ class _NoUw:
 
     def __exit__(self, *_exc):
         return False
+
+
+def _try_lock(conn: psycopg.Connection, ticker: str) -> bool:
+    """Take the job's per-ticker session lock from another session."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT pg_try_advisory_lock(%s)", (ticker_key("vol_backfill:", ticker),)
+        )
+        return bool(cur.fetchone()[0])
 
 
 @pytest.fixture
@@ -125,7 +135,7 @@ def test_failed_backfill_persists_failed_then_raises(
     assert status == "failed" and "uw 500" in error
     # The advisory lock was released: a fresh session can take it.
     with psycopg.connect(_migrated_settings.db_dsn()) as other:
-        assert job_mod._try_acquire_backfill_lock(other, "AAA")
+        assert _try_lock(other, "AAA")
 
 
 def test_second_claim_while_first_holds_the_lock_does_not_run(
@@ -138,7 +148,7 @@ def test_second_claim_while_first_holds_the_lock_does_not_run(
     repo.enqueue_volatility_backfill("AAA")
 
     with psycopg.connect(_migrated_settings.db_dsn()) as first:
-        assert job_mod._try_acquire_backfill_lock(first, "AAA")
+        assert _try_lock(first, "AAA")
         assert _tick(repo, _migrated_settings) == "AAA"
 
     assert calls == []

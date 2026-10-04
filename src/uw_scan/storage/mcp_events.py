@@ -17,6 +17,8 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
+from uw_scan.storage.advisory_locks import fixed_key
+
 _SCHEMA = "uw_scan"
 
 # Fixed advisory-lock key serializing all mcp_event emitters within their
@@ -24,7 +26,7 @@ _SCHEMA = "uw_scan"
 # Held from probe to commit, it forces commit order == id order: without it a
 # `get_events` cursor could advance past a still-uncommitted lower id and lose
 # that event for good. It also makes the cooldown probe + insert atomic.
-MCP_EVENT_LOCK = 727_000_154
+MCP_EVENT_LOCK = fixed_key("mcp_event")
 
 
 def emit_event(

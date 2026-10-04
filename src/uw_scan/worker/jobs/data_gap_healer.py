@@ -32,6 +32,7 @@ from uw_scan.reports.data_gap_healer import (
     audit,
     discover_unregistered_tables,
 )
+from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.data_gap_adapters import (
@@ -45,7 +46,7 @@ from uw_scan.worker.jobs.data_gap_adapters import (
 logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).resolve().parents[4] / "output" / "data-gap"
-_LOCK_KEY = 92010  # advisory lock: single-flight for the gap healer
+_LOCK_KEY = fixed_key("data_gap_healer")
 
 
 class HealerBusy(RuntimeError):
@@ -70,19 +71,14 @@ def _single_flight(gap: DataGapHealerRepository):
 
     Re-entrant on the same connection; raises HealerBusy on a different one.
     """
-    with gap._conn.cursor() as cur:
-        cur.execute("SELECT pg_try_advisory_lock(%s)", (_LOCK_KEY,))
-        if not cur.fetchone()[0]:
+    with single_flight(gap._conn, _LOCK_KEY) as acquired:
+        if not acquired:
             raise HealerBusy(
                 "another gap-heal holds the single-flight lock (key "
                 f"{_LOCK_KEY}); refusing to race it and double-spend the "
                 "provider budget"
             )
-    try:
         yield
-    finally:
-        with gap._conn.cursor() as cur:
-            cur.execute("SELECT pg_advisory_unlock(%s)", (_LOCK_KEY,))
 
 
 # --- core orchestration (testable; take repo/gap, no settings construction) ---
@@ -491,13 +487,10 @@ def data_gap_healer_job(
     repo = Repository(psycopg.connect(settings.db_dsn()), schema=settings.db_schema)
     gap = DataGapHealerRepository(repo.conn, schema=settings.db_schema)
     try:
-        with repo.conn.cursor() as cur:
-            cur.execute("SELECT pg_try_advisory_lock(%s)", (_LOCK_KEY,))
-            got = cur.fetchone()[0]
-        if not got:
-            logger.info("data_gap_healer: lock held; skipping")
-            return {"skipped": "locked"}
-        try:
+        with single_flight(repo.conn, _LOCK_KEY) as got:
+            if not got:
+                logger.info("data_gap_healer: lock held; skipping")
+                return {"skipped": "locked"}
             _reap_stale_runs(gap)
             if _another_run_active(gap):
                 logger.info("data_gap_healer: a prior run is active; skipping")
@@ -514,9 +507,6 @@ def data_gap_healer_job(
             finally:
                 if recorder is not None:
                     recorder.close()
-        finally:
-            with repo.conn.cursor() as cur:
-                cur.execute("SELECT pg_advisory_unlock(%s)", (_LOCK_KEY,))
     finally:
         repo.conn.close()
 
