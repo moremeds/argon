@@ -1044,8 +1044,8 @@
     "history_start": "2025-12-12",
     "n_obs": 130,
     "vix": 19.29,
-    "vix_cor1m_ratio": 1.1841620626151013,
-    "vix_cor1m_ratio_z": -1.6975940988828697
+    "vix_cor1m_ratio": 1.18416206,
+    "vix_cor1m_ratio_z": -1.6975941
    },
    "status": 200
   },
@@ -1741,8 +1741,8 @@
     "modeled_credit": null,
     "name": "SPX",
     "spot": 7300.0,
-    "vrp_z": 0.3632656043632066,
-    "weight": 0.7265312087264132
+    "vrp_z": 0.363265604,
+    "weight": 0.726531209
    },
    "status": 200
   },
@@ -1770,26 +1770,26 @@
      "bt_maxdd": -0.796,
      "bt_n": 522,
      "bt_sharpe": 1.6524,
-     "credit": 58.76145827021003,
+     "credit": 58.7614583,
      "expiry": null,
      "hold_days": 30,
      "iv": 0.255,
-     "long_put": 6654.512435864719,
+     "long_put": 6654.51244,
      "long_put_delta": null,
-     "max_loss": 225.76248716385896,
+     "max_loss": 225.762487,
      "name": "SPX",
-     "put_width": 284.523945434069,
-     "rv20": 6.989101586215269e-06,
+     "put_width": 284.523945,
+     "rv20": 6.98910159e-06,
      "short_delta": 0.25,
-     "short_put": 6939.036381298788,
+     "short_put": 6939.03638,
      "short_put_delta": null,
      "snapshot_date": "2026-06-12",
      "spot": 7300.0,
      "strike_basis": "flat_vol_model",
      "strike_grid_date": null,
-     "vrp": 0.2549930108984138,
-     "vrp_z": 0.3632656043632066,
-     "weight": 0.7265312087264132,
+     "vrp": 0.254993011,
+     "vrp_z": 0.363265604,
+     "weight": 0.726531209,
      "wing_delta": 0.125
     },
     "status": "ok"
@@ -2606,8 +2606,8 @@
     "history_start": "2025-12-12",
     "n_obs": 130,
     "vix": 19.29,
-    "vix_cor1m_ratio": 1.1841620626151013,
-    "vix_cor1m_ratio_z": -1.6975940988828697
+    "vix_cor1m_ratio": 1.18416206,
+    "vix_cor1m_ratio_z": -1.6975941
    },
    "status": 200
   },
@@ -3599,8 +3599,8 @@
     "modeled_credit": null,
     "name": "SPX",
     "spot": 7258.0,
-    "vrp_z": 0.2793665977929695,
-    "weight": 0.558733195585939
+    "vrp_z": 0.279366598,
+    "weight": 0.558733196
    },
    "status": 200
   },

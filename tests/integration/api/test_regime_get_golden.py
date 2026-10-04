@@ -15,6 +15,11 @@ loaded ``uw_scan.api.routers.regime*`` module (so it still reaches the code
 after it moves between modules) and of the two compute modules that read the
 clock on these paths.
 
+Floats are rounded to 9 significant digits before comparing: the live compute
+goes through numpy/libm, whose last bits differ between the macOS laptop and
+the Linux CI runner (225.76248716385896 vs 225.7624871638585). Nine digits
+keeps every displayed value and drops only that platform noise.
+
 Regenerate (only for an intentional response change):
 ``REGIME_GOLDEN_WRITE=1 uv run pytest tests/integration/api/test_regime_get_golden.py``
 """
@@ -96,6 +101,16 @@ def _regime_get_paths(client) -> list[str]:
     return sorted(paths)
 
 
+def _round_floats(value):
+    if isinstance(value, float):
+        return float(f"{value:.9g}")
+    if isinstance(value, dict):
+        return {k: _round_floats(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_round_floats(v) for v in value]
+    return value
+
+
 def _sweep(client) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for path in _regime_get_paths(client):
@@ -104,7 +119,7 @@ def _sweep(client) -> dict[str, dict]:
             body = r.json()
         except ValueError:
             body = r.text
-        out[path] = {"status": r.status_code, "body": body}
+        out[path] = {"status": r.status_code, "body": _round_floats(body)}
     return out
 
 
