@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from uw_scan.config import Settings
-from uw_scan.worker.scheduler import (
+from uw_scan.worker.schedule.regime import (
     _market_tide_cron_trigger,
     _top_net_impact_cron_trigger,
 )

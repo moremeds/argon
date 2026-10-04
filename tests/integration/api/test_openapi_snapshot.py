@@ -31,6 +31,8 @@ _SPLIT_PREFIXES = (
     "/api/macro",
     "/api/gold",
     "/api/rates",
+    "/api/cockpit",
+    "/api/health",
     # I-35: the radar router's SQL moved to storage/radar.py.
     "/api/scanner/radar",
     "/api/research/chains",

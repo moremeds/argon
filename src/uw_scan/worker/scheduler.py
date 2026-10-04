@@ -6,59 +6,38 @@ import logging
 import signal
 import sys
 import zlib
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
-from datetime import UTC, datetime, time, timedelta
-from typing import Literal
+from collections.abc import Callable
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
 from apscheduler.schedulers import SchedulerNotRunningError
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.combining import OrTrigger
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
-from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
-from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
+from uw_scan.sources.lake_resolver import _r2_fully_configured
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
     may_spend,
     read_snapshot,
 )
+from uw_scan.storage.advisory_locks import worker_key
 from uw_scan.storage.ops_health import _ops_conn
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
-from uw_scan.storage.advisory_locks import worker_key
+from uw_scan.worker.db import external_api_recorder as _external_api_recorder
 from uw_scan.worker.db import repo_session as _repo
+from uw_scan.worker.db import research_budget_ok as _research_budget_ok
+from uw_scan.worker.db import uw_client as _uw_client
 from uw_scan.worker.jobs.cockpit_daily_snapshot import cockpit_daily_snapshot
 from uw_scan.worker.jobs.corporate_actions_jobs import corporate_actions_refresh_once
-from uw_scan.worker.jobs.credit_etf_lake_sync import run_credit_etf_lake_sync
 from uw_scan.worker.jobs.data_gap_healer import data_gap_healer_job
 from uw_scan.worker.jobs.flow_data_refresh import flow_data_refresh
 from uw_scan.worker.jobs.full_scan import full_scan_once
 from uw_scan.worker.jobs.full_scan_hot import full_scan_hot_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
-from uw_scan.worker.jobs.macro_context_snapshot import macro_context_snapshot_job
-from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
-from uw_scan.worker.jobs.macro_market_layer_ingest import (
-    macro_market_layer_ingest_job,
-)
-from uw_scan.worker.jobs.macro_policy_jobs import (
-    macro_fomc_statement_ingest_job,
-    macro_market_implied_ingest_job,
-    macro_sep_ingest_job,
-    macro_sme_ingest_job,
-)
-from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
-from uw_scan.worker.jobs.macro_state_jobs import (
-    macro_gold_state_job,
-    macro_inflation_state_job,
-    macro_rates_state_job,
-    macro_usd_state_job,
-)
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
@@ -73,9 +52,7 @@ from uw_scan.worker.jobs.option_surface_research_catchup import (
 )
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
-from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
-from uw_scan.worker.jobs.regime_jobs import regime_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
@@ -91,7 +68,6 @@ from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
 from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
-from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.vrp_macro_entry import (
     vrp_macro_entry_grid_refresh,
@@ -107,6 +83,15 @@ from uw_scan.worker.jobs.vrp_trading_jobs import (
     vrp_paper_open,
 )
 from uw_scan.worker.schedule.gold import register as register_gold_jobs
+from uw_scan.worker.schedule.macro import register as register_macro_jobs
+from uw_scan.worker.schedule.regime import _should_schedule_regime_live
+from uw_scan.worker.schedule.regime import register as register_regime_jobs
+from uw_scan.worker.schedule.roles import (
+    _is_primary_worker,
+    _owns_global_daily_jobs,
+    _pinned,
+    _worker_groups,
+)
 from uw_scan.worker.schema_gate import wait_for_schema
 from uw_scan.worker.volatility_jobs import (
     daily_spy_ohlc_refresh,
@@ -153,42 +138,6 @@ def _live_max_tickers(
     return remaining // FULL_SCAN_CALLS_PER_TICKER // divisor
 
 
-def _research_budget_ok(settings: Settings, repo) -> bool:
-    """True if a research-pool job may still spend UW budget this tick.
-
-    Deliberately NOT applied to two classes of research job:
-    - ``rescan_tick`` — explicit user-requested rescans keep priority (silently
-      no-op'ing a click is bad UX); they're low-volume and self-limit via UW's
-      429 past the hard account cap anyway.
-    - the post-RTH durable nightly captures (``option_surface_capture``,
-      ``greek_exposure_daily_refresh``, discovery) — they run at 18:30-19:00 ET,
-      after the live RTH scans are done and near the 20:00 ET budget reset, so
-      they don't contend with live; gating them on the shared research ceiling
-      would risk starving high-value durable data. Among the recurring *intraday*
-      research spenders, only ``regime_gex_scan`` (the dominant one, ~4k
-      calls/day) gates here, so RTH research is effectively bounded.
-      ``regime_market_tide_scan`` is deliberately NOT gated: at ~78 calls/day
-      it's too cheap to be worth freezing the whole Market Tide tab when the
-      shared UW key crosses the guard (matches ``regime_top_net_impact_scan``).
-    """
-    if not settings.uw_budget_governor_enabled:
-        return True
-    snap = read_snapshot(repo.conn, settings.db_schema)
-    return may_spend("research", snap, limits_from_settings(settings))
-
-
-# Each regime scan tick checks the last N CALENDAR days for missing snapshots
-# and fills them (the scanners compute `latest - timedelta(days=N)` and then
-# intersect with the trading days actually present — see scanners/cri.py:338,
-# vcg.py:276, canary.py:322). At 30 calendar days that is ~21 trading days.
-# The window must exceed realistic TIME-TO-DETECT, not typical outage length:
-# the 2026-07-08 lake outage ran 13 days, so at the previous value of 7 the
-# 07-08..07-13 span would never have healed even after the mount was repaired
-# — leaving a permanent hole mid-series while the recent tail looked correct.
-# Per-tick cost is a set-membership check per candidate date and a scanner run
-# only for dates genuinely missing a snapshot (normally zero).
-REGIME_RECOVERY_LOOKBACK_DAYS = 30
-WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
 WORKER_ROLES: set[str] = {
     "all",
     "uw",
@@ -239,29 +188,6 @@ def _validate_worker_settings(settings: Settings) -> None:
         )
 
 
-def _worker_groups(settings: Settings) -> set[WorkerGroup]:
-    role = settings.worker_role.lower()
-    if role == "all":
-        return {"uw", "massive", "ai"}
-    if role == "uw":
-        return {"uw"}
-    if role == "massive":
-        return {"massive"}
-    if role == "ai":
-        return {"ai"}
-    if role == "ai-codex":
-        return {"ai-codex"}
-    if role == "ai-claude":
-        return {"ai-claude"}
-    if role == "ai-deepseek":
-        return {"ai-deepseek"}
-    raise RuntimeError(
-        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
-        "ai-codex, ai-claude "
-        f"(got {settings.worker_role!r})"
-    )
-
-
 def _worker_owns_ticker(ticker: str, *, index: int, count: int) -> bool:
     if count <= 1:
         return True
@@ -280,38 +206,6 @@ def _rescan_worker_concurrency(settings: Settings) -> int:
     if settings.worker_role.lower() == "uw" and settings.worker_count > 1:
         return 1
     return RESCAN_WORKER_CONCURRENCY
-
-
-def _pinned(settings: Settings, role: str) -> bool:
-    """True on exactly one process: the single-scheduler ``all`` shape, or index 0
-    of ``role``. The predicate every single-owner job uses (I-51)."""
-    current = settings.worker_role.lower()
-    return current == "all" or (current == role and settings.worker_index == 0)
-
-
-def _is_primary_worker(settings: Settings) -> bool:
-    return settings.worker_role.lower() == "all" or settings.worker_index == 0
-
-
-def _owns_global_daily_jobs(settings: Settings) -> bool:
-    """Exactly one process owns the role-agnostic daily jobs (gold, regime
-    EOD scans, vol/credit lake syncs, macro).
-
-    These used to sit under `_is_primary_worker`, which is true for index-0 of
-    EVERY role, so the prod stack (uw-0, massive-0, ai-deepseek-0) ran each of
-    them three times: tripled UW spend for the gold options ingest and three
-    gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
-    """
-    return _pinned(settings, "massive")
-
-
-def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
-    return _pinned(settings, "uw")
-
-
-def _should_schedule_macro_policy_ingest(settings: Settings) -> bool:
-    """One network/data worker owns free official macro evidence polling."""
-    return _pinned(settings, "massive")
 
 
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
@@ -342,19 +236,6 @@ def _should_schedule_uw_alpha_capture(settings: Settings) -> bool:
     surface capture above. Gated by the master capture flag.
     """
     if not settings.uw_alpha_capture_enabled:
-        return False
-    return _pinned(settings, "uw")
-
-
-def _should_schedule_market_tide_capture(settings: Settings) -> bool:
-    """Exactly one process owns the 5-min market-tide capture.
-
-    UW-bound + appends a row per bar with no advisory lock; scheduling on every
-    role's index-0 (_is_primary_worker matches uw-0/massive-0/ai-0) would
-    multiply UW spend + race upserts. Pin to uw-0, gated by the capture flag —
-    follows the option-surface / skew-swing precedent.
-    """
-    if not settings.market_tide_capture_enabled:
         return False
     return _pinned(settings, "uw")
 
@@ -395,91 +276,6 @@ def _should_schedule_company_sector_refresh(settings: Settings) -> bool:
     return _pinned(settings, "uw")
 
 
-def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
-    """Exactly one process owns the 15-min top-net-impact capture. Same uw-0
-    pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
-    if not settings.top_net_impact_capture_enabled:
-        return False
-    return _pinned(settings, "uw")
-
-
-def _gex_cron_trigger(settings: Settings) -> OrTrigger:
-    """Intraday GEX cadence: tight during RTH (9-16 ET), slow off-hours; weekdays
-    only. US options don't trade off-hours (GEX ~static) or on weekends, so the
-    append-only intraday series is captured densely only where dealer positioning
-    actually moves. Research budget pool."""
-    rth = settings.gex_scan_rth_interval_minutes
-    off = settings.gex_scan_offhours_interval_minutes
-    return OrTrigger(
-        [
-            CronTrigger(
-                minute=f"*/{rth}",
-                hour="9-16",
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-            CronTrigger(
-                minute=f"*/{off}",
-                hour="0-8,17-23",
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-        ]
-    )
-
-
-def _market_tide_cron_trigger(settings: Settings) -> OrTrigger:
-    """09:30-16:10 ET at 5-min cadence, matching UW's useful tide bars."""
-    return OrTrigger(
-        [
-            CronTrigger(
-                minute="30-55/5",
-                hour=9,
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-            CronTrigger(
-                minute="*/5",
-                hour="10-15",
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-            CronTrigger(
-                minute="0,5,10",
-                hour=16,
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-        ]
-    )
-
-
-def _top_net_impact_cron_trigger(settings: Settings) -> OrTrigger:
-    """09:30-16:15 ET at 15-min cadence, skipping pre-open noise."""
-    return OrTrigger(
-        [
-            CronTrigger(
-                minute="30,45",
-                hour=9,
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-            CronTrigger(
-                minute="*/15",
-                hour="10-15",
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-            CronTrigger(
-                minute="0,15",
-                hour=16,
-                day_of_week="mon-fri",
-                timezone=settings.rth_tz,
-            ),
-        ]
-    )
-
-
 def _should_schedule_vrp_macro_entry(settings: Settings) -> bool:
     """Exactly one process owns the 8x/day VRP entry-capture marks.
 
@@ -503,18 +299,6 @@ def _should_schedule_skew_swing_greeks(settings: Settings) -> bool:
     rates-FRED / pipeline-benchmark precedent.
     """
     return _pinned(settings, "uw")
-
-
-def _should_schedule_regime_live(settings: Settings) -> bool:
-    """Exactly one process owns the 5-min live snapshot writes.
-
-    _is_primary_worker is true for index-0 of EVERY role (uw-0, massive-0,
-    ai-*-0 all match) — fine for the idempotent gap-recovery scans that
-    share its block, but regime_live_scan appends a row per tick, so a
-    multi-role stack would write N duplicates. Pin to massive-0 (market-
-    data role) following the rates-FRED precedent.
-    """
-    return _pinned(settings, "massive")
 
 
 def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
@@ -597,44 +381,6 @@ def _worker_heartbeat_name(settings: Settings) -> str:
 def _record_worker_heartbeat(settings: Settings) -> None:
     with _repo(settings) as repo:
         repo.upsert_heartbeat(_worker_heartbeat_name(settings))
-
-
-def _run_rates_fred_ingest(settings: Settings) -> None:
-    if settings.fred_api_key is None:
-        logger.warning("FRED_API_KEY not set; skipping rates_fred_ingest")
-        return
-    with _external_api_recorder(settings) as recorder:
-        rates_fred_ingest_job(
-            dsn=settings.db_dsn(),
-            schema=settings.db_schema,
-            fred_api_key=settings.fred_api_key.get_secret_value(),
-            policy_path_url=settings.rates_policy_path_url,
-            record_request=lambda _provider, event: recorder.record(event),
-        )
-
-
-@contextmanager
-def _external_api_recorder(settings: Settings) -> Iterator[ExternalApiRequestRecorder]:
-    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
-    try:
-        yield recorder
-    finally:
-        recorder.close()
-
-
-def _uw_client(
-    settings: Settings,
-    *,
-    telemetry_recorder: ExternalApiRequestRecorder | None = None,
-    job_name: str | None = None,
-) -> UwClient:
-    return UwClient(
-        api_key=settings.api_key.get_secret_value(),
-        base_url=settings.base_url,
-        timeout=settings.request_timeout_seconds,
-        telemetry_recorder=telemetry_recorder,
-        job_name=job_name,
-    )
 
 
 def _ohlc_provider(
@@ -1394,81 +1140,6 @@ def main() -> int:
                 counts["scored"],
             )
 
-    def _vol_index_lake_sync() -> None:
-        # Parquet lake → vol_index_daily. Source is R2 when all four R2_*
-        # settings are present (per the 2026-05-25 standing rule), else the
-        # local mirror under ~/market-warehouse/.../volatility. No external
-        # API spend in either case (R2 = our own object storage, not UW/Massive).
-        # Primary worker runs it to avoid duplicate upserts.
-        root = resolve_lake_root(settings, asset_class="volatility")
-        with _repo(settings) as repo:
-            run_vol_index_lake_sync(repo.conn, root=root)
-
-    def _credit_etf_lake_sync() -> None:
-        # Equity asset_class lake → vol_index_daily for the VCG credit proxies
-        # (HYG / JNK / LQD). Source is R2 when configured, else the local
-        # mirror — same idempotency guarantees apply to both backends.
-        # Primary worker only.
-        root = resolve_lake_root(settings, asset_class="equity")
-        with _repo(settings) as repo:
-            run_credit_etf_lake_sync(
-                repo.conn,
-                root=root,
-                symbols=settings.credit_etf_symbols,
-            )
-
-    def _regime_vcg_scan() -> None:
-        # Reads vol_index_daily (VIX/VVIX + the credit proxies); writes
-        # vcg_snapshots. No external API spend. Self-healing via
-        # ``recover_recent_gaps`` — fills any missing day in the last
-        # ``REGIME_RECOVERY_LOOKBACK_DAYS``, including today. Idempotent;
-        # repeated ticks with no new lake data are a no-op.
-        from uw_scan.scanners import vcg as vcg_scanner
-
-        proxy = settings.credit_etf_symbols[0] if settings.credit_etf_symbols else "HYG"
-        with _repo(settings) as repo:
-            summary = vcg_scanner.recover_recent_gaps(
-                repo.conn,
-                schema=settings.db_schema,
-                proxy=proxy,
-                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
-            )
-        logger.info(
-            "regime_vcg_scan_tick proxy=%s checked=%d filled=%d skipped=%d",
-            proxy,
-            summary["checked"],
-            summary["filled"],
-            summary["skipped"],
-        )
-
-    def _regime_cri_scan() -> None:
-        # Reads vol_index_daily + daily_ohlc; writes cri_snapshots. No external
-        # API spend. Self-healing — see _regime_vcg_scan comment.
-        from uw_scan.scanners import cri as cri_scanner
-
-        with _repo(settings) as repo:
-            summary = cri_scanner.recover_recent_gaps(
-                repo.conn,
-                schema=settings.db_schema,
-                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
-            )
-        logger.info(
-            "regime_cri_scan_tick checked=%d filled=%d skipped=%d",
-            summary["checked"],
-            summary["filled"],
-            summary["skipped"],
-        )
-
-    def _regime_live_scan() -> None:
-        # Weekday gate — quotes only flow Mon-Fri (xenon streams 24h but the
-        # market session is what makes a provisional close meaningful).
-        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
-            return
-        from uw_scan.worker.jobs.regime_live import regime_live_scan_once
-
-        with _repo(settings) as repo:
-            summary = regime_live_scan_once(repo, settings)
-        logger.info("regime_live_scan_tick %s", summary)
 
     def _technical_live_scan() -> None:
         # Weekday gate — same rationale as regime_live: a provisional close is
@@ -1488,173 +1159,6 @@ def main() -> int:
             summary = chanlun_lifecycle_scan(repo, settings)
         logger.info("chanlun_lifecycle_scan_tick %s", summary)
 
-    def _regime_live_validation() -> None:
-        from uw_scan.worker.jobs.regime_live import validate_live_close_vs_lake
-
-        with _repo(settings) as repo:
-            rows = validate_live_close_vs_lake(repo, settings)
-        logger.info("regime_live_validation_done symbols=%d", len(rows))
-
-    def _regime_canary_scan() -> None:
-        # Reads vol_index_daily (VIX/VVIX/VIX3M/COR1M/SPX); writes
-        # canary_snapshots. composite_version is part of the dedup key, so
-        # bumping the calibration version automatically triggers fresh
-        # snapshots on the next tick. Self-healing — see _regime_vcg_scan.
-        from uw_scan.scanners import canary as canary_scanner
-
-        with _repo(settings) as repo:
-            summary = canary_scanner.recover_recent_gaps(
-                repo.conn,
-                schema=settings.db_schema,
-                lookback_days=REGIME_RECOVERY_LOOKBACK_DAYS,
-            )
-        logger.info(
-            "regime_canary_scan_tick checked=%d filled=%d skipped=%d",
-            summary["checked"],
-            summary["filled"],
-            summary["skipped"],
-        )
-
-    def _regime_gex_scan() -> None:
-        # Weekday gate — UW data only meaningful during regular sessions.
-        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
-            logger.info("regime_gex_scan_skipped_weekend")
-            return
-        from uw_scan.scanners import gex as gex_scanner
-
-        with _external_api_recorder(settings) as recorder:
-            with _uw_client(
-                settings, telemetry_recorder=recorder, job_name="regime_gex_scan"
-            ) as uw:
-                with _repo(settings) as repo:
-                    if not _research_budget_ok(settings, repo):
-                        logger.info(
-                            "regime_gex_scan skipped: research UW budget exhausted"
-                        )
-                        return
-                    # Unit = one ticker. gex_scanner.run commits each ticker's
-                    # snapshot and scan_run on its own, so a bad ticker never
-                    # costs the others; only a run where EVERY ticker failed
-                    # raises, so the job listener records it.
-                    succeeded = 0
-                    last_exc: Exception | None = None
-                    for ticker in settings.gex_scan_tickers:
-                        try:
-                            gex_scanner.run(uw, repo, ticker=ticker)
-                            succeeded += 1
-                        except Exception as exc:
-                            logger.warning(
-                                "regime_gex_scan_failed ticker=%s err=%s",
-                                ticker,
-                                repr(exc),
-                            )
-                            last_exc = exc
-                    if succeeded == 0 and last_exc is not None:
-                        raise RuntimeError(
-                            f"regime_gex_scan: all {len(settings.gex_scan_tickers)}"
-                            f" tickers failed; last err={last_exc!r}"
-                        ) from last_exc
-
-    def _regime_market_tide_scan() -> None:
-        # Weekday gate — UW market-tide is only published during sessions.
-        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
-            logger.info("regime_market_tide_scan_skipped_weekend")
-            return
-        from uw_scan.scanners import market_tide as market_tide_scanner
-
-        with _external_api_recorder(settings) as recorder:
-            with _uw_client(
-                settings,
-                telemetry_recorder=recorder,
-                job_name="regime_market_tide_scan",
-            ) as uw:
-                with _repo(settings) as repo:
-                    # NOT budget-gated: one UW call per 5-min tick (~78/day) —
-                    # spot comes from the WS DB table, not UW. Matches its
-                    # identical-cost sibling _regime_top_net_impact_scan. Gating
-                    # it behind the account-wide total_guard froze the whole
-                    # Market Tide tab whenever the shared UW key crossed 105k
-                    # mid-session; the ~78 calls it saves aren't worth that.
-                    # One unit (one UW call): an exception is a failed run and
-                    # re-raises so the job listener records it; 0 bars is a
-                    # normal outcome (pre-open tick), not a failure.
-                    try:
-                        n = market_tide_scanner.run(
-                            uw, repo, spot_ticker=settings.market_tide_spot_ticker
-                        )
-                        logger.info("regime_market_tide_scan_tick bars=%s", n)
-                    except Exception as exc:
-                        logger.warning(
-                            "regime_market_tide_scan_failed err=%s", repr(exc)
-                        )
-                        repo.conn.rollback()
-                        raise
-
-    def _regime_top_net_impact_scan() -> None:
-        # Weekday gate — UW top-net-impact is only published during sessions.
-        if datetime.now(ZoneInfo(settings.rth_tz)).weekday() >= 5:
-            logger.info("regime_top_net_impact_scan_skipped_weekend")
-            return
-        from uw_scan.scanners import top_net_impact as top_net_impact_scanner
-
-        with _external_api_recorder(settings) as recorder:
-            with _uw_client(
-                settings,
-                telemetry_recorder=recorder,
-                job_name="regime_top_net_impact_scan",
-            ) as uw:
-                with _repo(settings) as repo:
-                    # One unit (one UW call): the scanner commits its scan_run as
-                    # 'error' and re-raises; re-raise here too so the job
-                    # listener records the failure. 0 rows is a normal outcome.
-                    try:
-                        n = top_net_impact_scanner.run(uw, repo)
-                        logger.info("regime_top_net_impact_scan_tick rows=%s", n)
-                    except Exception as exc:
-                        logger.warning(
-                            "regime_top_net_impact_scan_failed err=%s", repr(exc)
-                        )
-                        repo.conn.rollback()
-                        raise
-
-    def _market_tide_sentiment_eod() -> None:
-        # EOD slope/sentiment for the latest session — pure DB→DB reshape of
-        # the captured tide bars (no UW). Persists market_tide_sentiment_daily
-        # for the backtest history.
-        from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
-
-        # One unit (sessions=1): an exception is a failed run and re-raises so
-        # the job listener records it; 0 sessions (no tide bars yet) is normal.
-        with _repo(settings) as repo:
-            try:
-                n = refresh_eod_sentiment(repo, sessions=1)
-                logger.info("market_tide_sentiment_eod_tick sessions=%s", n)
-            except Exception as exc:
-                logger.warning("market_tide_sentiment_eod_failed err=%s", repr(exc))
-                repo.conn.rollback()
-                raise
-
-    def _regime_grg_scan() -> None:
-        # Gamma Rotation Gap. UW-bound: fetches SPY/TLT greek-exposure history,
-        # reads SPY/TLT flip+spot from gex_snapshots, persists grg_snapshots.
-        # Mirrors _regime_gex_scan's external-API bracket.
-        from uw_scan.scanners import grg as grg_scanner
-
-        with _external_api_recorder(settings) as recorder:
-            with _uw_client(
-                settings, telemetry_recorder=recorder, job_name="regime_grg_scan"
-            ) as uw:
-                with _repo(settings) as repo:
-                    # One unit (one SPY/TLT snapshot): the scanner commits its
-                    # scan_run as 'error' and re-raises; re-raise here too so the
-                    # job listener records the failure.
-                    try:
-                        row_id = grg_scanner.run(uw, repo, schema=settings.db_schema)
-                        logger.info("regime_grg_scan_tick row_id=%s", row_id)
-                    except Exception as exc:
-                        logger.warning("regime_grg_scan_failed err=%s", repr(exc))
-                        repo.conn.rollback()
-                        raise
 
     def _discovery_scan() -> None:
         # Market-wide discovery — UW-bound (flow alerts + per-ticker dark pool),
@@ -1679,109 +1183,6 @@ def main() -> int:
                         repo.conn.rollback()
                         raise
 
-    def _rates_fred_ingest() -> None:
-        _run_rates_fred_ingest(settings)
-
-    def _regime_fred_ingest() -> None:
-        regime_fred_ingest_job(dsn=settings.db_dsn(), schema=settings.db_schema)
-
-    def _macro_fomc_ingest() -> None:
-        macro_fomc_statement_ingest_job(dsn=settings.db_dsn())
-
-    def _macro_sep_ingest() -> None:
-        macro_sep_ingest_job(dsn=settings.db_dsn())
-
-    def _macro_sme_ingest() -> None:
-        macro_sme_ingest_job(dsn=settings.db_dsn())
-
-    def _macro_market_shadow_ingest() -> None:
-        macro_market_implied_ingest_job(
-            dsn=settings.db_dsn(),
-            current_target_range=None,
-            provider_factory=lambda: FedFundsFuturesPathProvider(
-                base_url=settings.rates_policy_path_url
-            ),
-        )
-
-    def _macro_series_ingest() -> None:
-        key = settings.fred_api_key
-        if key is None:
-            logger.warning("macro series ingest skipped: FRED_API_KEY is not set")
-            return
-        macro_fred_series_ingest_job(
-            dsn=settings.db_dsn(), api_key=key.get_secret_value()
-        )
-
-    def _macro_market_layer_ingest() -> None:
-        result = macro_market_layer_ingest_job(dsn=settings.db_dsn())
-        logger.info(
-            "macro market layer ingest: %s feeds=%d/%d created=%d unchanged=%d%s",
-            result.status,
-            result.feeds_succeeded,
-            result.feeds_attempted,
-            result.observations_created,
-            result.observations_unchanged,
-            f" failed={','.join(result.failed_feeds)}" if result.failed_feeds else "",
-        )
-
-    def _macro_gold_ingest() -> None:
-        if settings.massive_api_key is None:
-            logger.info("macro gold ingest skipped: no massive api key configured")
-            return
-        result = macro_gold_ingest_job(
-            dsn=settings.db_dsn(),
-            massive_api_key=settings.massive_api_key.get_secret_value(),
-            schema=settings.db_schema,
-        )
-        logger.info(
-            "macro gold ingest: %d/%d feeds, %d artifacts, %d created, %d unchanged%s",
-            result.feeds_succeeded,
-            result.feeds_attempted,
-            result.artifacts_seen,
-            result.observations_created,
-            result.observations_unchanged,
-            f", errors={result.errors}" if result.errors else "",
-        )
-
-    def _macro_state_compute() -> None:
-        # One connection, all FOUR domains, IN ORDER -- and the order is a dependency,
-        # not a nicety. USD reads the stored rates ANSWER, so rates must have been
-        # computed for this instant first or USD runs with no upstream and the policy
-        # contradiction cannot fire. Gold is the terminal node and reads all three, so it
-        # runs last: put it earlier and it records zero dependency edges every night while
-        # looking perfectly healthy.
-        #
-        # ONE as_of for all four, stamped once rather than per job. Letting each call
-        # now() gives three instants seconds apart, and then "the inflation state and
-        # the rates state" are answers to two slightly different questions -- which is
-        # exactly the comparison this pass exists to make safe. It also makes USD's
-        # upstream lookup exact: rates is stored at the same instant USD asks about,
-        # and `available_at <= as_of` admits equality.
-        instant = datetime.now(UTC)
-        with _repo(settings) as repo:
-            for job in (
-                macro_inflation_state_job,
-                macro_rates_state_job,
-                macro_usd_state_job,
-                macro_gold_state_job,
-            ):
-                result = job(repo, as_of=instant)
-                logger.info(
-                    "macro state %s: %s state=%s confidence=%s evidence=%d",
-                    result.domain,
-                    result.status,
-                    result.state,
-                    result.confidence,
-                    result.evidence_count,
-                )
-            # Assemble LAST and under the SAME instant. Every domain above catches its
-            # own exception so the loop reaches here after a partial failure -- which is
-            # the case the snapshot exists to name. It reads the stored dependency edges
-            # rather than anything this pass holds in memory, so tonight's assembly and a
-            # replay of a past instant run the identical code.
-            macro_context_snapshot_job(
-                repo, as_of=instant, assembled_at=datetime.now(UTC)
-            )
 
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
@@ -2304,75 +1705,6 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
-            # Regime / GEX scan — append-only intraday GEX/DEX series over the
-            # expanded ticker set. Split RTH-fast / off-hours-slow cadence
-            # (weekdays only). Primary-uw-only; research budget pool.
-            sched.add_job(
-                _regime_gex_scan,
-                _gex_cron_trigger(settings),
-                id="regime_gex_scan",
-                name="Regime GEX scan (UW)",
-                max_instances=1,
-                coalesce=True,
-            )
-            # Market-tide capture — market-wide net call/put premium, 5-min
-            # bars through RTH. UW-bound + per-tick row writes; pinned to uw-0
-            # via its own helper (NOT the looser _is_primary_worker gate) to
-            # avoid duplicate UW spend, and behind the capture kill switch.
-            if _should_schedule_market_tide_capture(settings):
-                sched.add_job(
-                    _regime_market_tide_scan,
-                    _market_tide_cron_trigger(settings),
-                    id="regime_market_tide_scan",
-                    name="Regime market-tide capture (UW)",
-                    max_instances=1,
-                    coalesce=True,
-                )
-                # EOD tide sentiment — persist the day's slope/sentiment after
-                # the close (last bar ~16:10 ET). DB→DB, no UW. Same uw-0 pin,
-                # gated with the tide capture it depends on.
-                sched.add_job(
-                    _market_tide_sentiment_eod,
-                    CronTrigger(
-                        minute=25,
-                        hour=16,
-                        day_of_week="mon-fri",
-                        timezone=settings.rth_tz,
-                    ),
-                    id="market_tide_sentiment_eod",
-                    name="Market-tide EOD sentiment (DB)",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            # Top-net-impact capture — market-wide net-premium ranking, 15-min
-            # through RTH. One UW call/tick; pinned uw-0 + kill switch, slower
-            # cadence than tide to respect UW budget (ranking barely moves in
-            # 15 min). Tracks per-update rank movement via prev_rank.
-            if _should_schedule_top_net_impact_capture(settings):
-                sched.add_job(
-                    _regime_top_net_impact_scan,
-                    _top_net_impact_cron_trigger(settings),
-                    id="regime_top_net_impact_scan",
-                    name="Regime top-net-impact capture (UW)",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            # Regime / GRG scan — SPY/TLT cross-asset gamma divergence.
-            # UW-bound; every 15 min through RTH + post-close settlement
-            # (UW greek-exposure updates after the close). Primary-uw-only.
-            sched.add_job(
-                _regime_grg_scan,
-                CronTrigger(
-                    minute="*/15",
-                    hour="9-18",
-                    day_of_week="mon-fri",
-                    timezone=settings.rth_tz,
-                ),
-                id="regime_grg_scan",
-                name="Regime GRG scan (UW)",
-                max_instances=1,
-                coalesce=True,
-            )
             # Market-wide discovery scan — edge-quality candidates + DP
             # enrichment. Primary-uw-only; gated by the discovery kill switch.
             if settings.scanner_discover_scan_enabled:
@@ -2408,27 +1740,6 @@ def main() -> int:
             misfire_grace_time=300,
         )
 
-    if _should_schedule_regime_live(settings):
-        # Live regime snapshot — basis='live' CRI/VCG rows every N minutes.
-        # Pure DB-read math off intraday_quote + vol_index_daily; no provider
-        # spend. Append-only writes, so exactly ONE process may own this.
-        sched.add_job(
-            _regime_live_scan,
-            IntervalTrigger(minutes=settings.regime_live_scan_interval_minutes),
-            id="regime_live_scan",
-            name="Regime live CRI/VCG snapshot",
-            max_instances=1,
-            coalesce=True,
-        )
-        # Live-vs-lake close validation — after both lake syncs (03:15/03:20).
-        sched.add_job(
-            _regime_live_validation,
-            CronTrigger(hour=3, minute=40, timezone=settings.rth_tz),
-            id="regime_live_validation",
-            name="Regime live close vs lake validation",
-            max_instances=1,
-            coalesce=True,
-        )
 
     if settings.technical_live_enabled and _should_schedule_regime_live(settings):
         # Live technicals coverage — upsert-per-ticker cache off intraday_quote.
@@ -2652,29 +1963,10 @@ def main() -> int:
             coalesce=True,
         )
 
-    # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the
-    # single-owner block below.
-    if _should_schedule_rates_fred_ingest(settings):
-        sched.add_job(
-            _rates_fred_ingest,
-            CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
-            id="rates_fred_ingest",
-            name="Rates: FRED curve and macro refresh",
-            max_instances=1,
-            coalesce=True,
-        )
+    register_macro_jobs(sched, settings)
+    register_regime_jobs(sched, settings)
 
     if _owns_global_daily_jobs(settings):
-        # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
-        # no provider role required. Idempotent (UPSERT) so safe to re-run.
-        sched.add_job(
-            _vol_index_lake_sync,
-            CronTrigger(hour=3, minute=15, timezone=settings.rth_tz),
-            id="vol_index_lake_sync",
-            name="Vol-complex parquet lake sync",
-            max_instances=1,
-            coalesce=True,
-        )
         # VRP macro short-vol signal at 03:45 ET — AFTER vol_index_lake_sync
         # (03:15) so it reads the freshest synced EOD vol. Computes the weekly
         # bull-put-spread readout + full-history backtest headline per name and
@@ -2687,144 +1979,7 @@ def main() -> int:
             max_instances=1,
             coalesce=True,
         )
-        # CRI scan — refreshes cri_snapshots on the hour. Pure DB-read math,
-        # no provider spend. Append-only; safe to re-run.
-        sched.add_job(
-            _regime_cri_scan,
-            CronTrigger(minute=20, timezone=settings.rth_tz),
-            id="regime_cri_scan",
-            name="Regime CRI scan",
-            max_instances=1,
-            coalesce=True,
-        )
-        # Credit ETF parquet lake sync — nightly, 03:20 ET. Mirrors the
-        # vol-complex sync but pulls HYG/JNK/LQD from asset_class=equity.
-        sched.add_job(
-            _credit_etf_lake_sync,
-            CronTrigger(hour=3, minute=20, timezone=settings.rth_tz),
-            id="credit_etf_lake_sync",
-            name="Credit-ETF parquet lake sync",
-            max_instances=1,
-            coalesce=True,
-        )
-        # VCG scan — refreshes vcg_snapshots on :25. Reads VIX/VVIX/<proxy>
-        # from vol_index_daily. Append-only.
-        sched.add_job(
-            _regime_vcg_scan,
-            CronTrigger(minute=25, timezone=settings.rth_tz),
-            id="regime_vcg_scan",
-            name="Regime VCG scan",
-            max_instances=1,
-            coalesce=True,
-        )
-        # 5% Canary scan — refreshes canary_snapshots on :30. Reads
-        # VIX/VVIX/VIX3M/COR1M/SPX from vol_index_daily. Append-only,
-        # idempotent (ON CONFLICT DO NOTHING in CanarySnapshotRepository).
-        sched.add_job(
-            _regime_canary_scan,
-            CronTrigger(minute=30, timezone=settings.rth_tz),
-            id="regime_canary_scan",
-            name="Regime 5% Canary scan",
-            max_instances=1,
-            coalesce=True,
-        )
         register_gold_jobs(sched, settings)
-        if _should_schedule_macro_policy_ingest(settings):
-            if settings.macro_fomc_ingest_enabled:
-                sched.add_job(
-                    _macro_fomc_ingest,
-                    CronTrigger.from_crontab("0 19 * * *", timezone=settings.rth_tz),
-                    id="macro_fomc_ingest",
-                    name="Macro: official FOMC statement evidence",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_sep_ingest_enabled:
-                sched.add_job(
-                    _macro_sep_ingest,
-                    CronTrigger.from_crontab("5 19 * * *", timezone=settings.rth_tz),
-                    id="macro_sep_ingest",
-                    name="Macro: official SEP evidence",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_sme_ingest_enabled:
-                sched.add_job(
-                    _macro_sme_ingest,
-                    CronTrigger.from_crontab("10 19 * * *", timezone=settings.rth_tz),
-                    id="macro_sme_ingest",
-                    name="Macro: NY Fed dealer expectations",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_market_shadow_ingest_enabled:
-                sched.add_job(
-                    _macro_market_shadow_ingest,
-                    CronTrigger.from_crontab("15 19 * * *", timezone=settings.rth_tz),
-                    id="macro_market_shadow_ingest",
-                    name="Macro: delayed third-party market policy shadow",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_series_ingest_enabled:
-                sched.add_job(
-                    _macro_series_ingest,
-                    CronTrigger.from_crontab("20 19 * * *", timezone=settings.rth_tz),
-                    id="macro_series_ingest",
-                    name="Macro: vintage-bearing FRED series evidence",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_market_layer_ingest_enabled:
-                # Inside the macro block rather than clear of it, deliberately: the state
-                # compute at 19:40 is the only consumer, and scheduling the layer after it
-                # would make every supply announcement and positioning release a full day
-                # stale to the state that reads it.  19:25 is the block's free slot.
-                sched.add_job(
-                    _macro_market_layer_ingest,
-                    CronTrigger.from_crontab("25 19 * * *", timezone=settings.rth_tz),
-                    id="macro_market_layer_ingest",
-                    name="Macro: Treasury supply and CFTC positioning evidence",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_gold_ingest_enabled:
-                # 19:30, the last free slot before the 19:40 compute. Ordering matters
-                # the same way the market layer's does: gold's REQUIRED anchor is
-                # GLD_CLOSE, so an ingest scheduled AFTER the compute would leave every
-                # state standing on yesterday's last price -- or, on the first night,
-                # abstaining.
-                sched.add_job(
-                    _macro_gold_ingest,
-                    CronTrigger.from_crontab("30 19 * * *", timezone=settings.rth_tz),
-                    id="macro_gold_ingest",
-                    name="Macro: gold price and ETF tonnage evidence",
-                    max_instances=1,
-                    coalesce=True,
-                )
-            if settings.macro_state_compute_enabled:
-                # After every ingest above, and after them by enough that a slow SEP
-                # fetch cannot make tonight's state answer from yesterday's evidence.
-                sched.add_job(
-                    _macro_state_compute,
-                    CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
-                    id="macro_state_compute",
-                    name="Macro: inflation, policy/rates, USD and gold domain states",
-                    max_instances=1,
-                    coalesce=True,
-                )
-        # NFCI / ANFCI / USREC for the regime label gates and trade insights. Same
-        # single owner as the official macro evidence polling (massive-0 or 'all').
-        # Unscheduled until 2026-10: the series sat frozen at 2026-05-26.
-        if _should_schedule_macro_policy_ingest(settings):
-            sched.add_job(
-                _regime_fred_ingest,
-                CronTrigger.from_crontab("22 19 * * *", timezone=settings.rth_tz),
-                id="regime_fred_ingest",
-                name="Regime: FRED NFCI/ANFCI/USREC refresh",
-                max_instances=1,
-                coalesce=True,
-            )
 
     stopping = False
 
