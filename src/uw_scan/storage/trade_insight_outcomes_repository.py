@@ -88,15 +88,13 @@ class TradeInsightOutcomeRepository:
     """Repository for the trade_insight_outcomes ledger.
 
     Owns the upsert path used by the nightly worker + the per-ticker /
-    per-priors read paths used by the API. Schema is set via search_path
-    in __init__, so SQL bodies use unqualified table names.
+    per-priors read paths used by the API. All SQL bodies are
+    schema-qualified via ``self._schema``.
     """
 
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     # ------------------------------------------------------------------
     # Write path
@@ -145,8 +143,8 @@ class TradeInsightOutcomeRepository:
         Upserts on the `analysis_id` unique index — re-running the
         nightly scorer is a no-op when nothing has changed.
         """
-        sql = """
-            INSERT INTO trade_insight_outcomes (
+        sql = f"""
+            INSERT INTO {self._schema}.trade_insight_outcomes (
                 analysis_id, ticker, provider, prompt_version,
                 snapshot_date, snapshot_close,
                 close_1d, close_1d_date,
@@ -261,9 +259,9 @@ class TradeInsightOutcomeRepository:
         before scoring fresh rows. The partial index from migration
         054 keeps this scan cheap as the table grows.
         """
-        sql = """
+        sql = f"""
             SELECT analysis_id, snapshot_date
-              FROM trade_insight_outcomes
+              FROM {self._schema}.trade_insight_outcomes
              WHERE resolved_outcome IS NULL OR resolved_outcome = 'pending'
              ORDER BY last_evaluated_at ASC, snapshot_date ASC
              LIMIT %s
@@ -277,11 +275,11 @@ class TradeInsightOutcomeRepository:
         self, *, limit: int = 100
     ) -> list[PendingOutcomeAnalysis]:
         """Return pending outcome rows plus source analysis fields in one read."""
-        sql = """
+        sql = f"""
             SELECT o.analysis_id, o.snapshot_date,
                    a.ticker, a.provider, a.prompt_version, a.outcome_jsonb
-              FROM trade_insight_outcomes o
-              LEFT JOIN trade_insight_ai_analyses a
+              FROM {self._schema}.trade_insight_outcomes o
+              LEFT JOIN {self._schema}.trade_insight_ai_analyses a
                 ON a.analysis_id = o.analysis_id
              WHERE o.resolved_outcome IS NULL OR o.resolved_outcome = 'pending'
              ORDER BY o.last_evaluated_at ASC, o.snapshot_date ASC
@@ -306,7 +304,7 @@ class TradeInsightOutcomeRepository:
         self, analysis_id: UUID | str
     ) -> TradeInsightOutcomeRow | None:
         """Return the outcome row for a single analysis, or None."""
-        sql = "SELECT * FROM trade_insight_outcomes WHERE analysis_id = %s"
+        sql = f"SELECT * FROM {self._schema}.trade_insight_outcomes WHERE analysis_id = %s"
         with self._conn.cursor() as cur:
             cur.execute(sql, (str(analysis_id),))
             row = cur.fetchone()
@@ -323,11 +321,11 @@ class TradeInsightOutcomeRepository:
         sibling becomes a candidate for scoring. Once the row exists,
         the incremental pass picks it up via `fetch_pending`.
         """
-        sql = """
+        sql = f"""
             SELECT a.analysis_id, a.ticker, a.provider, a.prompt_version,
                    a.finished_at, a.outcome_jsonb
-              FROM trade_insight_ai_analyses a
-              LEFT JOIN trade_insight_outcomes o ON o.analysis_id = a.analysis_id
+              FROM {self._schema}.trade_insight_ai_analyses a
+              LEFT JOIN {self._schema}.trade_insight_outcomes o ON o.analysis_id = a.analysis_id
              WHERE a.status = 'succeeded'
                AND o.analysis_id IS NULL
              ORDER BY a.finished_at ASC

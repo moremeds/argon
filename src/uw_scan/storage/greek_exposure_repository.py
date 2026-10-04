@@ -12,8 +12,6 @@ class GreekExposureDailyRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_rows(self, ticker: str, rows: Iterable[dict]) -> int:
         rows = list(rows)
@@ -31,8 +29,8 @@ class GreekExposureDailyRepository:
             }
             for r in rows
         ]
-        sql = """
-            INSERT INTO greek_exposure_daily
+        sql = f"""
+            INSERT INTO {self._schema}.greek_exposure_daily
                 (ticker, trade_date, call_gex, put_gex,
                  call_delta, put_delta, payload)
             VALUES
@@ -52,12 +50,12 @@ class GreekExposureDailyRepository:
 
     def fetch_history(self, ticker: str, days: int) -> list[dict]:
         """Return up to `days` most-recent rows, ascending by trade_date."""
-        sql = """
+        sql = f"""
             SELECT ticker, trade_date,
                    call_gex::float8,   put_gex::float8,
                    call_delta::float8, put_delta::float8,
                    net_gex::float8,    net_dex::float8
-              FROM greek_exposure_daily
+              FROM {self._schema}.greek_exposure_daily
              WHERE ticker = %s
              ORDER BY trade_date DESC
              LIMIT %s

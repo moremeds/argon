@@ -59,7 +59,9 @@ def test_upsert_fetch_roundtrip_and_idempotency(seeded_db_empty_cards):
     assert got[-1]["close"] == 101.0
 
     with repo.conn.cursor() as cur:
-        cur.execute("SELECT count(*) FROM technical_daily WHERE ticker = 'NVDA'")
+        cur.execute(
+            f"SELECT count(*) FROM {repo._schema}.technical_daily WHERE ticker = 'NVDA'"
+        )
         assert cur.fetchone()[0] == 2  # upsert, not duplicate insert
 
 

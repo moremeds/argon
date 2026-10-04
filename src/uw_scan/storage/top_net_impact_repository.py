@@ -17,8 +17,6 @@ class TopNetImpactRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def upsert_rows(self, rows: list[dict]) -> int:
         """Upsert net premium + rank for each (data_date, ticker). On conflict,
@@ -32,8 +30,8 @@ class TopNetImpactRepository:
         by_date: dict[date, set[str]] = defaultdict(set)
         for row in rows:
             by_date[row["data_date"]].add(str(row["ticker"]).upper())
-        sql = """
-            INSERT INTO top_net_impact_snapshots
+        sql = f"""
+            INSERT INTO {self._schema}.top_net_impact_snapshots
                 (data_date, ticker, net_premium, rank, prev_rank)
             VALUES (%(data_date)s, %(ticker)s, %(net_premium)s, %(rank)s, NULL)
             ON CONFLICT (data_date, ticker) DO UPDATE
@@ -46,8 +44,8 @@ class TopNetImpactRepository:
             cur.executemany(sql, rows)
             for data_date, tickers in by_date.items():
                 cur.execute(
-                    """
-                    DELETE FROM top_net_impact_snapshots
+                    f"""
+                    DELETE FROM {self._schema}.top_net_impact_snapshots
                      WHERE data_date = %s
                        AND NOT (ticker = ANY(%s))
                     """,
@@ -67,14 +65,16 @@ class TopNetImpactRepository:
         """
         if data_date is None:
             with self._conn.cursor() as cur:
-                cur.execute("SELECT max(data_date) FROM top_net_impact_snapshots")
+                cur.execute(
+                    f"SELECT max(data_date) FROM {self._schema}.top_net_impact_snapshots"
+                )
                 row = cur.fetchone()
                 data_date = row[0] if row else None
         if data_date is None:
             return None, []
         top = (limit + 1) // 2
         bot = limit // 2
-        sql = """
+        sql = f"""
             WITH base AS (
                 SELECT ticker,
                        net_premium::float8 AS net_premium,
@@ -82,7 +82,7 @@ class TopNetImpactRepository:
                        prev_rank,
                        CASE WHEN prev_rank IS NULL THEN NULL
                             ELSE prev_rank - rank END AS rank_change
-                  FROM top_net_impact_snapshots
+                  FROM {self._schema}.top_net_impact_snapshots
                  WHERE data_date = %(d)s
             )
             SELECT * FROM (

@@ -13,8 +13,6 @@ class BacktestRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def create_run(
         self,
@@ -27,8 +25,8 @@ class BacktestRepository:
         data_end: date | None = None,
         notes: str | None = None,
     ) -> int:
-        sql = """
-            INSERT INTO backtest_sweep_runs
+        sql = f"""
+            INSERT INTO {self._schema}.backtest_sweep_runs
                 (strategy, reproduce_cmd, params_grid, git_sha,
                  data_start, data_end, notes)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -62,8 +60,8 @@ class BacktestRepository:
         status: str = "ok",
         error: str | None = None,
     ) -> int:
-        sql = """
-            INSERT INTO backtest_sweep_results
+        sql = f"""
+            INSERT INTO {self._schema}.backtest_sweep_results
                 (run_id, config, metrics, gates, n_trades, status, error)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
@@ -90,15 +88,15 @@ class BacktestRepository:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                "UPDATE backtest_sweep_runs SET status = %s, error = %s WHERE id = %s",
+                f"UPDATE {self._schema}.backtest_sweep_runs SET status = %s, error = %s WHERE id = %s",
                 (status, error, run_id),
             )
         self._conn.commit()
 
     def fetch_run_results(self, run_id: int) -> list[dict]:
-        sql = """
+        sql = f"""
             SELECT id, created_at, config, metrics, gates, n_trades, status, error
-              FROM backtest_sweep_results
+              FROM {self._schema}.backtest_sweep_results
              WHERE run_id = %s
              ORDER BY id
         """

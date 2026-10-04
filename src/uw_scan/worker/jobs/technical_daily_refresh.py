@@ -123,8 +123,7 @@ def technical_daily_refresh(
             # froze at 2026-07-15 for 26 sessions with only an INFO line: a name
             # with 2006 rows of history does not have "thin history", it has no
             # source. One ticker's outage does not fail the run.
-            # No rollback: the fetch raised before this ticker wrote anything,
-            # and a rollback here would also drop an uncommitted search_path.
+            # No rollback: the fetch raised before this ticker wrote anything.
             source_unavailable += 1
             last_unavailable = exc
             log.warning(

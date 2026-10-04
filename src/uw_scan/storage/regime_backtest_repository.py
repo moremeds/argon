@@ -2,7 +2,7 @@
 
 New domain — own module per docs/research/regime/CLAUDE.md and the global
 no-extend-repository.py rule. Mirrors the CriSnapshotRepository pattern:
-takes a psycopg.Connection + schema string, sets search_path on init.
+takes a psycopg.Connection + schema string; all SQL is schema-qualified.
 
 Two-phase atomic write:
     insert_run() -> bulk_insert_daily() -> mark_run_completed()
@@ -32,8 +32,6 @@ class RegimeBacktestRepository:
     def __init__(self, conn: Connection, schema: str = "uw_scan") -> None:
         self._conn = conn
         self._schema = schema
-        with conn.cursor() as cur:
-            cur.execute(f"SET search_path TO {schema}, public")
 
     def insert_run(
         self,
@@ -83,8 +81,8 @@ class RegimeBacktestRepository:
                     f"run_scope='research'"
                 )
 
-        sql = """
-            INSERT INTO regime_backtest_runs (
+        sql = f"""
+            INSERT INTO {self._schema}.regime_backtest_runs (
                 indicator, composite_version, start_date, end_date,
                 window_days, n_days, params, summary, note,
                 run_scope, composite_method, credit_proxy
@@ -118,8 +116,8 @@ class RegimeBacktestRepository:
     def bulk_insert_daily(self, run_id: int, rows: list[dict]) -> None:
         if not rows:
             return
-        sql = """
-            INSERT INTO regime_backtest_daily (run_id, trade_date, score, level, payload)
+        sql = f"""
+            INSERT INTO {self._schema}.regime_backtest_daily (run_id, trade_date, score, level, payload)
             VALUES (%s, %s, %s, %s, %s)
         """
         params = [
@@ -140,7 +138,7 @@ class RegimeBacktestRepository:
         """Set completed_at = NOW(). MUST be the last call in a backtest."""
         with self._conn.cursor() as cur:
             cur.execute(
-                "UPDATE regime_backtest_runs SET completed_at = NOW() WHERE id = %s",
+                f"UPDATE {self._schema}.regime_backtest_runs SET completed_at = NOW() WHERE id = %s",
                 (run_id,),
             )
         self._conn.commit()
@@ -254,7 +252,7 @@ class RegimeBacktestRepository:
                    window_days, n_days, params, summary, note,
                    run_scope, composite_method, credit_proxy,
                    created_at, completed_at
-              FROM regime_backtest_runs
+              FROM {self._schema}.regime_backtest_runs
              WHERE {" AND ".join(clauses)}
              ORDER BY created_at DESC
              LIMIT 1
@@ -268,9 +266,9 @@ class RegimeBacktestRepository:
         return dict(zip(cols, row, strict=True))
 
     def fetch_daily_for_run(self, run_id: int) -> list[dict]:
-        sql = """
+        sql = f"""
             SELECT trade_date, score, level, payload
-              FROM regime_backtest_daily
+              FROM {self._schema}.regime_backtest_daily
              WHERE run_id = %s
              ORDER BY trade_date
         """
@@ -295,7 +293,7 @@ class RegimeBacktestRepository:
                    window_days, n_days, params, summary, note,
                    run_scope, composite_method, credit_proxy,
                    created_at, completed_at
-              FROM regime_backtest_runs
+              FROM {self._schema}.regime_backtest_runs
              {where}
              ORDER BY created_at DESC
              LIMIT %s
@@ -341,7 +339,7 @@ class RegimeBacktestRepository:
                    window_days, n_days, params, summary, note,
                    run_scope, composite_method, credit_proxy,
                    created_at, completed_at
-              FROM regime_backtest_runs
+              FROM {self._schema}.regime_backtest_runs
              WHERE {" AND ".join(clauses)}
              ORDER BY created_at DESC
              LIMIT %s
