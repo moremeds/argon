@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.25] — 2026-10-05
+
+
 ### Changed
 
 - **Settings scan, budget, healer and VRP groups move to the env table (D6 batch 5, I-70).** The last 65 hand-mapped fields now declare their env var next to themselves, in five concern modules under `config/`: `scanner`, `uw_capture`, `uw_budget`, `data_gap`, and `vrp`. The edge-quality weight check moves to `ScannerSettings` and `_check_vrp` to `VrpSettings`; the mixin order keeps the edge-quality check firing first when both fail. `from_env` now keeps only the `.env` load, the `UW_SCAN_API_KEY` check, the host/DB tripwire and the lake fallback, and passes everything else through `read_env_fields`. The five kill switches that accepted only `1`/`true`/`yes` unstripped (discover scan, budget governor, hot full_scan, market tide, top net impact) keep that parse (`_true_1_yes`), `GEX_SCAN_TICKERS` still maps blank to the default list, and `MARKET_TIDE_SPOT_TICKER` is still upper-cased. `config/settings.py` shrinks from 472 to 113 lines; every config module is under 500 lines. `settings_golden.json` and the scheduler golden are byte-identical. No runtime behaviour changes.
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **`config.py` is now the `uw_scan.config` package (D6 batch 1, I-70).** `Settings` moved verbatim to `config/settings.py`, the env helpers and `.env` loader to `config/_env.py`, and the host/DB tripwire to `config/db_isolation.py`. `config/__init__.py` re-exports every name the flat module exposed, private helpers included, so every `from uw_scan.config import X` still works. The only code change is the repo-root lookup in `from_env` (`parents[2]` to `parents[3]`), which keeps it at the same directory. The logger name stays `uw_scan.config`. `settings_golden.json` and the scheduler golden are byte-identical. `scripts/check_runtime_assets.py` now allows `Path.home()` in `config/settings.py`, its new location. No runtime behaviour changes.
 
 - **Settings env table, db group (D6 batch 2, I-70).** A field can now declare its env var next to itself, as `Annotated[int, EnvVar("UW_SCAN_DB_PORT")]`, and `from_env` reads every such field in one loop (`config/_env.py` `read_env_fields`). An unset var means the field's own default, so the class default and the env default are one value. The six `db_*` fields and `db_dsn()` moved to `config/db.py` `DbSettings`, which `Settings` now subclasses. `UW_SCAN_DB_USER=""` still means `argon_app` (`blank_is_default`). The host/DB tripwire still runs before any field is parsed. The other 173 env-read fields keep their hand-written mapping until later batches. `settings_golden.json` and the scheduler golden are byte-identical. No runtime behaviour changes.
-
 ## [0.13.24] — 2026-10-04
 
 
