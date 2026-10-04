@@ -30,14 +30,17 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import pathlib
 from datetime import date as _date
 
 import numpy as np
 import psycopg
 
-from uw_scan.config import Settings
+from uw_scan.config import DEFAULT_APEX_API_URL, Settings
 from uw_scan.sources.apex import fetch_bars
+
+_APEX_URL = os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL)
 
 ROLL = 252  # trailing z-score window
 HS = [5, 10, 21, 42]  # forward horizons (trading days)
@@ -54,7 +57,7 @@ def _load_index(cur, symbol: str) -> dict[_date, float]:
 
 
 def _load_apex(ticker: str) -> dict[_date, float]:
-    bars = fetch_bars(ticker, "1d", _date(2010, 1, 1), limit=0)
+    bars = fetch_bars(ticker, "1d", _date(2010, 1, 1), base_url=_APEX_URL, limit=0)
     out: dict[_date, float] = {}
     for b in bars:
         t = b.get("time")

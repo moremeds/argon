@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { components } from "@/lib/types";
+import { apiErrorMessage, apiFetch } from "@/lib/apiClient";
 import { regimeApi } from "@/lib/regime/api";
 
 import { VcgStressHistoryTable } from "./VcgStressHistoryTable";
@@ -27,23 +28,14 @@ export default function VcgStressHistorySection() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(regimeApi.vcgValidation())
-      .then(async (r) => {
-        if (r.ok) return r.json();
-        const body = await r.json().catch(() => null);
-        const detail =
-          body && typeof body.detail === "string"
-            ? body.detail
-            : `HTTP ${r.status}`;
-        throw new Error(detail);
-      })
-      .then((d: VcgValidationResponse) => {
+    apiFetch<VcgValidationResponse>(regimeApi.vcgValidation())
+      .then((d) => {
         if (cancelled) return;
         setData(d);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        setErr(e instanceof Error ? e.message : String(e));
+        setErr(apiErrorMessage(e));
       });
     return () => {
       cancelled = true;

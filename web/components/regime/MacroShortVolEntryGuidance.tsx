@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import MacroShortVolSizingTable from "./MacroShortVolSizingTable";
+import { apiFetch } from "@/lib/apiClient";
 import { regimeApi } from "@/lib/regime/api";
 import { useVrpMacroLive } from "@/lib/regime/useVrpMacroLive";
 import {
@@ -54,11 +55,10 @@ export default function MacroShortVolEntryGuidance() {
     setCapturing(true);
     setCaptureError(false);
     try {
-      const res = await fetch(regimeApi.vrp_macro_entry_capture(), {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const body = await res.json();
+      const body = await apiFetch<{ entry_id?: number | null }>(
+        regimeApi.vrp_macro_entry_capture(),
+        { method: "POST" },
+      );
       setCapturedId(body.entry_id ?? null);
     } catch {
       setCaptureError(true);

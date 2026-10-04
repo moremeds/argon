@@ -109,6 +109,10 @@ def _enforce_db_isolation(db_host: str, db_name: str) -> None:
     )
 
 
+#: apex REST default (Tailscale); the mini sets APEX_API_URL=http://127.0.0.1:8322.
+DEFAULT_APEX_API_URL = "http://100.66.147.98:8322"
+
+
 class Settings(BaseModel):
     """Strongly-typed configuration. Raises on missing required fields."""
 
@@ -598,6 +602,9 @@ class Settings(BaseModel):
     # on localhost. MacBook dev points over Tailscale: http://100.66.147.98:8321.
     xenon_query_api_url: str = "http://127.0.0.1:8321"
     xenon_query_api_key: SecretStr | None = None
+    # apex REST API (bars / bulk closes). Same env name and default the client
+    # used to read from os.environ itself; the mini sets APEX_API_URL.
+    apex_api_url: str = DEFAULT_APEX_API_URL
     #: Shared bearer token for POST /api/agent-runs. UNSET MEANS DISABLED
     #: (503), never open — the one write surface whose failure mode is a
     #: document a person reads as a briefing.
@@ -1218,6 +1225,9 @@ class Settings(BaseModel):
             ),
             xenon_query_api_url=os.environ.get(
                 "XENON_QUERY_API_URL", "http://127.0.0.1:8321"
+            ),
+            apex_api_url=os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL).rstrip(
+                "/"
             ),
             xenon_query_api_key=(
                 SecretStr(v)
