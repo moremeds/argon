@@ -522,8 +522,6 @@ export const api = {
     ),
   deskMatrix: (section: string): Promise<DeskMatrixResponse> =>
     _fetch<DeskMatrixResponse>(`/api/fundamentals/${section}/matrix`),
-  deskProfitPool: (section: string): Promise<ProfitPoolLayer[]> =>
-    _fetch<ProfitPoolLayer[]>(`/api/fundamentals/${section}/profit-pool`),
   deskLimits: (section: string): Promise<DeskLimitsResponse> =>
     _fetch<DeskLimitsResponse>(`/api/fundamentals/${section}/limits`),
   deskCapex: (section: string): Promise<DeskCapexResponse> =>
@@ -590,8 +588,6 @@ export const api = {
     _fetch<TradeInsightsAiLatestPair>(
       `/api/stock/${ticker}/trade-insights/ai-analysis/latest?kind=${kind}`,
     ),
-  ohlc: (ticker: string, days = 30): Promise<OhlcResponse> =>
-    _fetch<OhlcResponse>(`/api/ohlc/${ticker}?days=${days}`),
   rescan: (ticker: string): Promise<JobStatus> =>
     _fetch<JobStatus>(`/api/watchlist/${ticker}/rescan`, { method: "POST" }),
   rescanAll: (): Promise<JobStatus[]> =>
@@ -627,8 +623,6 @@ export const api = {
     sort_rank?: number;
   }): Promise<{ ok: boolean; ticker: string }> =>
     _fetch(`/api/watchlist`, { method: "POST", body: JSON.stringify(body) }),
-  removeTicker: (ticker: string): Promise<void> =>
-    _fetch(`/api/watchlist/${ticker}`, { method: "DELETE" }),
   patchTicker: (
     ticker: string,
     body: Partial<{

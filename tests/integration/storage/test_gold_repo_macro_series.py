@@ -14,14 +14,18 @@ def repo(seeded_db_empty_cards) -> Repository:
     return seeded_db_empty_cards
 def test_insert_and_fetch_macro_series_daily(repo: Repository) -> None:
     now = datetime.now(UTC)
-    repo.insert_macro_series_daily(
-        series_id="DFII10",
-        obs_date=date(2026, 5, 14),
-        value=Decimal("1.97"),
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "DFII10",
+                "obs_date": date(2026, 5, 14),
+                "value": Decimal("1.97"),
+                "release_date": None,
+                "source_url": None,
+            }
+        ],
         as_of=now,
-        release_date=None,
         source="FRED",
-        source_url=None,
     )
     rows = repo.fetch_macro_series_daily("DFII10", from_date=date(2026, 5, 1))
     assert len(rows) == 1
@@ -63,23 +67,31 @@ def test_insert_macro_series_daily_rows_is_empty_safe_and_idempotent(
 
 def test_insert_macro_series_daily_keeps_vintages(repo: Repository) -> None:
     """Re-pulling a series writes a new vintage row, doesn't overwrite."""
-    repo.insert_macro_series_daily(
-        "CPIAUCSL_TEST",
-        date(2026, 4, 1),
-        Decimal("310.1"),
-        datetime(2026, 5, 14, 12, tzinfo=UTC),
-        date(2026, 5, 14),
-        "FRED",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "CPIAUCSL_TEST",
+                "obs_date": date(2026, 4, 1),
+                "value": Decimal("310.1"),
+                "release_date": date(2026, 5, 14),
+                "source_url": None,
+            }
+        ],
+        as_of=datetime(2026, 5, 14, 12, tzinfo=UTC),
+        source="FRED",
     )
-    repo.insert_macro_series_daily(
-        "CPIAUCSL_TEST",
-        date(2026, 4, 1),
-        Decimal("310.3"),
-        datetime(2026, 5, 28, 12, tzinfo=UTC),
-        date(2026, 5, 28),
-        "FRED",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "CPIAUCSL_TEST",
+                "obs_date": date(2026, 4, 1),
+                "value": Decimal("310.3"),
+                "release_date": date(2026, 5, 28),
+                "source_url": None,
+            }
+        ],
+        as_of=datetime(2026, 5, 28, 12, tzinfo=UTC),
+        source="FRED",
     )
     rows = repo.fetch_macro_series_vintages("CPIAUCSL_TEST", obs_date=date(2026, 4, 1))
     assert len(rows) == 2
@@ -90,23 +102,31 @@ def test_insert_macro_series_daily_keeps_vintages(repo: Repository) -> None:
 def test_fetch_macro_series_latest_returns_most_recent_vintage(
     repo: Repository,
 ) -> None:
-    repo.insert_macro_series_daily(
-        "DFII10",
-        date(2026, 5, 14),
-        Decimal("1.95"),
-        datetime(2026, 5, 14, tzinfo=UTC),
-        None,
-        "FRED",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "DFII10",
+                "obs_date": date(2026, 5, 14),
+                "value": Decimal("1.95"),
+                "release_date": None,
+                "source_url": None,
+            }
+        ],
+        as_of=datetime(2026, 5, 14, tzinfo=UTC),
+        source="FRED",
     )
-    repo.insert_macro_series_daily(
-        "DFII10",
-        date(2026, 5, 14),
-        Decimal("1.97"),
-        datetime(2026, 5, 15, tzinfo=UTC),
-        None,
-        "FRED",
-        None,
+    repo.insert_macro_series_daily_rows(
+        [
+            {
+                "series_id": "DFII10",
+                "obs_date": date(2026, 5, 14),
+                "value": Decimal("1.97"),
+                "release_date": None,
+                "source_url": None,
+            }
+        ],
+        as_of=datetime(2026, 5, 15, tzinfo=UTC),
+        source="FRED",
     )
     rows = repo.fetch_macro_series_daily("DFII10")
     assert len(rows) == 1
@@ -114,14 +134,18 @@ def test_fetch_macro_series_latest_returns_most_recent_vintage(
 
 
 def test_macro_series_monthly_round_trip(repo: Repository) -> None:
-    repo.insert_macro_series_monthly(
-        series_id="CPIAUCSL",
-        obs_month=date(2026, 4, 1),
-        value=Decimal("310.1"),
+    repo.insert_macro_series_monthly_rows(
+        [
+            {
+                "series_id": "CPIAUCSL",
+                "obs_month": date(2026, 4, 1),
+                "value": Decimal("310.1"),
+                "release_date": date(2026, 5, 14),
+                "source_url": None,
+            }
+        ],
         as_of=datetime(2026, 5, 14, tzinfo=UTC),
-        release_date=date(2026, 5, 14),
         source="FRED",
-        source_url=None,
     )
     rows = repo.fetch_macro_series_monthly("CPIAUCSL", from_month=date(2026, 1, 1))
     assert len(rows) == 1

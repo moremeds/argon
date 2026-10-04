@@ -36,14 +36,18 @@ def app_with_seed(seeded_db_empty_cards) -> TestClient:
     base = date(2025, 1, 1)
     for i in range(400):
         d = base + timedelta(days=i)
-        repo.insert_macro_series_daily(
-            "DFII10",
-            d,
-            Decimal(str(2.0 - i * 0.003)),
-            datetime.combine(d, datetime.min.time(), tzinfo=UTC),
-            None,
-            "FRED",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "DFII10",
+                    "obs_date": d,
+                    "value": Decimal(str(2.0 - i * 0.003)),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=datetime.combine(d, datetime.min.time(), tzinfo=UTC),
+            source="FRED",
         )
     repo.conn.commit()
 
@@ -123,14 +127,18 @@ def test_inputs_endpoint_replay_excludes_vintages_seen_after_day_end(
     settings = app.dependency_overrides[get_settings]()
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
-        repo.insert_macro_series_daily(
-            "DFII10",
-            date(2025, 1, 1),
-            Decimal("9.99"),
-            datetime(2025, 1, 3, tzinfo=UTC),
-            None,
-            "FRED",
-            None,
+        repo.insert_macro_series_daily_rows(
+            [
+                {
+                    "series_id": "DFII10",
+                    "obs_date": date(2025, 1, 1),
+                    "value": Decimal("9.99"),
+                    "release_date": None,
+                    "source_url": None,
+                }
+            ],
+            as_of=datetime(2025, 1, 3, tzinfo=UTC),
+            source="FRED",
         )
         conn.commit()
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date as _date
 from datetime import datetime
 from decimal import Decimal
@@ -12,33 +13,66 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 
+@dataclass(frozen=True, kw_only=True)
+class GoldPosture:
+    obs_date: _date
+    computed_at: datetime
+    gauge_corr_60d: Decimal | None
+    gauge_corr_126d: Decimal | None
+    gauge_corr_252d: Decimal | None
+    gauge_corr_504d: Decimal | None
+    gauge_corr_252d_returns: Decimal | None
+    gauge_state: str
+    structural_state_label: str | None
+    cb_strategic_12m_sum_t: Decimal | None
+    cb_tactical_12m_sum_t: Decimal | None
+    cb_diversifier_12m_sum_t: Decimal | None
+    gld_holdings_t: Decimal | None
+    gld_30d_net_flow_t: Decimal | None
+    comex_registered_oz: Decimal | None
+    comex_20d_roc_pct: Decimal | None
+    cot_mm_net_pct: Decimal | None
+    cyclical_zone_label: str | None
+    cpi_yoy: Decimal | None
+    t5yifr: Decimal | None
+    dfii10: Decimal | None
+    dfii10_60d_change_bps: Decimal | None
+    factors_jsonb: dict[str, Any]
+    valuation_flag: str | None
+    real_price_percentile: Decimal | None
+    gold_m2_ratio_percentile: Decimal | None
+    gold_spx_ratio_percentile: Decimal | None
+    structural_posture_text: str | None
+    cyclical_posture_text: str | None
+    valuation_posture_text: str | None
+    inputs_jsonb: dict[str, Any]
+    # GOLD COMPASS extensions (all optional — orchestrator passes when computed)
+    structural_posture_chip: str | None = None
+    cyclical_posture_chip: str | None = None
+    valuation_posture_chip: str | None = None
+    spot_jsonb: dict[str, Any] | None = None
+    data_freshness_jsonb: dict[str, Any] | None = None
+    decomposition_jsonb: list[dict[str, Any]] | None = None
+    correlation_history_jsonb: dict[str, Any] | None = None
+    gld_history_jsonb: list[dict[str, Any]] | None = None
+    gold_history_jsonb: list[dict[str, Any]] | None = None
+    # 044 extensions — orchestrator-derived metrics from DXY/GPR/UW/LBMA series
+    lbma_30d_momentum_t: Decimal | None = None
+    uw_25d_skew_sigma: Decimal | None = None
+    fx_basket_dxy_z: Decimal | None = None
+    xau_cny_premium_pct: Decimal | None = None
+    cb_52w_pct: Decimal | None = None
+    cot_mm_4w_change_sigma: Decimal | None = None
+    t5yifr_pct_52w: Decimal | None = None
+    dxy: Decimal | None = None
+    dxy_60d_sigma: Decimal | None = None
+    gpr_value: Decimal | None = None
+    gpr_pct_52w: Decimal | None = None
+
+
 class _GoldMixin:
     _conn: psycopg.Connection
     _schema: str
-
-    def insert_macro_series_daily(
-        self,
-        series_id: str,
-        obs_date: _date,
-        value: Decimal,
-        as_of: datetime,
-        release_date: _date | None,
-        source: str,
-        source_url: str | None,
-    ) -> None:
-        self.insert_macro_series_daily_rows(
-            [
-                {
-                    "series_id": series_id,
-                    "obs_date": obs_date,
-                    "value": value,
-                    "release_date": release_date,
-                    "source_url": source_url,
-                }
-            ],
-            as_of=as_of,
-            source=source,
-        )
 
     def insert_macro_series_daily_rows(
         self,
@@ -63,8 +97,8 @@ class _GoldMixin:
             return 0
         with self._conn.cursor() as cur:
             cur.executemany(
-                """
-                INSERT INTO uw_scan.macro_series_daily
+                f"""
+                INSERT INTO {self._schema}.macro_series_daily
                   (series_id, obs_date, value, as_of, release_date, source, source_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (series_id, obs_date, as_of) DO NOTHING
@@ -72,30 +106,6 @@ class _GoldMixin:
                 values,
             )
         return len(values)
-
-    def insert_macro_series_monthly(
-        self,
-        series_id: str,
-        obs_month: _date,
-        value: Decimal,
-        as_of: datetime,
-        release_date: _date | None,
-        source: str,
-        source_url: str | None,
-    ) -> None:
-        self.insert_macro_series_monthly_rows(
-            [
-                {
-                    "series_id": series_id,
-                    "obs_month": obs_month,
-                    "value": value,
-                    "release_date": release_date,
-                    "source_url": source_url,
-                }
-            ],
-            as_of=as_of,
-            source=source,
-        )
 
     def insert_macro_series_monthly_rows(
         self,
@@ -120,8 +130,8 @@ class _GoldMixin:
             return 0
         with self._conn.cursor() as cur:
             cur.executemany(
-                """
-                INSERT INTO uw_scan.macro_series_monthly
+                f"""
+                INSERT INTO {self._schema}.macro_series_monthly
                   (series_id, obs_month, value, as_of, release_date, source, source_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (series_id, obs_month, as_of) DO NOTHING
@@ -157,7 +167,7 @@ class _GoldMixin:
                 f"""
                 SELECT DISTINCT ON (obs_date)
                   obs_date, value, as_of, release_date, source
-                FROM uw_scan.macro_series_daily
+                FROM {self._schema}.macro_series_daily
                 WHERE {where}
                 ORDER BY obs_date ASC, as_of DESC
                 """,
@@ -191,7 +201,7 @@ class _GoldMixin:
                 f"""
                 SELECT DISTINCT ON (obs_month)
                   obs_month, value, as_of, release_date, source
-                FROM uw_scan.macro_series_monthly
+                FROM {self._schema}.macro_series_monthly
                 WHERE {where}
                 ORDER BY obs_month ASC, as_of DESC
                 """,
@@ -206,9 +216,9 @@ class _GoldMixin:
         """All persisted vintages for a single observation (useful for audit)."""
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT obs_date, value, as_of, release_date, source
-                FROM uw_scan.macro_series_daily
+                FROM {self._schema}.macro_series_daily
                 WHERE series_id = %s AND obs_date = %s
                 ORDER BY as_of DESC
                 """,
@@ -218,33 +228,6 @@ class _GoldMixin:
             return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
     # ---- Gold (Phase A1) — ETF holdings ----
-
-    def insert_etf_holdings_daily(
-        self,
-        *,
-        ticker: str,
-        obs_date: _date,
-        holdings_oz: Decimal | None,
-        shares_out: Decimal | None,
-        nav_per_share: Decimal | None,
-        premium_pct: Decimal | None,
-        as_of: datetime,
-        source: str,
-    ) -> None:
-        self.insert_etf_holdings_daily_rows(
-            [
-                {
-                    "ticker": ticker,
-                    "obs_date": obs_date,
-                    "holdings_oz": holdings_oz,
-                    "shares_out": shares_out,
-                    "nav_per_share": nav_per_share,
-                    "premium_pct": premium_pct,
-                }
-            ],
-            as_of=as_of,
-            source=source,
-        )
 
     def insert_etf_holdings_daily_rows(
         self,
@@ -270,8 +253,8 @@ class _GoldMixin:
             return 0
         with self._conn.cursor() as cur:
             cur.executemany(
-                """
-                INSERT INTO uw_scan.etf_holdings_daily
+                f"""
+                INSERT INTO {self._schema}.etf_holdings_daily
                   (ticker, obs_date, holdings_oz, shares_out, nav_per_share,
                    premium_pct, as_of, source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -307,7 +290,7 @@ class _GoldMixin:
                 SELECT DISTINCT ON (obs_date)
                   obs_date, holdings_oz, shares_out, nav_per_share, premium_pct,
                   as_of, source
-                FROM uw_scan.etf_holdings_daily
+                FROM {self._schema}.etf_holdings_daily
                 WHERE {where}
                 ORDER BY obs_date ASC, as_of DESC
                 """,
@@ -331,8 +314,8 @@ class _GoldMixin:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_scan.exchange_inventory_daily
+                f"""
+                INSERT INTO {self._schema}.exchange_inventory_daily
                   (exchange, obs_date, registered_oz, eligible_oz, vault_oz,
                    as_of, source_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -374,7 +357,7 @@ class _GoldMixin:
                 f"""
                 SELECT DISTINCT ON (obs_date)
                   obs_date, registered_oz, eligible_oz, vault_oz, as_of, source_url
-                FROM uw_scan.exchange_inventory_daily
+                FROM {self._schema}.exchange_inventory_daily
                 WHERE {where}
                 ORDER BY obs_date ASC, as_of DESC
                 """,
@@ -400,8 +383,8 @@ class _GoldMixin:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_scan.cb_gold_reserves_monthly
+                f"""
+                INSERT INTO {self._schema}.cb_gold_reserves_monthly
                   (country_iso3, obs_month, reserves_t, bucket,
                    is_reported, is_estimated, as_of, release_date, source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -449,7 +432,7 @@ class _GoldMixin:
                 SELECT DISTINCT ON (country_iso3, obs_month)
                   country_iso3, obs_month, reserves_t, bucket,
                   is_reported, is_estimated, as_of, release_date, source
-                FROM uw_scan.cb_gold_reserves_monthly
+                FROM {self._schema}.cb_gold_reserves_monthly
                 WHERE {where}
                 ORDER BY country_iso3, obs_month DESC, as_of DESC
                 """,
@@ -487,7 +470,7 @@ class _GoldMixin:
                 SELECT DISTINCT ON (country_iso3, obs_month)
                   country_iso3, obs_month, reserves_t, bucket,
                   is_reported, is_estimated, as_of, release_date, source
-                FROM uw_scan.cb_gold_reserves_monthly
+                FROM {self._schema}.cb_gold_reserves_monthly
                 WHERE {where}
                 ORDER BY country_iso3, obs_month ASC, as_of DESC
                 """,
@@ -515,8 +498,8 @@ class _GoldMixin:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_scan.cot_gold_weekly
+                f"""
+                INSERT INTO {self._schema}.cot_gold_weekly
                   (obs_date, release_date, mm_long, mm_short, mm_net,
                    comm_long, comm_short, comm_net, open_interest,
                    as_of, source_url)
@@ -563,7 +546,7 @@ class _GoldMixin:
                 SELECT DISTINCT ON (obs_date)
                   obs_date, release_date, mm_long, mm_short, mm_net,
                   comm_long, comm_short, comm_net, open_interest, as_of, source_url
-                FROM uw_scan.cot_gold_weekly
+                FROM {self._schema}.cot_gold_weekly
                 WHERE {where}
                 ORDER BY obs_date DESC, as_of DESC
                 """,
@@ -590,8 +573,8 @@ class _GoldMixin:
     ) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_scan.uw_gold_options_daily
+                f"""
+                INSERT INTO {self._schema}.uw_gold_options_daily
                   (ticker, obs_date, atm_iv_30d, atm_iv_60d,
                    put_25d_iv_30d, call_25d_iv_30d, skew_25d_30d,
                    put_call_oi_ratio, dealer_gamma_est, as_of)
@@ -639,7 +622,7 @@ class _GoldMixin:
                   obs_date, atm_iv_30d, atm_iv_60d,
                   put_25d_iv_30d, call_25d_iv_30d, skew_25d_30d,
                   put_call_oi_ratio, dealer_gamma_est, as_of
-                FROM uw_scan.uw_gold_options_daily
+                FROM {self._schema}.uw_gold_options_daily
                 WHERE {where}
                 ORDER BY obs_date ASC, as_of DESC
                 """,
@@ -650,67 +633,11 @@ class _GoldMixin:
 
     # ---- Gold (Phase A1) — posture row (replay scaffold) ----
 
-    def insert_gold_posture_daily(
-        self,
-        *,
-        obs_date: _date,
-        computed_at: datetime,
-        gauge_corr_60d: Decimal | None,
-        gauge_corr_126d: Decimal | None,
-        gauge_corr_252d: Decimal | None,
-        gauge_corr_504d: Decimal | None,
-        gauge_corr_252d_returns: Decimal | None,
-        gauge_state: str,
-        structural_state_label: str | None,
-        cb_strategic_12m_sum_t: Decimal | None,
-        cb_tactical_12m_sum_t: Decimal | None,
-        cb_diversifier_12m_sum_t: Decimal | None,
-        gld_holdings_t: Decimal | None,
-        gld_30d_net_flow_t: Decimal | None,
-        comex_registered_oz: Decimal | None,
-        comex_20d_roc_pct: Decimal | None,
-        cot_mm_net_pct: Decimal | None,
-        cyclical_zone_label: str | None,
-        cpi_yoy: Decimal | None,
-        t5yifr: Decimal | None,
-        dfii10: Decimal | None,
-        dfii10_60d_change_bps: Decimal | None,
-        factors_jsonb: dict[str, Any],
-        valuation_flag: str | None,
-        real_price_percentile: Decimal | None,
-        gold_m2_ratio_percentile: Decimal | None,
-        gold_spx_ratio_percentile: Decimal | None,
-        structural_posture_text: str | None,
-        cyclical_posture_text: str | None,
-        valuation_posture_text: str | None,
-        inputs_jsonb: dict[str, Any],
-        # GOLD COMPASS extensions (all optional — orchestrator passes when computed)
-        structural_posture_chip: str | None = None,
-        cyclical_posture_chip: str | None = None,
-        valuation_posture_chip: str | None = None,
-        spot_jsonb: dict[str, Any] | None = None,
-        data_freshness_jsonb: dict[str, Any] | None = None,
-        decomposition_jsonb: list[dict[str, Any]] | None = None,
-        correlation_history_jsonb: dict[str, Any] | None = None,
-        gld_history_jsonb: list[dict[str, Any]] | None = None,
-        gold_history_jsonb: list[dict[str, Any]] | None = None,
-        # 044 extensions — orchestrator-derived metrics from DXY/GPR/UW/LBMA series
-        lbma_30d_momentum_t: Decimal | None = None,
-        uw_25d_skew_sigma: Decimal | None = None,
-        fx_basket_dxy_z: Decimal | None = None,
-        xau_cny_premium_pct: Decimal | None = None,
-        cb_52w_pct: Decimal | None = None,
-        cot_mm_4w_change_sigma: Decimal | None = None,
-        t5yifr_pct_52w: Decimal | None = None,
-        dxy: Decimal | None = None,
-        dxy_60d_sigma: Decimal | None = None,
-        gpr_value: Decimal | None = None,
-        gpr_pct_52w: Decimal | None = None,
-    ) -> None:
+    def insert_gold_posture_daily(self, posture: GoldPosture) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO uw_scan.gold_posture_daily (
+                f"""
+                INSERT INTO {self._schema}.gold_posture_daily (
                   obs_date, computed_at,
                   gauge_corr_60d, gauge_corr_126d, gauge_corr_252d,
                   gauge_corr_504d, gauge_corr_252d_returns, gauge_state,
@@ -749,65 +676,69 @@ class _GoldMixin:
                 ON CONFLICT (obs_date, computed_at) DO NOTHING
                 """,
                 (
-                    obs_date,
-                    computed_at,
-                    gauge_corr_60d,
-                    gauge_corr_126d,
-                    gauge_corr_252d,
-                    gauge_corr_504d,
-                    gauge_corr_252d_returns,
-                    gauge_state,
-                    structural_state_label,
-                    cb_strategic_12m_sum_t,
-                    cb_tactical_12m_sum_t,
-                    cb_diversifier_12m_sum_t,
-                    gld_holdings_t,
-                    gld_30d_net_flow_t,
-                    comex_registered_oz,
-                    comex_20d_roc_pct,
-                    cot_mm_net_pct,
-                    cyclical_zone_label,
-                    cpi_yoy,
-                    t5yifr,
-                    dfii10,
-                    dfii10_60d_change_bps,
-                    Jsonb(factors_jsonb),
-                    valuation_flag,
-                    real_price_percentile,
-                    gold_m2_ratio_percentile,
-                    gold_spx_ratio_percentile,
-                    structural_posture_text,
-                    cyclical_posture_text,
-                    valuation_posture_text,
-                    Jsonb(inputs_jsonb),
-                    structural_posture_chip,
-                    cyclical_posture_chip,
-                    valuation_posture_chip,
-                    Jsonb(spot_jsonb) if spot_jsonb is not None else None,
-                    Jsonb(data_freshness_jsonb)
-                    if data_freshness_jsonb is not None
+                    posture.obs_date,
+                    posture.computed_at,
+                    posture.gauge_corr_60d,
+                    posture.gauge_corr_126d,
+                    posture.gauge_corr_252d,
+                    posture.gauge_corr_504d,
+                    posture.gauge_corr_252d_returns,
+                    posture.gauge_state,
+                    posture.structural_state_label,
+                    posture.cb_strategic_12m_sum_t,
+                    posture.cb_tactical_12m_sum_t,
+                    posture.cb_diversifier_12m_sum_t,
+                    posture.gld_holdings_t,
+                    posture.gld_30d_net_flow_t,
+                    posture.comex_registered_oz,
+                    posture.comex_20d_roc_pct,
+                    posture.cot_mm_net_pct,
+                    posture.cyclical_zone_label,
+                    posture.cpi_yoy,
+                    posture.t5yifr,
+                    posture.dfii10,
+                    posture.dfii10_60d_change_bps,
+                    Jsonb(posture.factors_jsonb),
+                    posture.valuation_flag,
+                    posture.real_price_percentile,
+                    posture.gold_m2_ratio_percentile,
+                    posture.gold_spx_ratio_percentile,
+                    posture.structural_posture_text,
+                    posture.cyclical_posture_text,
+                    posture.valuation_posture_text,
+                    Jsonb(posture.inputs_jsonb),
+                    posture.structural_posture_chip,
+                    posture.cyclical_posture_chip,
+                    posture.valuation_posture_chip,
+                    Jsonb(posture.spot_jsonb)
+                    if posture.spot_jsonb is not None
                     else None,
-                    Jsonb(decomposition_jsonb)
-                    if decomposition_jsonb is not None
+                    Jsonb(posture.data_freshness_jsonb)
+                    if posture.data_freshness_jsonb is not None
                     else None,
-                    Jsonb(correlation_history_jsonb)
-                    if correlation_history_jsonb is not None
+                    Jsonb(posture.decomposition_jsonb)
+                    if posture.decomposition_jsonb is not None
                     else None,
-                    Jsonb(gld_history_jsonb) if gld_history_jsonb is not None else None,
-                    Jsonb(gold_history_jsonb)
-                    if gold_history_jsonb is not None
+                    Jsonb(posture.correlation_history_jsonb)
+                    if posture.correlation_history_jsonb is not None
                     else None,
-                    lbma_30d_momentum_t,
-                    uw_25d_skew_sigma,
-                    fx_basket_dxy_z,
-                    xau_cny_premium_pct,
-                    cb_52w_pct,
-                    cot_mm_4w_change_sigma,
-                    t5yifr_pct_52w,
-                    dxy,
-                    dxy_60d_sigma,
-                    gpr_value,
-                    gpr_pct_52w,
+                    Jsonb(posture.gld_history_jsonb)
+                    if posture.gld_history_jsonb is not None
+                    else None,
+                    Jsonb(posture.gold_history_jsonb)
+                    if posture.gold_history_jsonb is not None
+                    else None,
+                    posture.lbma_30d_momentum_t,
+                    posture.uw_25d_skew_sigma,
+                    posture.fx_basket_dxy_z,
+                    posture.xau_cny_premium_pct,
+                    posture.cb_52w_pct,
+                    posture.cot_mm_4w_change_sigma,
+                    posture.t5yifr_pct_52w,
+                    posture.dxy,
+                    posture.dxy_60d_sigma,
+                    posture.gpr_value,
+                    posture.gpr_pct_52w,
                 ),
             )
 
@@ -823,9 +754,9 @@ class _GoldMixin:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT *
-                FROM uw_scan.gold_posture_daily
+                FROM {self._schema}.gold_posture_daily
                 WHERE row_status = 'active'
                 ORDER BY obs_date DESC, computed_at ASC
                 LIMIT 1
@@ -889,9 +820,9 @@ class _GoldMixin:
         """
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT *
-                FROM uw_scan.gold_posture_daily
+                FROM {self._schema}.gold_posture_daily
                 WHERE obs_date <= %s
                   AND row_status = 'active'
                 ORDER BY obs_date DESC, computed_at ASC
@@ -909,9 +840,9 @@ class _GoldMixin:
         """Replay discipline: return the first non-invalidated posture row."""
         with self._conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT *
-                FROM uw_scan.gold_posture_daily
+                FROM {self._schema}.gold_posture_daily
                 WHERE obs_date = %s
                   AND row_status = 'active'
                 ORDER BY computed_at ASC

@@ -29,6 +29,7 @@ from uw_scan.cards.structural_flow import (
 )
 from uw_scan.cards.valuation import compute_valuation_overlay
 from uw_scan.macro.gold import evidence_manifest, read_gold_inputs
+from uw_scan.storage.gold import GoldPosture
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -487,61 +488,63 @@ def compute_and_persist_gold_posture(
     }
 
     repo.insert_gold_posture_daily(
-        obs_date=as_of,
-        computed_at=computed_at,
-        gauge_corr_60d=gauge.corr_60d_level,
-        gauge_corr_126d=gauge.corr_126d_level,
-        gauge_corr_252d=gauge.corr_252d_level,
-        gauge_corr_504d=gauge.corr_504d_level,
-        gauge_corr_252d_returns=gauge.corr_252d_returns,
-        gauge_state=gauge.state,
-        structural_state_label=structural.structural_state_label,
-        cb_strategic_12m_sum_t=structural.cb_strategic_12m_sum_t,
-        cb_tactical_12m_sum_t=structural.cb_tactical_12m_sum_t,
-        cb_diversifier_12m_sum_t=structural.cb_diversifier_12m_sum_t,
-        gld_holdings_t=structural.gld_holdings_t,
-        gld_30d_net_flow_t=structural.gld_30d_net_flow_t,
-        comex_registered_oz=structural.comex_registered_oz,
-        comex_20d_roc_pct=structural.comex_20d_roc_pct,
-        cot_mm_net_pct=structural.cot_mm_net_pct,
-        cyclical_zone_label=cyclical.zone_label,
-        cpi_yoy=cyclical.cpi_yoy,
-        t5yifr=cyclical.t5yifr,
-        dfii10=cyclical.dfii10,
-        dfii10_60d_change_bps=cyclical.dfii10_60d_change_bps,
-        factors_jsonb=cyclical.factors,
-        valuation_flag=valuation.flag,
-        real_price_percentile=valuation.real_price_percentile,
-        gold_m2_ratio_percentile=valuation.gold_m2_ratio_percentile,
-        gold_spx_ratio_percentile=valuation.gold_spx_ratio_percentile,
-        structural_posture_text=structural.narrative_text,
-        cyclical_posture_text=cyclical.narrative_text,
-        valuation_posture_text=valuation.narrative_text,
-        inputs_jsonb=inputs_used,
-        structural_posture_chip=posture_chips["L1"],
-        cyclical_posture_chip=posture_chips["L2"],
-        valuation_posture_chip=posture_chips["L3"],
-        spot_jsonb=spot,
-        data_freshness_jsonb=data_freshness,
-        decomposition_jsonb=decomposition_rows,
-        correlation_history_jsonb=correlation_history,
-        gld_history_jsonb=gld_history_rows,
-        gold_history_jsonb=gold_history_rows,
-        # 044 extensions
-        lbma_30d_momentum_t=lbma_30d_momentum_t,
-        uw_25d_skew_sigma=uw_25d_skew_sigma,
-        fx_basket_dxy_z=fx_basket_dxy_z,
-        # Both columns exist (migration 044) and both are written as a literal None on
-        # every run: no Shanghai/loco-London premium leg is ingested, and no 52-week
-        # percentile is derived off the central-bank series. The write is what makes the
-        # gap explicit -- omitting the kwargs would leave the same NULL less legibly.
-        xau_cny_premium_pct=None,
-        cb_52w_pct=None,
-        cot_mm_4w_change_sigma=cot_mm_4w_change_sigma,
-        t5yifr_pct_52w=t5yifr_pct_52w,
-        dxy=dxy_latest,
-        dxy_60d_sigma=dxy_60d_sigma,
-        gpr_value=gpr_latest,
-        gpr_pct_52w=gpr_pct_52w,
+        GoldPosture(
+            obs_date=as_of,
+            computed_at=computed_at,
+            gauge_corr_60d=gauge.corr_60d_level,
+            gauge_corr_126d=gauge.corr_126d_level,
+            gauge_corr_252d=gauge.corr_252d_level,
+            gauge_corr_504d=gauge.corr_504d_level,
+            gauge_corr_252d_returns=gauge.corr_252d_returns,
+            gauge_state=gauge.state,
+            structural_state_label=structural.structural_state_label,
+            cb_strategic_12m_sum_t=structural.cb_strategic_12m_sum_t,
+            cb_tactical_12m_sum_t=structural.cb_tactical_12m_sum_t,
+            cb_diversifier_12m_sum_t=structural.cb_diversifier_12m_sum_t,
+            gld_holdings_t=structural.gld_holdings_t,
+            gld_30d_net_flow_t=structural.gld_30d_net_flow_t,
+            comex_registered_oz=structural.comex_registered_oz,
+            comex_20d_roc_pct=structural.comex_20d_roc_pct,
+            cot_mm_net_pct=structural.cot_mm_net_pct,
+            cyclical_zone_label=cyclical.zone_label,
+            cpi_yoy=cyclical.cpi_yoy,
+            t5yifr=cyclical.t5yifr,
+            dfii10=cyclical.dfii10,
+            dfii10_60d_change_bps=cyclical.dfii10_60d_change_bps,
+            factors_jsonb=cyclical.factors,
+            valuation_flag=valuation.flag,
+            real_price_percentile=valuation.real_price_percentile,
+            gold_m2_ratio_percentile=valuation.gold_m2_ratio_percentile,
+            gold_spx_ratio_percentile=valuation.gold_spx_ratio_percentile,
+            structural_posture_text=structural.narrative_text,
+            cyclical_posture_text=cyclical.narrative_text,
+            valuation_posture_text=valuation.narrative_text,
+            inputs_jsonb=inputs_used,
+            structural_posture_chip=posture_chips["L1"],
+            cyclical_posture_chip=posture_chips["L2"],
+            valuation_posture_chip=posture_chips["L3"],
+            spot_jsonb=spot,
+            data_freshness_jsonb=data_freshness,
+            decomposition_jsonb=decomposition_rows,
+            correlation_history_jsonb=correlation_history,
+            gld_history_jsonb=gld_history_rows,
+            gold_history_jsonb=gold_history_rows,
+            # 044 extensions
+            lbma_30d_momentum_t=lbma_30d_momentum_t,
+            uw_25d_skew_sigma=uw_25d_skew_sigma,
+            fx_basket_dxy_z=fx_basket_dxy_z,
+            # Both columns exist (migration 044) and both are written as a literal None on
+            # every run: no Shanghai/loco-London premium leg is ingested, and no 52-week
+            # percentile is derived off the central-bank series. The write is what makes the
+            # gap explicit -- omitting the kwargs would leave the same NULL less legibly.
+            xau_cny_premium_pct=None,
+            cb_52w_pct=None,
+            cot_mm_4w_change_sigma=cot_mm_4w_change_sigma,
+            t5yifr_pct_52w=t5yifr_pct_52w,
+            dxy=dxy_latest,
+            dxy_60d_sigma=dxy_60d_sigma,
+            gpr_value=gpr_latest,
+            gpr_pct_52w=gpr_pct_52w,
+        )
     )
     logger.info("gold_posture: wrote row for %s, gauge_state=%s", as_of, gauge.state)

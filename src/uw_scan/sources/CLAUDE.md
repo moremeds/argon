@@ -17,7 +17,6 @@ The only place that talks to the outside world.
 - `earnings_calendar.py` — the UW earnings calendar for one session, across both classified slots (`premarket`/`afterhours`); a name UW reports as `report_time: "unknown"` appears in neither.
 - `sec_submissions.py` — SEC EDGAR submissions client; the only source that dates a filing rather than a fetch (answers "when did the world see it", not "when did we first see this content").
 - `fred_macro.py` — ALFRED-backed adapter for realized inflation and market compensation series; used because BLS/BEA don't publish vintages at all.
-- `bis_eer.py` — BIS effective exchange rates, the USD anchor's independent cross-check (`stats.bis.org` SDMX `BIS/WS_EER`).
 
 ## Gold complex (Phase A1 + v2 corpus)
 
