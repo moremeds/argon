@@ -48,7 +48,9 @@ FIXED: dict[str, int] = {
 }
 
 #: Per-worker ranges: name -> base; worker i holds base + i.
-PER_WORKER: dict[str, int] = {"flow_data_refresh": 91501}
+#: flow_data_refresh moved off 91501 + i in 2026-10: that range ran into the fixed
+#: 91502/91503/91504, so uw-1's flow refresh held INTRADAY_REFRESH_LOCK.
+PER_WORKER: dict[str, int] = {"flow_data_refresh": 91701}
 #: Slots asserted per range. Far above any fleet we run (uw workers: 2).
 WORKER_SPAN = 17
 
@@ -58,13 +60,7 @@ HASHED_GLOBAL = ("theta_harvester_scan", "theta_harvester_quote")
 HASHED_PREFIXES = ("vol_backfill:", "technicals_refresh:")
 
 #: Known overlaps, each with its reason. Empty is the goal.
-KNOWN_OVERLAPS: dict[tuple[str, str], str] = {
-    ("flow_data_refresh[1]", "intraday_refresh"): (
-        "flow's per-worker range 91501+i reaches 91502..91504; re-keyed next commit"
-    ),
-    ("flow_data_refresh[2]", "greek_daily_refresh"): "same range overlap",
-    ("flow_data_refresh[3]", "intraday_backfill"): "same range overlap",
-}
+KNOWN_OVERLAPS: dict[tuple[str, str], str] = {}
 
 
 def hashed_key(text: str) -> int:

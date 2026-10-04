@@ -10,8 +10,9 @@ deliberate re-key changes it in its own commit.
 from __future__ import annotations
 
 GOLDEN: dict[str, int] = {
-    "flow_data_refresh[worker 0]": 91501,
-    "flow_data_refresh[worker 1]": 91502,
+    # Re-keyed 2026-10 (was 91501 / 91502: worker 1 collided with intraday_refresh).
+    "flow_data_refresh[worker 0]": 91701,
+    "flow_data_refresh[worker 1]": 91702,
     "intraday_refresh": 91502,
     "greek_daily_refresh": 91503,
     "intraday_backfill": 91504,
@@ -45,7 +46,7 @@ def current_keys() -> dict[str, int]:
     from uw_scan.worker.jobs.pipeline_benchmark import PIPELINE_BENCHMARK_LOCK_KEY
 
     return {
-        # scheduler.py passes lock_key=91501 + settings.worker_index
+        # scheduler.py passes worker_key("flow_data_refresh", worker_index)
         "flow_data_refresh[worker 0]": FLOW_REFRESH_LOCK + 0,
         "flow_data_refresh[worker 1]": FLOW_REFRESH_LOCK + 1,
         "intraday_refresh": INTRADAY_REFRESH_LOCK,

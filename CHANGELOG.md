@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **uw-1's nightly flow refresh no longer holds the intraday-refresh lock.** `flow_data_refresh` locked `91501 + worker_index`, so uw-1 took 91502 = `INTRADAY_REFRESH_LOCK`, and a third uw worker would have taken 91503 = `GREEK_DAILY_REFRESH_LOCK` (which runs at 18:30, right after flow at 18:15). Either job then silently skipped the other ("lock held; skipping"). Its per-worker range moves to 91701 + index; the registry's import-time assert proves the whole 91701-91717 span free. During the Watchtower rollout an old-image and a new-image worker could each run the refresh once; it is idempotent (per-ticker delete + upsert of the chain, `ON CONFLICT DO UPDATE` volume rows), so the only cost is an extra `scan_runs` row and repeated UW calls.
+
 ### Changed
 
 - **One advisory-lock registry and one `single_flight()` (I-53/I-54); keys unchanged.** Every advisory-lock key now lives in `storage/advisory_locks.py`, which asserts at import that no two names can resolve to the same key: every slot of a per-worker range and every fixed-name md5 key included, with per-ticker md5 namespaces asserted distinct by prefix. `single_flight(conn, key)` replaces the ten hand-rolled `pg_try_advisory_lock` / `pg_advisory_unlock` pairs (cockpit, discovery, flow, greek, intraday ×2, pipeline benchmark, uw-alpha, gap healer ×2, freshness autoheal, volatility backfill, theta scan/quote, technicals refresh) and `Repository.try/release_advisory_lock`. It rolls back an aborted transaction before unlocking, so a failed body no longer leaks a session lock on a pooled connection, and a release failure never masks the body's error. The md5 keys are computed in Python, bit-identical to the SQL they replaced. One `worker/db.repo_session` replaces the three worker `_repo` copies (`pipeline_benchmark`'s copy used `connect()` + `close()`, which discards; its insert committed itself, so nothing was lost). Proof: `tests/unit/storage/test_advisory_lock_keys.py`, frozen on main first, plus a per-site contention test with each job's real key held by another session.
