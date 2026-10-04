@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.sources.uw import fetch_market_flow_alerts
 
 

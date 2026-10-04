@@ -43,7 +43,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from uw_scan.sources.sec_submissions import SecFiling
+from uw_scan.models.sec import SecFiling
 
 #: Same tolerance as the UW period-key reconciliation. Exact match wins first.
 PUBLICATION_TOLERANCE_DAYS = 7

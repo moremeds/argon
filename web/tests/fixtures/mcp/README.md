@@ -19,5 +19,6 @@ Captured 2026-10-02T09:31Z from the argon FastAPI (main @ 18e25964) over the loc
 - `watchlist.json`, `watchlist_chains.json`: `GET /watchlist`, `GET /watchlist/chains`.
 
 Do not hand-edit values. To refresh, re-capture all of them together.
+- `spx_regime_gex.json`, `regime_market_tide.json`: `GET /api/regime/gex?ticker=SPX` and `GET /api/regime/market-tide?sessions=5`, rendered on 2026-10-04 by the API code at main 042127bf (FastAPI `TestClient`, read-only) over the local `option_wizard_local` DB (GEX `data_date` 2026-09-23; tide `as_of` 2026-09-23, rendered in that DB session's +08:00 zone). Untrimmed. The GEX history carries real nulls (3 `spot`, 48 `atm_iv`).
 - `grg.json`: `GET /regime/grg`, read from prod through the argon MCP `read` tool on 2026-10-04 (`data_date` 2026-10-02). Trimmed: `history` keeps the last 5 of 190 rows and `events.bottoms` the first 2 of 5 (`events.stats` still describes all 5). Every kept row is unmodified.
 - `aapl_volatility_series.json`: `GET /api/stock/AAPL/volatility/series`, rendered on 2026-10-04 by the API code at main (FastAPI `TestClient`, read-only) over the local `option_wizard_local` DB (`as_of` 2026-10-04). Untrimmed; `hv_iv_history` carries 3 real null `rv` values.

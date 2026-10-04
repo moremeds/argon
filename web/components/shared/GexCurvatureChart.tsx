@@ -25,7 +25,9 @@ import { linearScale, pathFromPoints, type Point } from "@/lib/svgChart";
  *
  * Scaled by h̄² / max|f| so the output is dimensionless and comparable
  * across tickers (raw $/strike² is meaningless next to a $ level).
- * Endpoints have no centred stencil → null.
+ * Endpoints have no centred stencil → null. A stencil touching a bucket
+ * with a null strike or net GEX is also null — a missing value is never
+ * read as 0. (The chart drops such buckets before calling this.)
  *
  * Input MUST be sorted ascending by strike.
  */
@@ -34,25 +36,36 @@ export function curvatureField(buckets: GexBucket[]): (number | null)[] {
   if (n < 3) return new Array(n).fill(null);
 
   const gaps: number[] = [];
-  for (let i = 1; i < n; i++)
-    gaps.push(buckets[i].strike - buckets[i - 1].strike);
+  for (let i = 1; i < n; i++) {
+    const lo = buckets[i - 1].strike;
+    const hi = buckets[i].strike;
+    if (lo != null && hi != null) gaps.push(hi - lo);
+  }
   const sorted = [...gaps].sort((a, b) => a - b);
   const hBar = sorted[Math.floor(sorted.length / 2)] || 1;
-  const maxAbs = Math.max(...buckets.map((b) => Math.abs(b.net_gex)), 1);
+  const gex: number[] = [];
+  for (const b of buckets) if (b.net_gex != null) gex.push(Math.abs(b.net_gex));
+  const maxAbs = Math.max(...gex, 1);
   const scale = (hBar * hBar) / maxAbs;
 
   const out: (number | null)[] = new Array(n).fill(null);
   for (let i = 1; i < n - 1; i++) {
-    const h1 = buckets[i].strike - buckets[i - 1].strike;
-    const h2 = buckets[i + 1].strike - buckets[i].strike;
+    const [a, b, c] = [buckets[i - 1], buckets[i], buckets[i + 1]];
+    if (
+      a.strike == null ||
+      b.strike == null ||
+      c.strike == null ||
+      a.net_gex == null ||
+      b.net_gex == null ||
+      c.net_gex == null
+    )
+      continue;
+    const h1 = b.strike - a.strike;
+    const h2 = c.strike - b.strike;
     const denom = h1 * h2 * (h1 + h2);
     if (denom === 0) continue;
     const d2 =
-      (2 *
-        (h2 * buckets[i - 1].net_gex -
-          (h1 + h2) * buckets[i].net_gex +
-          h1 * buckets[i + 1].net_gex)) /
-      denom;
+      (2 * (h2 * a.net_gex - (h1 + h2) * b.net_gex + h1 * c.net_gex)) / denom;
     out[i] = d2 * scale;
   }
   return out;
@@ -60,8 +73,16 @@ export function curvatureField(buckets: GexBucket[]): (number | null)[] {
 
 export type GexCurvatureChartProps = {
   profile: GexBucket[];
-  spot: number;
+  /** Null when no spot is known: the spot rule is omitted. */
+  spot: number | null;
 };
+
+/** A bucket the chart can plot: both coordinates present. */
+type PlotBucket = GexBucket & { strike: number; net_gex: number };
+
+function isPlottable(b: GexBucket): b is PlotBucket {
+  return b.strike != null && b.net_gex != null;
+}
 
 const W = 1000;
 const H = 320;
@@ -91,8 +112,10 @@ export default function GexCurvatureChart({
   const chart = useMemo(() => {
     // Drop the synthetic SPOT pseudo-row (net_gex 0) — it is a marker, not
     // a data point, and would dent the line and the curvature stencil.
+    // Drop buckets missing a strike or net GEX too: plotting them at 0 would
+    // draw a GEX value the API never sent.
     const buckets = profile
-      .filter((b) => b.tag !== "SPOT")
+      .filter((b): b is PlotBucket => b.tag !== "SPOT" && isPlottable(b))
       .sort((a, b) => a.strike - b.strike);
     if (buckets.length < 2) return null;
 
@@ -140,13 +163,17 @@ export default function GexCurvatureChart({
   const { buckets, maxAbs, x, y, points, zeroY, curvature, flipStrike } = chart;
 
   // Readout defaults to the strike nearest spot when the pointer is away.
-  const spotIdx = buckets.reduce(
-    (best, b, i) =>
-      Math.abs(b.strike - spot) < Math.abs(buckets[best].strike - spot)
-        ? i
-        : best,
-    0,
-  );
+  // With no spot there is no default: the readout shows the missing marker.
+  const spotIdx =
+    spot == null
+      ? null
+      : buckets.reduce(
+          (best, b, i) =>
+            Math.abs(b.strike - spot) < Math.abs(buckets[best].strike - spot)
+              ? i
+              : best,
+          0,
+        );
   // hoverIdx is state and the profile is re-polled underneath it (every 60s,
   // 5min in extended hours — see useGex). A scan returning fewer strikes than
   // the one the pointer landed on would leave the index dangling, and
@@ -154,7 +181,7 @@ export default function GexCurvatureChart({
   const safeHoverIdx =
     hoverIdx != null && hoverIdx < buckets.length ? hoverIdx : null;
   const readIdx = safeHoverIdx ?? spotIdx;
-  const read = buckets[readIdx];
+  const read = readIdx == null ? null : buckets[readIdx];
 
   const areaPath = `${pathFromPoints(points)} L${points[points.length - 1][0]},${zeroY} L${points[0][0]},${zeroY} Z`;
   // Spot/flip can sit outside the rendered strike span (the regime feed
@@ -163,7 +190,7 @@ export default function GexCurvatureChart({
   // rather than being drawn outside the axes. The label still states the value.
   const clampX = (v: number) =>
     Math.min(PAD.left + PLOT_W, Math.max(PAD.left, x(v)));
-  const spotX = clampX(spot);
+  const spotX = spot == null ? null : clampX(spot);
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -222,23 +249,30 @@ export default function GexCurvatureChart({
         <span>
           STRIKE{" "}
           <span style={{ color: "var(--text-primary)" }}>
-            {read.strike.toLocaleString()}
+            {read == null ? "---" : read.strike.toLocaleString()}
           </span>
         </span>
         <span>
           NET GEX{" "}
           <span
             style={{
-              color: read.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)",
+              color:
+                read == null
+                  ? "var(--text-muted)"
+                  : read.net_gex >= 0
+                    ? "var(--signal-core)"
+                    : "var(--fault)",
             }}
           >
-            {fmtGex(read.net_gex)}
+            {fmtGex(read?.net_gex)}
           </span>
         </span>
         <span>
           CURVATURE{" "}
           <span style={{ color: "var(--text-primary)" }}>
-            {curvature[readIdx]?.toFixed(2) ?? "---"}
+            {readIdx == null
+              ? "---"
+              : (curvature[readIdx]?.toFixed(2) ?? "---")}
           </span>
         </span>
       </div>
@@ -251,7 +285,7 @@ export default function GexCurvatureChart({
         onMouseLeave={() => setHoverIdx(null)}
         style={{ fontFamily: "var(--font-mono)", fontSize: 11, marginTop: 8 }}
       >
-        <title>{`Net GEX by strike; spot ${spot.toLocaleString()}`}</title>
+        <title>{`Net GEX by strike; spot ${spot == null ? "---" : spot.toLocaleString()}`}</title>
 
         {/* Split fill: clip the single area path to above/below the zero line */}
         <defs>
@@ -311,32 +345,36 @@ export default function GexCurvatureChart({
           strokeLinejoin="round"
         />
 
-        {/* Spot rule */}
-        <line
-          x1={spotX}
-          y1={PAD.top}
-          x2={spotX}
-          y2={PAD.top + PLOT_H}
-          stroke="var(--text-secondary)"
-          strokeWidth={1.5}
-        />
-        <text
-          x={spotX}
-          y={PAD.top - 10}
-          textAnchor="middle"
-          fill="var(--text-primary)"
-          fontSize={12}
-        >
-          SPOT {spot.toLocaleString()}
-        </text>
-        <circle
-          cx={points[spotIdx][0]}
-          cy={points[spotIdx][1]}
-          r={5}
-          fill="var(--signal-core)"
-          stroke="var(--bg-panel)"
-          strokeWidth={2}
-        />
+        {/* Spot rule — omitted when no spot is known */}
+        {spot != null && spotX != null && spotIdx != null && (
+          <>
+            <line
+              x1={spotX}
+              y1={PAD.top}
+              x2={spotX}
+              y2={PAD.top + PLOT_H}
+              stroke="var(--text-secondary)"
+              strokeWidth={1.5}
+            />
+            <text
+              x={spotX}
+              y={PAD.top - 10}
+              textAnchor="middle"
+              fill="var(--text-primary)"
+              fontSize={12}
+            >
+              SPOT {spot.toLocaleString()}
+            </text>
+            <circle
+              cx={points[spotIdx][0]}
+              cy={points[spotIdx][1]}
+              r={5}
+              fill="var(--signal-core)"
+              stroke="var(--bg-panel)"
+              strokeWidth={2}
+            />
+          </>
+        )}
 
         {/* GEX flip rule */}
         {flipStrike != null && (
