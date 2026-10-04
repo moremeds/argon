@@ -70,7 +70,7 @@ from collections.abc import Iterator
 import psycopg
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.config import Settings
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.migrate_runner import apply_migrations

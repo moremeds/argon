@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.storage.uw_historical_alpha_repository import UwHistoricalAlphaRepository
 from uw_scan.worker.jobs.uw_alpha_capture import (
     capture_dark_lit_for,

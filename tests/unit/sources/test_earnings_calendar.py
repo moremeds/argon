@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.sources.earnings_calendar import (
     PAGE_SIZE,
     CalendarListing,

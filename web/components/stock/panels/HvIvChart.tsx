@@ -1,6 +1,7 @@
 import { toNum } from "@/lib/formatters";
-import { finiteDomain, linearScale, pathFromPoints } from "@/lib/svgChart";
+import { chartFrame, finiteDomain, pathFromPoints } from "@/lib/svgChart";
 import type { Point } from "@/lib/svgChart";
+import { FrameLabels } from "@/components/shared/FrameLabels";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 export type HvIvPoint = {
@@ -22,9 +23,7 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
       </AnalyticalSeriesPanel>
     );
   }
-  const W = 400;
-  const H = 220;
-  const M = { top: 8, right: 16, bottom: 24, left: 36 };
+  const frame = chartFrame();
   const ivs = data.map((d) => toNum(d.iv));
   const rvs = data.map((d) => toNum(d.rv));
   const domain = finiteDomain([...ivs, ...rvs]);
@@ -41,8 +40,8 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
     );
   }
   const { lo, hi } = domain;
-  const x = linearScale([0, data.length - 1], [M.left, W - M.right]);
-  const y = linearScale([lo, hi], [H - M.bottom, M.top]);
+  const x = frame.x([0, data.length - 1]);
+  const y = frame.y([lo, hi]);
   const ivPath = pathFromPoints(
     ivs
       .map((v, i) => [x(i), v == null ? NaN : y(v)] as Point)
@@ -62,7 +61,7 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
         <span style={{ color: "var(--accent-bg)" }}>— IV</span>
         <span style={{ color: "var(--accent-warm)" }}>— RV</span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img">
+      <svg {...frame.svg}>
         <path
           d={ivPath}
           stroke="var(--accent-bg)"
@@ -75,36 +74,13 @@ export function HvIvChart({ data }: { data: HvIvPoint[] }) {
           fill="none"
           strokeWidth={1.5}
         />
-        <text
-          x={M.left - 4}
-          y={H - M.bottom}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {(lo * 100).toFixed(1)}%
-        </text>
-        <text
-          x={M.left - 4}
-          y={M.top + 8}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {(hi * 100).toFixed(1)}%
-        </text>
-        <text x={M.left} y={H - 4} fontSize={9} fill="var(--text-muted)">
-          {data[0].date}
-        </text>
-        <text
-          x={W - M.right}
-          y={H - 4}
-          fontSize={9}
-          textAnchor="end"
-          fill="var(--text-muted)"
-        >
-          {data[data.length - 1].date}
-        </text>
+        <FrameLabels
+          frame={frame}
+          yLo={<>{(lo * 100).toFixed(1)}%</>}
+          yHi={<>{(hi * 100).toFixed(1)}%</>}
+          xFirst={data[0].date}
+          xLast={data[data.length - 1].date}
+        />
       </svg>
     </AnalyticalSeriesPanel>
   );

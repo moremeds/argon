@@ -143,7 +143,7 @@ export function MarketTideDailyChart({
   const yVol = linearScale([volLo, volHi], [VOL_BOTTOM, VOL_TOP]);
 
   function pathFor(
-    accessor: (p: MarketTidePoint) => number | null,
+    accessor: (p: MarketTidePoint) => number | null | undefined,
     scale: ((v: number) => number) | null,
   ): string {
     if (scale == null) return "";

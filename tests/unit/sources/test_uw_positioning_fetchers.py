@@ -17,7 +17,7 @@ from typing import Any
 import httpx
 import pytest
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.normalize import (
     NormalizationError,
     normalize_analyst_ratings,

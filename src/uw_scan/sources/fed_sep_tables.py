@@ -27,7 +27,7 @@ from typing import Final
 
 from bs4 import BeautifulSoup, Tag
 
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 
 SUMMARY_HEADING_PREFIXES: Final = ("Table 1.", "Advance release of table 1")
 DOT_HEADING_PREFIX: Final = "Figure 2."
