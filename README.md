@@ -68,7 +68,7 @@ The panorama above shows Argon's runtime data flow. Signal Lab participates at r
 - Node.js `20.9+`
 - PostgreSQL
 - Unusual Whales and Massive API credentials for the primary market-data paths
-- Optional: Xenon connectivity, Codex CLI, Claude CLI, and a DeepSeek API key
+- Optional: Xenon connectivity and a DeepSeek API key (Trade Insights AI)
 
 ```bash
 git clone https://github.com/moremeds/argon.git

@@ -6,7 +6,7 @@ Single namespace `uw_scan`. Everything publishable runs from here.
 
 ```
 uw_scan/
-├── config/              # package: settings.py (plain pydantic BaseModel Settings, populated via Settings.from_env() — env → typed config), _env.py (env parsers + .env loader), db_isolation.py (host/db tripwire)
+├── config/              # package: settings.py (plain pydantic BaseModel Settings, populated via Settings.from_env() — env → typed config) composed from one mixin per concern (apex.py, db.py, vrp.py, …; each field declares its env var with `EnvVar(...)` — a new setting goes in its concern module), _env.py (EnvVar, env parsers + .env loader), db_isolation.py (host/db tripwire)
 ├── models/              # Pydantic v2 row/response contracts, split by domain
 ├── normalize.py         # raw UW JSON → typed models (NormalizationError on miss)
 ├── errors.py            # shared exceptions (NormalizationError; normalize re-exports it)

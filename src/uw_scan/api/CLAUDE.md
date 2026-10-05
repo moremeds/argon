@@ -14,8 +14,7 @@ Don't conflate them.
 - `server.py` — app factory, mounts 24 routers under `/api`: `health, benchmark, watchlist, stock, ohlc, cockpit, jobs, volatility, skew, provider_usage, trade_insights, regime, regime_validation, gold, rates, macro, scanner, radar, fundamentals_desk, research_evidence, research_reports, positioning, vrp, positions` (the `include_router` block in `server.py` is authoritative)
 - `client.py` — `UwClient(httpx)` with retry/throttle; one entry per UW endpoint
 - `deps.py` — FastAPI dependencies (DB session, settings)
-- `schemas.py` — request/response shapes specific to our HTTP surface (not the DB models)
-- `models/` — router-local request/response models too niche for `uw_scan.models` (canary, regime_validation, scanner, theta_harvester, vrp_macro_entry, watchlist)
+- Request/response models live in `uw_scan.models` (one domain module each). The old `api/schemas.py` and `api/models/` are gone; do not recreate them
 - `routers/*.py` — read-only over the warm store; one file per router listed above
 
 ## Rules
