@@ -231,6 +231,40 @@ def _ticker_date_limit_fetcher(
     return _named(fetcher, name, returns, None)
 
 
+def _print_page_fetcher(
+    name: str, slug: EndpointSlug, normalizer: Any, returns: str
+) -> Any:
+    """+ market_date + limit + older_than: one page of a print feed.
+
+    UW serves the newest prints first; ``older_than`` (ISO-8601 UTC, strictly
+    older) fetches the next page back. Paging lives in the caller
+    (uw_alpha_capture.capture_dark_lit_for)."""
+
+    def fetcher(
+        client: UwClient,
+        repo: Repository,
+        run_id: int,
+        ticker: str,
+        market_date: date | None = None,
+        limit: int = 500,
+        older_than: str | None = None,
+    ):
+        extra: dict[str, Any] = {"limit": limit}
+        if older_than is not None:
+            extra["older_than"] = older_than
+        body = _fetch_json(
+            client,
+            repo,
+            run_id,
+            slug,
+            ticker,
+            params=_date_params(market_date, **extra),
+        )
+        return normalizer(body)
+
+    return _named(fetcher, name, returns, None)
+
+
 # fmt: off
 _S = EndpointSlug
 _N = normalize
@@ -253,10 +287,10 @@ fetch_volatility_character = _ticker_date_fetcher("fetch_volatility_character", 
 fetch_volatility_vrp = _ticker_date_fetcher("fetch_volatility_vrp", _S.VOLATILITY_VRP, _N.normalize_vol_vrp, "list[VolVrpRow]")
 fetch_greek_flow = _ticker_date_fetcher("fetch_greek_flow", _S.GREEK_FLOW, _N.normalize_greek_flow, "list[GreekFlowRow]")
 fetch_net_prem_ticks = _ticker_date_limit_fetcher("fetch_net_prem_ticks", _S.NET_PREM_TICKS, _N.normalize_net_prem_ticks, "list[NetPremTickRow]")
-fetch_lit_flow = _ticker_date_limit_fetcher("fetch_lit_flow", _S.LIT_FLOW, _N.normalize_dark_lit, "list[DarkLitPrint]")
+fetch_lit_flow = _print_page_fetcher("fetch_lit_flow", _S.LIT_FLOW, _N.normalize_dark_lit, "list[DarkLitPrint]")
 # Same DARKPOOL_TICKER slug as fetch_darkpool_ticker, plus date + limit
 # selectors so it can backfill history.
-fetch_darkpool_prints = _ticker_date_limit_fetcher("fetch_darkpool_prints", _S.DARKPOOL_TICKER, _N.normalize_dark_lit, "list[DarkLitPrint]")
+fetch_darkpool_prints = _print_page_fetcher("fetch_darkpool_prints", _S.DARKPOOL_TICKER, _N.normalize_dark_lit, "list[DarkLitPrint]")
 
 fetch_realized_volatility = _ticker_fetcher("fetch_realized_volatility", _S.REALIZED_VOLATILITY, _N.normalize_realized_volatility, "list[RealizedVolRow]")
 fetch_short_data = _ticker_fetcher("fetch_short_data", _S.SHORT_DATA, _N.normalize_short_data, "list[ShortDataRow]")

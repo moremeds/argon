@@ -101,10 +101,15 @@ CASES: dict[str, list[tuple[tuple, dict]]] = {
         ((T,), {"market_date": MD, "limit": 20}),
     ],
     "fetch_greek_flow": [((T,), {}), ((T,), {"market_date": MD})],
-    "fetch_lit_flow": [((T,), {}), ((T,), {"market_date": MD, "limit": 20})],
+    "fetch_lit_flow": [
+        ((T,), {}),
+        ((T,), {"market_date": MD, "limit": 20}),
+        ((T,), {"market_date": MD, "older_than": "2026-09-01T19:58:12Z"}),
+    ],
     "fetch_darkpool_prints": [
         ((T,), {}),
         ((T,), {"market_date": MD, "limit": 20}),
+        ((T,), {"market_date": MD, "older_than": "2026-09-01T19:58:12Z"}),
     ],
     "fetch_ftds": [((T,), {})],
     "fetch_volumes_by_exchange": [((T,), {})],
