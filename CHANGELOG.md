@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Dark-pool and lit prints are no longer cut to the last 500 of the day.** `capture_dark_lit_for` asked UW for one page (`limit=500`) per ticker, day and source. UW serves the newest prints first, so busy names kept only the after-hours tail: NVDA on 2026-09-15 had about 13,500 dark prints and we stored 500. In September 45.6% of dark ticker-days and 20.9% of lit ticker-days were cut. The capture now pages back with `older_than` until it reaches the session's first print, with a 60-page cap per source that logs a warning and counts `page_cap_hits`. UW timestamps are whole seconds, and a page can end partway through one (a probe found 3 of 12 prints at the boundary second), so each page re-reads the boundary second; the table's primary key drops the repeats. The `date` window also returns the previous session's after-hours prints, so a print is kept only when its ET date is the market date. The nightly capture, the data-gap healer and `scripts/backfill/uw_alpha_catchup.py` all call this function. The healer's per-item estimate rises from 2 to 10 calls, and the catch-up script now charges the pages it actually fetched. Days already stored cut are not refetched here; the history backfill is a separate change.
+
 ## [0.13.27] — 2026-10-05
 
 

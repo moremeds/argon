@@ -47,11 +47,13 @@ logger = logging.getLogger("uw_alpha_catchup")
 DEFAULT_MAX_UW_CALLS = 20000  # matches DATA_GAP_HEALER_MAX_UW_CALLS
 
 # Event-log tables only. calls_per_pair = UW requests one capture makes per
-# (ticker, date): intraday = net_prem_ticks + greek_flow; dark_lit = darkpool +
-# lit_flow. The 3 daily tables belong to data_gap_healer, not here.
+# (ticker, date): intraday = net_prem_ticks + greek_flow (exact); dark_lit =
+# darkpool + lit_flow pages, a typical-day estimate used for the pre-check and
+# the dry-run (a live run charges the real page count). The 3 daily tables
+# belong to data_gap_healer, not here.
 _EVENTLOG = {
     "uw_intraday_option_flow_bars": (capture_intraday_flow_for, 2),
-    "uw_dark_lit_flow_prints": (capture_dark_lit_for, 2),
+    "uw_dark_lit_flow_prints": (capture_dark_lit_for, 10),
 }
 # Every alpha table + its date col, for the read-only coverage trace.
 _ALL_DATASETS = (
@@ -136,15 +138,22 @@ def cmd_backfill_eventlog(args, settings: Settings) -> int:
                 run_id = repo.insert_scan_run(
                     ticker, notes=f"uw_alpha_catchup:{dataset}"
                 )
+                stats: dict[str, int] = {}
                 try:
-                    n = capture_fn(client, repo, alpha, run_id, ticker, md)
+                    if capture_fn is capture_dark_lit_for:
+                        n = capture_fn(
+                            client, repo, alpha, run_id, ticker, md, stats=stats
+                        )
+                    else:
+                        n = capture_fn(client, repo, alpha, run_id, ticker, md)
                     repo.finish_scan_run(run_id, status="ok")
                     conn.commit()
                     rows += n
                     done += 1
-                    spent += per_pair
+                    spent += stats.get("pages", per_pair)
                 except Exception as exc:  # noqa: BLE001
                     conn.rollback()
+                    spent += stats.get("pages", 0)  # pages fetched before the failure
                     errors += 1
                     logger.warning(
                         "%s %s %s failed: %s", dataset, ticker, md, repr(exc)

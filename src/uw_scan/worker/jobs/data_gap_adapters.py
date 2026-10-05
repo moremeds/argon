@@ -112,7 +112,11 @@ HEAL_SPECS: dict[str, HealSpec] = {
         "uw",
         "per_ticker_date",
         _eventlog_heal(capture_dark_lit_for),
-        est_per_item=2,
+        # A ticker-day now pages to the session's first print: 2 calls for a
+        # quiet name, ~33 for NVDA, 120 at the page cap. 10 is a typical-day
+        # estimate (sampled dark days: CRM 3, PLTR 7, DELL 13 pages; lit 1-2),
+        # not an upper bound: the healer charges est_per_item, not real calls.
+        est_per_item=10,
     ),
     "grg_as_of": HealSpec(
         "grg_as_of", "uw", "per_ticker_date", _run_grg, est_per_item=2

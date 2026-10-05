@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
@@ -42,7 +42,11 @@ logger = logging.getLogger(__name__)
 _EXPIRY_SENTINEL = date(
     1, 1, 1
 )  # matches migration-108 default for non-per-expiry bars
-_PRINT_LIMIT = 500  # matches the fetcher default; capture logs when a response hits it
+_PRINT_LIMIT = 500  # UW page size for the dark/lit print feeds (the fetcher default)
+# Safety valve per source per ticker-day: 2 x 60 = 120 UW calls worst case. The
+# busiest name measured, NVDA 2026-09-15, needed ~27 dark + ~6 lit pages.
+_MAX_PRINT_PAGES = 60
+_ET = ZoneInfo("America/New_York")
 
 GEX_LEVELS_CAPTURE_LOCK = fixed_key("uw_alpha_gex_levels")
 VOLATILITY_CAPTURE_LOCK = fixed_key("uw_alpha_volatility")
@@ -266,6 +270,74 @@ def capture_intraday_flow_for(
     return alpha_repo.insert_intraday_flow_bars(rows)
 
 
+def _et_date(r) -> date:
+    return r.executed_at.astimezone(_ET).date()
+
+
+def _iso_utc(ts: datetime) -> str:
+    return ts.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _fetch_print_day(
+    fetch, name, client, repo, run_id, ticker, market_date, stats
+) -> list:
+    """Every ``name`` print UW holds for ``market_date``, paged newest-first.
+
+    UW answers one ``?date=`` with up to ``_PRINT_LIMIT`` prints, newest first,
+    and ``older_than`` (strictly older) pages back. Two measured traps (NVDA
+    2026-09-15):
+    - Timestamps are whole seconds and up to 17 prints share one. A page can end
+      partway through a second, so a strict cursor would skip the rest of that
+      second (page 1 held 3 of the 12 prints at 19:58:11Z). The cursor is
+      therefore last-second + 1 s: the overlap re-reads the boundary second and
+      the table's PK + ON CONFLICT DO NOTHING drops the repeats.
+    - The ``date`` window starts at the previous session's 16:00 ET, so the
+      last pages carry the prior day's after-hours prints. A print belongs to
+      ``market_date`` only when its ET date matches (every stored row already
+      obeys this); reaching an older ET date ends the day.
+    """
+    kept: list = []
+    cursor: datetime | None = None  # oldest executed_at seen so far
+    strict = False
+    for _ in range(_MAX_PRINT_PAGES):
+        older_than = None
+        if cursor is not None:
+            older_than = _iso_utc(cursor if strict else cursor + timedelta(seconds=1))
+        page = fetch(
+            client,
+            repo,
+            run_id,
+            ticker,
+            market_date,
+            limit=_PRINT_LIMIT,
+            older_than=older_than,
+        )
+        stats["pages"] = stats.get("pages", 0) + 1
+        kept.extend(r for r in page if _et_date(r) == market_date)
+        if len(page) < _PRINT_LIMIT:
+            return kept
+        oldest = min(r.executed_at for r in page)
+        if oldest.astimezone(_ET).date() < market_date:
+            return kept
+        if cursor is not None and oldest >= cursor:
+            # A full page inside the overlap second made no progress; step
+            # strictly once. No progress even then means UW is repeating itself.
+            if strict:
+                return kept
+            strict = True
+            continue
+        cursor, strict = oldest, False
+    stats["page_cap_hits"] = stats.get("page_cap_hits", 0) + 1
+    logger.warning(
+        "uw_alpha %s prints %s %s hit the %d-page cap (truncated)",
+        name,
+        ticker,
+        market_date,
+        _MAX_PRINT_PAGES,
+    )
+    return kept
+
+
 def capture_dark_lit_for(
     client: UwClient,
     repo: Repository,
@@ -273,22 +345,21 @@ def capture_dark_lit_for(
     run_id: int,
     ticker: str,
     market_date: date,
+    stats: dict[str, int] | None = None,
 ) -> int:
-    dark = fetch_darkpool_prints(
-        client, repo, run_id, ticker, market_date, limit=_PRINT_LIMIT
-    )
-    lit = fetch_lit_flow(client, repo, run_id, ticker, market_date, limit=_PRINT_LIMIT)
-    for name, prints in (("darkpool", dark), ("lit_flow", lit)):
-        if len(prints) >= _PRINT_LIMIT:
-            logger.warning(
-                "uw_alpha %s prints %s %s hit limit=%d (truncated)",
-                name,
-                ticker,
-                market_date,
-                _PRINT_LIMIT,
-            )
+    """Write every darkpool + lit print of one ticker-day; returns rows inserted.
+
+    ``stats`` (optional) accumulates ``pages`` (= UW calls made) and
+    ``page_cap_hits`` so a budgeted caller can charge the real cost."""
+    stats = {} if stats is None else stats
     rows = []
-    for source, prints in (("darkpool", dark), ("lit_flow", lit)):
+    for source, fetch in (
+        ("darkpool", fetch_darkpool_prints),
+        ("lit_flow", fetch_lit_flow),
+    ):
+        prints = _fetch_print_day(
+            fetch, source, client, repo, run_id, ticker, market_date, stats
+        )
         for r in prints:
             rows.append(
                 {
@@ -477,9 +548,10 @@ def dark_lit_capture(
     lock_key: int = DARK_LIT_CAPTURE_LOCK,
     market_date: date | None = None,
 ) -> dict[str, int]:
-    return _run_capture(
+    stats: dict[str, int] = {"pages": 0, "page_cap_hits": 0}
+    summary = _run_capture(
         "uw_alpha_dark_lit_capture",
-        capture_dark_lit_for,
+        lambda *a: capture_dark_lit_for(*a, stats=stats),
         lock_key,
         repo=repo,
         client=client,
@@ -487,3 +559,4 @@ def dark_lit_capture(
         ticker_filter=ticker_filter,
         market_date=market_date,
     )
+    return {**summary, **stats}
