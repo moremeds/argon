@@ -194,6 +194,31 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
                     )
         logger.info("macro_release_calendar_capture %s", summary)
 
+    def _dark_lit_backfill() -> None:
+        from uw_scan.sources.apex import fetch_bulk_daily_closes
+        from uw_scan.worker.jobs.dark_lit_backfill import JOB_NAME, dark_lit_backfill
+
+        def _sessions(start, end):
+            # SPY's daily bars are the trading calendar back to 2023 (the
+            # warm-store spine starts 2025-04); one apex call, zero UW spend.
+            closes = fetch_bulk_daily_closes(
+                ["SPY"], base_url=settings.apex_api_url, start=start, end=end
+            )
+            return sorted(closes.get("SPY", {}))
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings, telemetry_recorder=recorder, job_name=JOB_NAME
+            ) as uw:
+                with _repo(settings) as repo:
+                    dark_lit_backfill(
+                        repo=repo,
+                        client=uw,
+                        settings=settings,
+                        sessions_fn=_sessions,
+                        budget_ok=lambda: _research_budget_ok(settings, repo),
+                    )
+
     def _make_uw_alpha_capture(wrapper, job_name: str):
         # UW historical-alpha nightly capture (5 datasets). Each wrapper is
         # advisory-locked for single-flight; env freezes at fork, so the flag is
@@ -409,6 +434,19 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
                         max_instances=1,
                         coalesce=True,
                     )
+            # Dark/lit print history backfill — uw-0, default off. 22:30 ET: after
+            # the 18:15-20:00 UW capture peak and the 20:00 ET (00:00 UTC) budget
+            # reset, so each run spends one fresh UTC budget day's cap and exits.
+            # Daily: the Friday and Saturday evening runs are UTC Sat/Sun.
+            if settings.dark_lit_backfill_enabled and _pinned(settings, "uw"):
+                sched.add_job(
+                    _dark_lit_backfill,
+                    CronTrigger.from_crontab("30 22 * * *", timezone=settings.rth_tz),
+                    id="dark_lit_backfill",
+                    name="Dark/lit print history backfill (budgeted)",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Cockpit nightly snapshot — UW-bound (greeks/IV/RV/skew) and
             # single-flight via pg_try_advisory_lock; only the primary uw
             # worker schedules it to avoid duplicate UW spend.

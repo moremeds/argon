@@ -44,6 +44,7 @@ FIXED: dict[str, int] = {
     "uw_alpha_short_pressure": 10803,
     "uw_alpha_intraday_flow": 10804,
     "uw_alpha_dark_lit": 10805,
+    "dark_lit_backfill": 10806,
     "mcp_event": 727_000_154,
 }
 

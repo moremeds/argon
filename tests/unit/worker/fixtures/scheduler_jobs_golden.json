@@ -139,6 +139,16 @@
    "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='16', minute='30'] tz=America/New_York"
   },
   {
+   "func": "_dark_lit_backfill",
+   "id": "dark_lit_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Dark/lit print history backfill (budgeted)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='22', minute='30'] tz=America/New_York"
+  },
+  {
    "func": "_data_freshness_monitor",
    "id": "data_freshness_monitor",
    "options": {
@@ -1632,6 +1642,16 @@
     "name": "'Vendor sector fill for company_type routing (daily)'"
    },
    "trigger": "cron[month='*', day='*', day_of_week='*', hour='4', minute='40'] tz=America/New_York"
+  },
+  {
+   "func": "_dark_lit_backfill",
+   "id": "dark_lit_backfill",
+   "options": {
+    "coalesce": "True",
+    "max_instances": "1",
+    "name": "'Dark/lit print history backfill (budgeted)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='*', hour='22', minute='30'] tz=America/New_York"
   },
   {
    "func": "_data_freshness_monitor",

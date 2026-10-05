@@ -25,6 +25,7 @@ GOLDEN: dict[str, int] = {
     "uw_alpha_short_pressure": 10803,
     "uw_alpha_intraday_flow": 10804,
     "uw_alpha_dark_lit": 10805,
+    "dark_lit_backfill": 10806,
     "mcp_event": 727_000_154,
 }
 
@@ -33,6 +34,7 @@ def current_keys() -> dict[str, int]:
     from uw_scan.storage.mcp_events import MCP_EVENT_LOCK
     from uw_scan.worker.jobs import uw_alpha_capture as alpha
     from uw_scan.worker.jobs.cockpit_daily_snapshot import COCKPIT_SNAPSHOT_LOCK
+    from uw_scan.worker.jobs.dark_lit_backfill import DARK_LIT_BACKFILL_LOCK
     from uw_scan.worker.jobs.data_gap_healer import _LOCK_KEY as GAP
     from uw_scan.worker.jobs.discovery_scan import DISCOVERY_SCAN_LOCK
     from uw_scan.worker.jobs.flow_data_refresh import FLOW_REFRESH_LOCK
@@ -61,6 +63,7 @@ def current_keys() -> dict[str, int]:
         "uw_alpha_short_pressure": alpha.SHORT_PRESSURE_CAPTURE_LOCK,
         "uw_alpha_intraday_flow": alpha.INTRADAY_FLOW_CAPTURE_LOCK,
         "uw_alpha_dark_lit": alpha.DARK_LIT_CAPTURE_LOCK,
+        "dark_lit_backfill": DARK_LIT_BACKFILL_LOCK,
         "mcp_event": MCP_EVENT_LOCK,
     }
 

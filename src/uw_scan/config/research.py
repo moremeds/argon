@@ -27,6 +27,23 @@ class ResearchSettings(BaseModel):
     uw_alpha_capture_enabled: Annotated[
         bool, EnvVar("UW_SCAN_UW_ALPHA_CAPTURE_ENABLED")
     ] = False
+    # Dark/lit print history backfill (daily 22:30 ET, uw-0). Re-pages every
+    # active-watchlist ticker-day the one-page capture cut at 500 prints, oldest
+    # first. Research pool: it also stops on research_budget_ok and the total
+    # guard. Per-UW-budget-day (UTC) call caps; UTC Saturday/Sunday are the
+    # Friday- and Saturday-evening ET runs.
+    dark_lit_backfill_enabled: Annotated[
+        bool, EnvVar("UW_SCAN_DARK_LIT_BACKFILL_ENABLED")
+    ] = False
+    dark_lit_backfill_weekday_max_calls: Annotated[
+        int, EnvVar("UW_SCAN_DARK_LIT_BACKFILL_WEEKDAY_MAX_CALLS")
+    ] = 15000
+    dark_lit_backfill_saturday_max_calls: Annotated[
+        int, EnvVar("UW_SCAN_DARK_LIT_BACKFILL_SATURDAY_MAX_CALLS")
+    ] = 60000
+    dark_lit_backfill_sunday_max_calls: Annotated[
+        int, EnvVar("UW_SCAN_DARK_LIT_BACKFILL_SUNDAY_MAX_CALLS")
+    ] = 60000
     # SPX 1-5d density cone (nightly 03:30 ET, massive-0). Display-only v13 port —
     # zero UW/IB spend; reads vol_index_daily only.
     spx_density_enabled: Annotated[bool, EnvVar("UW_SCAN_SPX_DENSITY_ENABLED")] = False
