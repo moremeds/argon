@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Sector crowding research kept; the panel is not shipped.** The 2026-07-26 sector-crowding probe, lifecycle study and FMP/NTM P/E sourcing notes move to `docs/research/2026-07-26-*` with their JSON traces, plus the four standalone reproduce scripts (`scripts/research/{fmp_tier_probe,ntm_pe_feasibility,ntm_pe_sourcing_probe,sector_crowding_lifecycle}.py`). The panel PR (#301) is closed: its price leg has a known defect and the probe found no predictive content. `sector_crowding_probe.py` needs the unshipped `reports/sector_crowding.py` and stays on the `feat/sector-crowding` branch. Docs and research scripts only; no runtime change.
+
 ## [0.13.25] — 2026-10-05
 
 

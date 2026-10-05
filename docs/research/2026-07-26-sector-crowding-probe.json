@@ -1,0 +1,142 @@
+[
+  {
+    "ticker": "XLB",
+    "aum_b": 50.322144,
+    "rel_3m": -6.763381077631447,
+    "rel_pctile": 38.797814207650276,
+    "flow_aum": 0.7396346228809328,
+    "rel_hist_sd": 11.068719633087902,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLC",
+    "aum_b": 105.403142,
+    "rel_3m": -14.396132979011423,
+    "rel_pctile": 11.475409836065573,
+    "flow_aum": -0.529111361784642,
+    "rel_hist_sd": 5.734009497508794,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLE",
+    "aum_b": 59.405349,
+    "rel_3m": 1.2308636645568471,
+    "rel_pctile": 51.36612021857923,
+    "flow_aum": -0.5480987915751492,
+    "rel_hist_sd": 16.529742919855295,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLF",
+    "aum_b": 55.844669,
+    "rel_3m": 3.141408729394257,
+    "rel_pctile": 99.4535519125683,
+    "flow_aum": 4.976929848039748,
+    "rel_hist_sd": 3.4701883498852615,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLI",
+    "aum_b": 181.981518,
+    "rel_3m": 2.5806493904004135,
+    "rel_pctile": 64.48087431693989,
+    "flow_aum": 0.06940265219680165,
+    "rel_hist_sd": 7.116466729068383,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLK",
+    "aum_b": 178.462025,
+    "rel_3m": 9.086611051177762,
+    "rel_pctile": 69.94535519125684,
+    "flow_aum": 0.28092811341796664,
+    "rel_hist_sd": 10.124868592392955,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLP",
+    "aum_b": 83.247856,
+    "rel_3m": -2.452462605770722,
+    "rel_pctile": 56.830601092896174,
+    "flow_aum": 0.28030751927112696,
+    "rel_hist_sd": 9.187793704467678,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLRE",
+    "aum_b": 44.93612,
+    "rel_3m": -0.3636889622970374,
+    "rel_pctile": 63.387978142076506,
+    "flow_aum": 0.7388265831584926,
+    "rel_hist_sd": 5.480165198258343,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLU",
+    "aum_b": 46.193889,
+    "rel_3m": -0.8502969480812084,
+    "rel_pctile": 60.65573770491803,
+    "flow_aum": 0.4964942440763106,
+    "rel_hist_sd": 8.683724168160406,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLV",
+    "aum_b": 161.44635,
+    "rel_3m": 6.496161843028614,
+    "rel_pctile": 78.68852459016394,
+    "flow_aum": 0.5183765380883495,
+    "rel_hist_sd": 7.911401558004205,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "XLY",
+    "aum_b": 108.791721,
+    "rel_3m": -12.3433775407239,
+    "rel_pctile": 0.0,
+    "flow_aum": 0.280627971681779,
+    "rel_hist_sd": 3.077317597743985,
+    "n_hist": 183,
+    "dropped_sessions": 0
+  },
+  {
+    "ticker": "SOXX",
+    "aum_b": 45.545806404,
+    "rel_3m": 53.69091305499656,
+    "rel_pctile": 97.38562091503267,
+    "flow_aum": 21.46276573147136,
+    "rel_hist_sd": 12.919805151665965,
+    "n_hist": 153,
+    "dropped_sessions": 1
+  },
+  {
+    "ticker": "SMH",
+    "aum_b": 66.97346627,
+    "rel_3m": 17.880165201937736,
+    "rel_pctile": 46.21848739495798,
+    "flow_aum": 1.9063519795329835,
+    "rel_hist_sd": 13.801765054142486,
+    "n_hist": 119,
+    "dropped_sessions": 1
+  },
+  {
+    "ticker": "IGV",
+    "aum_b": 11.707959705,
+    "rel_3m": -7.315008342950068,
+    "rel_pctile": 68.62745098039215,
+    "flow_aum": -8.274281509410098,
+    "rel_hist_sd": 9.396807002785222,
+    "n_hist": 153,
+    "dropped_sessions": 1
+  }
+]
