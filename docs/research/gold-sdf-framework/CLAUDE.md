@@ -32,7 +32,7 @@ Routing into the cockpit: `api/routers/gold.py` → `storage/gold_etf.py` (+ oth
 
 Five of the eight anonymous-CSV sources designed for v1 had moved or paywalled by 2026-05-17 implementation time. Tracking + re-wire plan: [`11-deferred-sources-phase-a1.md`](./11-deferred-sources-phase-a1.md). Most-likely fixes lean on official APIs (Socrata, IMF IFS, SEC N-PORT) rather than scraping issuer pages.
 
-`wgc_cb.py` is not among the deferred sources above — `gold_wgc_cb_ingest_job` (`worker/jobs/gold_jobs.py`) is registered in `scheduler.py` on a monthly cron (`CronTrigger.from_crontab("0 17 10 * *")`, id `gold_wgc_cb_ingest`) and only self-skips, leaving `cb_gold_reserves_monthly` empty, when neither `WGC_CB_RESERVES_WORKBOOK_PATH` nor `WGC_GOLDHUB_COOKIE` is set. The provider files for the sources actually deferred above stay in the tree so re-wiring is a one-source change, not a structural refactor.
+`wgc_cb.py` is not among the deferred sources above — `gold_wgc_cb_ingest_job` (`worker/jobs/gold_jobs.py`) is registered in `worker/schedule/gold.py` on a monthly cron (`CronTrigger.from_crontab("0 17 10 * *")`, id `gold_wgc_cb_ingest`) and only self-skips, leaving `cb_gold_reserves_monthly` empty, when neither `WGC_CB_RESERVES_WORKBOOK_PATH` nor `WGC_GOLDHUB_COOKIE` is set. The provider files for the sources actually deferred above stay in the tree so re-wiring is a one-source change, not a structural refactor.
 
 ## When working in this directory
 
