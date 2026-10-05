@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import {
   finiteDomain,
   linearScale,
@@ -38,15 +40,18 @@ function etDateLabel(d: string): string {
   return `${m}/${day}`;
 }
 
+// One formatter for the module: constructing an Intl.DateTimeFormat per call
+// cost ~50 ms per render for ~1,000 points x 3 tick targets.
+const ET_HOUR_MINUTE = new Intl.DateTimeFormat("en-US", {
+  timeZone: ET_TZ,
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
 /** ET time-of-day in minutes from midnight, derived from an ISO timestamp. */
 function etMinutes(ts: string): number {
-  const date = new Date(ts);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: ET_TZ,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
+  const parts = ET_HOUR_MINUTE.formatToParts(new Date(ts));
   const h = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
   const min = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
   return h * 60 + min;
@@ -173,6 +178,16 @@ export function GexIntradayChart({
   data: GexIntradayData | null;
   ticker: string;
 }) {
+  // The tab re-renders on every quotes poll (2.5 s); recompute only when the
+  // intraday payload itself changes.
+  const { flat, sessionRanges, sessionTicks } = useMemo(() => {
+    const f = flatten(data?.sessions ?? []);
+    return {
+      ...f,
+      sessionTicks: f.sessionRanges.map((s) => rthTicksForSession(s.points)),
+    };
+  }, [data]);
+
   if (!data || !data.sessions.length) {
     return (
       <div className="section" data-testid="gex-intraday-empty">
@@ -195,7 +210,6 @@ export function GexIntradayChart({
     );
   }
 
-  const { flat, sessionRanges } = flatten(data.sessions);
   if (flat.length < 2) {
     return (
       <div className="section" data-testid="gex-intraday-thin">
@@ -368,7 +382,7 @@ export function GexIntradayChart({
                     label — 09:30 and 16:00 sit at the session band edges
                     where adjacent-session labels used to collide; the band
                     edges themselves now communicate open/close. */}
-                {rthTicksForSession(s.points).map((t) => {
+                {sessionTicks[i].map((t) => {
                   const tx = xScale(s.start + t.idx);
                   const labeled = t.label === "12:00";
                   return (

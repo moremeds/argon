@@ -39,6 +39,12 @@ function needsGexRetry(data: GexData | null | undefined): boolean {
   }
 }
 
+// Module-level so their identity is stable: inline arrows would change on
+// every render, re-create useSyncHook's request callback and re-arm (never
+// fire) the 60 s interval each time the quotes poll re-renders the tab.
+const _extractTs = (d: GexData) => d.scan_time || null;
+const _noRetry = () => false;
+
 /* ─── Hook ───────────────────────────────────────────────────── */
 
 export function useGex(
@@ -61,8 +67,14 @@ export function useGex(
     endpoint: regimeApi.gex(ticker),
     interval: marketState === MarketState.EXTENDED ? 300_000 : 60_000,
     hasPost: false,
-    extractTimestamp: (d: GexData) => d.scan_time || null,
-    shouldRetry: (d: GexData) => needsGexRetry(d),
+    extractTimestamp: _extractTs,
+    // Retry a stale scan only while the scanner can produce a new one. The
+    // retry timer runs even when inactive, so off-hours it would re-run the
+    // history query every 5 s for as long as the tab stays open.
+    shouldRetry:
+      marketState === MarketState.OPEN || marketState === MarketState.EXTENDED
+        ? needsGexRetry
+        : _noRetry,
     retryIntervalMs: 5000,
     retryMethod: "GET" as const,
   };

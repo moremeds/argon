@@ -21,14 +21,18 @@ export function quoteIsFresh(
   return quoteIsFreshAt(quotedAt, freshWithinSeconds);
 }
 
+// Module-level so useSyncHook's callbacks keep their identity across renders.
+const _extractTs = (d: RegimeQuotesResponse) => d.as_of ?? null;
+const _noRetry = () => false;
+
 export function useRegimeQuotes(): UseSyncReturn<RegimeQuotesResponse> {
   return useSyncHook<RegimeQuotesResponse>(
     {
       endpoint: regimeApi.quotes(),
       interval: 2_500, // matches the WS flush cadence + LiveSpotsProvider
       hasPost: false,
-      extractTimestamp: (d) => d.as_of ?? null,
-      shouldRetry: () => false,
+      extractTimestamp: _extractTs,
+      shouldRetry: _noRetry,
       retryIntervalMs: 10_000,
       retryMethod: "GET",
     },
