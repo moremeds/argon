@@ -241,6 +241,20 @@ STATE_PROVENANCE: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    # dark_lit_backfill's own bookkeeping (migration 161): which ticker-days it
+    # finished, and one row per run. The prints live in uw_dark_lit_flow_prints.
+    DatasetRegistryEntry(
+        "dark_lit_backfill_progress",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
+    DatasetRegistryEntry(
+        "dark_lit_backfill_runs",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
     DatasetRegistryEntry(
         "watchlist_ticker_events",
         "operational_provenance",

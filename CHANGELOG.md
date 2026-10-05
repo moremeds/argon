@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Budgeted backfill of dark-pool and lit print history.** Before v0.13.28 the nightly capture kept at most 500 prints per ticker, day and source, so busy names lost most of each session. The new `dark_lit_backfill` job (daily 22:30 ET, uw-0, `UW_SCAN_DARK_LIT_BACKFILL_ENABLED`, default off) re-pages every active-watchlist ticker-day that was cut (500 or more prints in either source) or is missing, oldest first, from UW's earliest available date through 2026-10-05. It writes through the same `capture_dark_lit_for` as the nightly capture. Each run spends at most one UW budget day's cap (UTC day; `UW_SCAN_DARK_LIT_BACKFILL_WEEKDAY_MAX_CALLS` 15,000, `_SATURDAY_` 60,000, `_SUNDAY_` 60,000), counted from its own rows in `external_api_requests`, and also stops when the research-pool governor says no. Progress is stored per ticker-day in `dark_lit_backfill_progress`, so a restart resumes where it stopped; dates UW refuses as outside its 730-trading-day window are recorded as unavailable and skipped. Each run writes its calls, finished ticker-days, remaining count and stop reason to `dark_lit_backfill_runs` (migration 161).
+
 ## [0.13.28] — 2026-10-05
 
 

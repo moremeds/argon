@@ -246,6 +246,74 @@
   },
   "type": "list[str]"
  },
+ "dark_lit_backfill_enabled": {
+  "class_default": false,
+  "env": [
+   "UW_SCAN_DARK_LIT_BACKFILL_ENABLED"
+  ],
+  "env_default": false,
+  "probes": {
+   "UW_SCAN_DARK_LIT_BACKFILL_ENABLED": {
+    "' true '": true,
+    "''": false,
+    "'1'": true,
+    "'TRUE'": true,
+    "'false'": false,
+    "'on'": true,
+    "'true'": true,
+    "'yes'": true
+   }
+  },
+  "type": "bool"
+ },
+ "dark_lit_backfill_saturday_max_calls": {
+  "class_default": 60000,
+  "env": [
+   "UW_SCAN_DARK_LIT_BACKFILL_SATURDAY_MAX_CALLS"
+  ],
+  "env_default": 60000,
+  "probes": {
+   "UW_SCAN_DARK_LIT_BACKFILL_SATURDAY_MAX_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "dark_lit_backfill_sunday_max_calls": {
+  "class_default": 60000,
+  "env": [
+   "UW_SCAN_DARK_LIT_BACKFILL_SUNDAY_MAX_CALLS"
+  ],
+  "env_default": 60000,
+  "probes": {
+   "UW_SCAN_DARK_LIT_BACKFILL_SUNDAY_MAX_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
+ "dark_lit_backfill_weekday_max_calls": {
+  "class_default": 15000,
+  "env": [
+   "UW_SCAN_DARK_LIT_BACKFILL_WEEKDAY_MAX_CALLS"
+  ],
+  "env_default": 15000,
+  "probes": {
+   "UW_SCAN_DARK_LIT_BACKFILL_WEEKDAY_MAX_CALLS": {
+    "''": {
+     "error": "ValueError"
+    },
+    "'7'": 7
+   }
+  },
+  "type": "int"
+ },
  "data_freshness_autoheal_circuit_breaker_nights": {
   "class_default": 3,
   "env": [
