@@ -129,7 +129,7 @@ def test_failed_axis_reaches_streak_then_success_clears(
     # main() waits for the schema marker first; this DB is not the one it reads.
     monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
-    monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setattr("uw_scan.worker.schedule.vrp._repo", test_repo)
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "massive")
     monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
     monkeypatch.setenv("UW_SCAN_WORKER_COUNT", "1")
