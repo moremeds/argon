@@ -17,7 +17,7 @@ from uw_scan.worker.jobs.data_freshness_monitor import (
     _autoheal_frozen_tables,
     data_freshness_monitor,
 )
-from uw_scan.worker.jobs.data_gap_adapters import HealSpec
+from uw_scan.worker.jobs.data_gap_heal_context import HealSpec
 
 
 def _peer_dsn(conn: psycopg.Connection) -> str:

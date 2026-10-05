@@ -7,7 +7,9 @@ grace window; the gap healer answers "exactly which (ticker, date) rows are
 missing?" and heals them.
 
 - Code: `reports/data_gap_registry/` (the registry, one file per data domain) + `reports/data_gap_types.py` (entry/gap types) + `reports/data_gap_healer.py` (scanner), `worker/jobs/data_gap_adapters.py`
-  (heal dispatch), `worker/jobs/data_gap_healer.py` (orchestration + nightly job),
+  (`HEAL_SPECS`), `worker/jobs/data_gap_heal_context.py` (budget/context types),
+  `worker/jobs/data_gap_heal_runners.py` (`_run_*` writers), `worker/jobs/data_gap_executor.py`
+  (`execute_run`, verify), `worker/jobs/data_gap_healer.py` (orchestration + nightly job),
   `storage/data_gap_healer_repository.py`, `migration 092`.
 - CLI: `scripts/backfill/data_gap_healer.py`.
 - Policy matrix (generated from the registry): `data-gap-dataset-policy.md`.

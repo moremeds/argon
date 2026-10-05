@@ -12,7 +12,8 @@ from datetime import date
 import pytest
 
 from uw_scan.config import Settings
-from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS, HealContext, RequestBudget
+from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 
 def _ctx(repo, settings) -> HealContext:

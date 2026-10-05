@@ -12,7 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from uw_scan.worker.jobs import data_gap_adapters as A
+from uw_scan.worker.jobs import data_gap_executor as A
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 
 class _Gap:
@@ -41,12 +42,12 @@ class _Gap:
 
 
 def _ctx(gap):
-    return A.HealContext(
+    return HealContext(
         repo=MagicMock(),
         gap=gap,
         schema="uw_scan",
         today=date(2026, 8, 16),
-        budget=A.RequestBudget(uw_cap=None),
+        budget=RequestBudget(uw_cap=None),
         settings=type("S", (), {"data_gap_healer_no_data_caveat_after": 3})(),
     )
 

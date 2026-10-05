@@ -12,7 +12,7 @@ import psycopg
 import pytest
 
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
-from uw_scan.worker.jobs.data_gap_adapters import HealSpec
+from uw_scan.worker.jobs.data_gap_heal_context import HealSpec
 
 
 def _load_cli():

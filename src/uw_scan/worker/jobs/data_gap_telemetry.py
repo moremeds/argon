@@ -2,14 +2,11 @@
 
 WHY THIS IS A SEPARATE MODULE
 -----------------------------
-``data_gap_adapters.py`` is already 1,042 lines against this repo's 500-line
-target and its "at 1000+ lines stop adding methods and propose a split first"
-rule. New behaviour goes here instead of growing it. The full split proposed for
-that file -- ``RequestBudget`` plus the budget governor into one module,
-``HealContext`` plus provider construction into another, the ``_dispatch_*``
-executors into a third -- is a mechanical move that would bury this behaviour
-change inside a rename diff, so it is deliberately deferred. This module is its
-first seam.
+``data_gap_adapters.py`` was 1,042 lines when this module was added, against
+this repo's 500-line target, so new behaviour went here instead of growing it.
+That file has since been split by role into ``data_gap_heal_context``,
+``data_gap_heal_runners``, ``data_gap_adapters`` and ``data_gap_executor``;
+this module was the first seam.
 
 WHY THE HEARTBEAT LIVES IN POSTGRES, NOT ONLY THE LOG
 -----------------------------------------------------
