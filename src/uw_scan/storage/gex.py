@@ -71,19 +71,33 @@ class _GexMixin:
         a dedicated column because the snapshot schema kept the bias
         derivation inside the JSON payload (see ``scanners/gex.py``
         ``compute_directional_bias``).
+
+        Two steps so the payload is detoasted for the chosen rows only: the
+        inner DISTINCT ON reads the covering index
+        ``ix_gex_snapshots_ticker_data_date_cov`` (migration 160) as an Index
+        Only Scan; the outer join fetches ``bias`` for those <= ``limit`` ids.
         """
         sql = f"""
-            SELECT DISTINCT ON (data_date)
-                   data_date,
-                   level_gex_flip_strike::float8 AS flip,
-                   iv_30d::float8                AS iv_30d,
-                   vol_pc::float8                AS vol_pc,
-                   payload->'bias'->>'direction' AS bias
-              FROM {self._schema}.gex_snapshots
-             WHERE ticker = %s
-               AND data_date IS NOT NULL
-             ORDER BY data_date DESC, scanned_at DESC
-             LIMIT %s
+            SELECT d.data_date,
+                   d.flip,
+                   d.iv_30d,
+                   d.vol_pc,
+                   g.payload->'bias'->>'direction' AS bias
+              FROM (
+                    SELECT DISTINCT ON (data_date)
+                           id,
+                           data_date,
+                           level_gex_flip_strike::float8 AS flip,
+                           iv_30d::float8                AS iv_30d,
+                           vol_pc::float8                AS vol_pc
+                      FROM {self._schema}.gex_snapshots
+                     WHERE ticker = %s
+                       AND data_date IS NOT NULL
+                     ORDER BY data_date DESC, scanned_at DESC
+                     LIMIT %s
+                   ) d
+              JOIN {self._schema}.gex_snapshots g ON g.id = d.id
+             ORDER BY d.data_date DESC
         """
         with self._conn.cursor() as cur:
             cur.execute(sql, (ticker.upper(), limit))

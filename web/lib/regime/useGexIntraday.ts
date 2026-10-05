@@ -23,6 +23,10 @@ export type GexIntradayData = {
   as_of: string | null;
 };
 
+// Module-level so useSyncHook's interval is not re-armed on every render.
+const _extractTs = (d: GexIntradayData) => d.as_of;
+const _noRetry = () => false;
+
 export function useGexIntraday(
   marketState: MarketState | null = null,
   ticker: string = "SPX",
@@ -37,8 +41,8 @@ export function useGexIntraday(
     endpoint: regimeApi.gex_intraday(ticker, sessions),
     interval: marketState === MarketState.EXTENDED ? 300_000 : 60_000,
     hasPost: false,
-    extractTimestamp: (d: GexIntradayData) => d.as_of,
-    shouldRetry: () => false,
+    extractTimestamp: _extractTs,
+    shouldRetry: _noRetry,
     retryIntervalMs: 5000,
     retryMethod: "GET" as const,
   };
