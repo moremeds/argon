@@ -19,17 +19,6 @@ from uw_scan.worker.schedule.vrp import register as register_vrp_jobs
 from uw_scan.worker.schedule.surface import register as register_surface_jobs
 from uw_scan.worker.schedule.ops import register as register_ops_jobs
 from uw_scan.worker.schedule.market_data import register as register_market_data_jobs
-
-# Re-exported: tests/unit/test_scheduler_option_surface_gate.py imports it from here.
-from uw_scan.worker.schedule.surface import (  # noqa: F401
-    _should_schedule_option_surface_capture as _should_schedule_option_surface_capture,
-)
-
-# Re-exported: tests/integration/worker/test_data_gap_healer_scheduler.py imports
-# it from here, and data_gap_* files belong to another lane (Wave 7b).
-from uw_scan.worker.schedule.ops import (  # noqa: F401
-    _should_schedule_data_gap_healer as _should_schedule_data_gap_healer,
-)
 from uw_scan.worker.schedule.macro import register as register_macro_jobs
 from uw_scan.worker.schedule.regime import register as register_regime_jobs
 from uw_scan.worker.schedule.scan_core import register as register_scan_core_jobs

@@ -23,7 +23,7 @@ from uw_scan.worker.jobs.data_gap_healer import (
     another_run_active,
     data_gap_healer_job,
 )
-from uw_scan.worker.scheduler import _should_schedule_data_gap_healer
+from uw_scan.worker.schedule.ops import _should_schedule_data_gap_healer
 
 
 def _fake_settings(**kw):

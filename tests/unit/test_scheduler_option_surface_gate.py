@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from uw_scan.worker.scheduler import _should_schedule_option_surface_capture
+from uw_scan.worker.schedule.surface import _should_schedule_option_surface_capture
 
 
 def _s(role: str, idx: int):
