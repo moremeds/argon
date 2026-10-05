@@ -5,13 +5,17 @@ synthetic prints, no market values)."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import httpx
 
 from uw_scan.api.client import UwHTTPError
-from uw_scan.worker.jobs.dark_lit_backfill import dark_lit_backfill
+from uw_scan.worker.jobs.dark_lit_backfill import (
+    JOB_NAME,
+    dark_lit_backfill,
+    spent_today,
+)
 
 D0, D1, D2, D3 = (
     date(2023, 10, 31),
@@ -138,4 +142,43 @@ def test_governor_no_stops_before_any_call(seeded_db_empty_cards, _migrated_sett
     _, settings = _setup(repo, _migrated_settings, quota=15000)
     out = _run(repo, settings, uw := _Uw(), budget_ok=lambda: False)
     assert out["stop_reason"] == "research_budget"
+    assert out["done"] == 0 and uw.dates == []
+
+
+def _telemetry(cur, provider: str, job: str, at: datetime) -> None:
+    cur.execute(
+        "INSERT INTO uw_scan.external_api_requests "
+        "(provider, endpoint_key, method, path, status_code, status_family, "
+        " request_started_at, request_finished_at, latency_ms, job_name) "
+        "VALUES (%s, 'ep', 'GET', '/p', 200, '2xx', %s, %s, 1, %s)",
+        (provider, at, at + timedelta(milliseconds=1), job),
+    )
+
+
+def test_spent_today_counts_this_jobs_uw_rows_in_the_budget_day(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    now = datetime(2026, 10, 10, 2, 30, tzinfo=UTC)  # Fri 22:30 EDT = UTC Sat
+    with repo.conn.cursor() as cur:
+        _telemetry(cur, "uw", JOB_NAME, datetime(2026, 10, 10, 0, 30, tzinfo=UTC))
+        _telemetry(cur, "uw", JOB_NAME, datetime(2026, 10, 10, 1, 0, tzinfo=UTC))
+        _telemetry(cur, "uw", JOB_NAME, datetime(2026, 10, 9, 23, 59, tzinfo=UTC))
+        _telemetry(cur, "uw", "full_scan", datetime(2026, 10, 10, 1, 0, tzinfo=UTC))
+        _telemetry(cur, "massive", JOB_NAME, datetime(2026, 10, 10, 1, 0, tzinfo=UTC))
+    repo.conn.commit()
+    assert spent_today(repo.conn, "uw_scan", now) == 2
+
+
+def test_recorded_spend_stops_the_run_on_quota(
+    seeded_db_empty_cards, _migrated_settings
+):
+    repo = seeded_db_empty_cards
+    _, settings = _setup(repo, _migrated_settings, quota=125)
+    with repo.conn.cursor() as cur:
+        for _ in range(6):  # 6 + a worst-case 120 > 125
+            _telemetry(cur, "uw", JOB_NAME, datetime.now(UTC))
+    repo.conn.commit()
+    out = _run(repo, settings, uw := _Uw())
+    assert out["stop_reason"] == "quota"
     assert out["done"] == 0 and uw.dates == []
