@@ -7,10 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.27] — 2026-10-05
+
+
 ### Fixed
 
 - **Regime GEX tab loads fast and refreshes on time.** The GEX 90-day history query (`fetch_metrics_history`) read every SPX snapshot and detoasted the payload of each one, so a cold cache made `/api/regime/gex` take 2.0 s on average and up to 56.5 s on the mini. Migration 160 adds the covering index `ix_gex_snapshots_ticker_data_date_cov`, already built by hand on the mini on 2026-10-05, so the deploy migrate skips it. The query now picks the days from that index alone and reads `bias` from the payload of only the <= 90 chosen rows. On prod the result is identical (90/90 rows) and the read drops from ~98k to ~900 buffers. In the web tab, `GexIntradayChart` builds one ET time formatter instead of one per point and memoizes its session layout, so the 2.5 s quotes poll no longer costs a ~50 ms render. `useGex`, `useGexIntraday` and `useRegimeQuotes` pass module-level callbacks, so that re-render no longer resets the 60 s GEX refresh; before this fix the refresh never fired during market hours. `useGex` also stops retrying a stale scan every 5 s while the market is closed.
-
 ## [0.13.26] — 2026-10-05
 
 
