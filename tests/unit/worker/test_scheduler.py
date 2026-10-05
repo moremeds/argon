@@ -20,10 +20,10 @@ from uw_scan.worker.schedule.scan_core import (
     _ohlc_provider,
     _uw_auto_request_allowed,
 )
+from uw_scan.worker.schedule.surface import _should_schedule_skew_swing_greeks
 from uw_scan.worker.scheduler import (
     _record_worker_heartbeat,
     _should_schedule_pipeline_benchmark,
-    _should_schedule_skew_swing_greeks,
     _worker_heartbeat_name,
 )
 
