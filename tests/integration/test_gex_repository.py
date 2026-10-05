@@ -107,3 +107,57 @@ def _json_dump(payload: dict) -> str:
     import json
 
     return json.dumps(payload)
+
+
+def test_fetch_metrics_history_latest_scan_per_day(
+    seeded_db_empty_cards: Repository,
+) -> None:
+    """Latest scan per data_date wins, a missing bias reads None, other tickers
+    and NULL data_date rows are ignored, and LIMIT keeps the newest days."""
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    repo = seeded_db_empty_cards
+    et = ZoneInfo("America/New_York")
+
+    def at(day: int, hour: int) -> datetime:
+        return datetime(2026, 6, day, hour, 0, tzinfo=et)
+
+    rows = [
+        # 06-09: two scans, the later one must win
+        ("SPX", date(2026, 6, 9), at(9, 10), 7390.0, "bullish"),
+        ("SPX", date(2026, 6, 9), at(9, 15), 7395.0, "bearish"),
+        # 06-10: no bias in the payload
+        ("SPX", date(2026, 6, 10), at(10, 11), 7400.0, None),
+        # 06-08: oldest day, dropped by limit=2
+        ("SPX", date(2026, 6, 8), at(8, 11), 7380.0, "neutral"),
+        # other ticker and a NULL data_date row on the newest timestamp
+        ("SPY", date(2026, 6, 10), at(10, 15), 740.0, "bullish"),
+        ("SPX", None, at(11, 9), 7500.0, "bullish"),
+    ]
+    with repo._conn.cursor() as cur:
+        for ticker, d, ts, flip, bias in rows:
+            payload: dict = {
+                "levels": {"gex_flip": {"strike": flip}},
+                "iv": {"iv30d": 0.18},
+                "vol_pc": 0.9,
+            }
+            if bias is not None:
+                payload["bias"] = {"direction": bias}
+            cur.execute(
+                f"INSERT INTO {repo._schema}.gex_snapshots "
+                "(ticker, data_date, scanned_at, payload) VALUES (%s, %s, %s, %s::jsonb)",
+                (ticker, d, ts, _json_dump(payload)),
+            )
+    repo._conn.commit()
+
+    out = repo.fetch_metrics_history(ticker="spx", limit=2)
+    assert list(out) == [date(2026, 6, 10), date(2026, 6, 9)]
+    assert out[date(2026, 6, 10)] == {
+        "flip": 7400.0,
+        "iv_30d": 0.18,
+        "vol_pc": 0.9,
+        "bias": None,
+    }
+    assert out[date(2026, 6, 9)]["flip"] == 7395.0
+    assert out[date(2026, 6, 9)]["bias"] == "bearish"
