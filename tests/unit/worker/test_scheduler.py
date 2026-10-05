@@ -20,10 +20,10 @@ from uw_scan.worker.schedule.scan_core import (
     _ohlc_provider,
     _uw_auto_request_allowed,
 )
+from uw_scan.worker.schedule.ops import _should_schedule_pipeline_benchmark
+from uw_scan.worker.schedule.surface import _should_schedule_skew_swing_greeks
 from uw_scan.worker.scheduler import (
     _record_worker_heartbeat,
-    _should_schedule_pipeline_benchmark,
-    _should_schedule_skew_swing_greeks,
     _worker_heartbeat_name,
 )
 
@@ -401,7 +401,7 @@ def test_tick_job_ids_match_registered_interval_jobs() -> None:
 
 
 def test_pinned_is_true_on_exactly_one_process_per_shape():
-    from uw_scan.worker.scheduler import _pinned
+    from uw_scan.worker.schedule.roles import _pinned
 
     def s(role: str, index: int, count: int = 2) -> Settings:
         return Settings(

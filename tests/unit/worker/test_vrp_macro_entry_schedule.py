@@ -4,7 +4,7 @@ import pytest
 
 import uw_scan.worker.scheduler as scheduler
 from uw_scan.config import Settings
-from uw_scan.worker.scheduler import _should_schedule_vrp_macro_entry
+from uw_scan.worker.schedule.vrp import _should_schedule_vrp_macro_entry
 
 _ENTRY_IDS = {
     "vrp_macro_entry_rth",

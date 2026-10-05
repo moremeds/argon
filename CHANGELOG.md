@@ -10,6 +10,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Changed
 
 - **The data gap healer's 1,154-line `worker/jobs/data_gap_adapters.py` splits by role (Wave 7b).** `data_gap_heal_context.py` holds `RequestBudget`, `HealContext`, `HealSpec` and `_beat`; `data_gap_heal_runners.py` holds the `_run_*` writers, `_eventlog_heal` and `_replay_run_single_stock`; `data_gap_adapters.py` keeps only `HEAL_SPECS` and `run_refresh_adapters`; `data_gap_executor.py` holds `_verify_covered`, the dispatchers, `_verify_and_mark` and `execute_run`. Imports run one way (context ← runners ← adapters ← executor) and there is no re-export shim, so every importer now names the new home. The two test monkeypatches follow the module that looks the name up: `_verify_covered` on `data_gap_executor`, `_replay_run_single_stock` on `data_gap_heal_runners`. Function bodies are unchanged. No runtime behaviour changes.
+- The worker scheduler's last 38 inline `add_job` sites (42 jobs) moved out of `worker/scheduler.py` into four job families under `worker/schedule/`: `vrp.py` (11), `surface.py` (8), `ops.py` (5) and `market_data.py` (14: 13 jobs plus the loop that registers the 5 UW historical-alpha captures). Each block keeps its role guard, and the scheduler-jobs golden is byte-identical for every role. `scheduler.py` goes from 1115 to 191 lines; `main()` now holds only settings, the schema gate, the failure listener, the heartbeat and start. No job, trigger or schedule changed. (Wave 7a)
 
 ## [0.13.25] — 2026-10-05
 
