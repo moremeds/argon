@@ -401,7 +401,7 @@ def test_tick_job_ids_match_registered_interval_jobs() -> None:
 
 
 def test_pinned_is_true_on_exactly_one_process_per_shape():
-    from uw_scan.worker.scheduler import _pinned
+    from uw_scan.worker.schedule.roles import _pinned
 
     def s(role: str, index: int, count: int = 2) -> Settings:
         return Settings(

@@ -217,7 +217,7 @@ _CASES = [
     _Case(
         "wrapper_repo",
         job_id="macro_release_calendar_capture",
-        hook_owner="uw_scan.worker.scheduler",
+        hook_owner="uw_scan.worker.schedule.market_data",
         job_attr=(
             "uw_scan.worker.jobs.macro_release_calendar.macro_release_calendar_capture"
         ),
@@ -225,7 +225,7 @@ _CASES = [
     _Case(
         "wrapper_repo",
         job_id="technical_live_scan",
-        hook_owner="uw_scan.worker.scheduler",
+        hook_owner="uw_scan.worker.schedule.market_data",
         job_attr="uw_scan.worker.jobs.technical_live.technical_live_scan",
         kwarg="telemetry_recorder",
     ),
@@ -308,12 +308,13 @@ def test_wired_path_reaches_recorder(monkeypatch, case: _Case) -> None:
         _patch_recorder(monkeypatch, case.hook_owner, recorder)
         if case.kind == "wrapper_repo":
             monkeypatch.setattr(
-                scheduler, "_repo", lambda *a, **k: _yield(SimpleNamespace())
+                f"{case.hook_owner}._repo", lambda *a, **k: _yield(SimpleNamespace())
             )
             monkeypatch.setattr(
-                scheduler, "_uw_client", lambda *a, **k: _yield(SimpleNamespace())
+                f"{case.hook_owner}._uw_client",
+                lambda *a, **k: _yield(SimpleNamespace()),
             )
-            monkeypatch.setattr(scheduler, "datetime", _Monday)
+            monkeypatch.setattr(f"{case.hook_owner}.datetime", _Monday)
         if case.kwarg == "provider_factory":
             monkeypatch.setattr(
                 "uw_scan.worker.schedule.macro.FedFundsFuturesPathProvider",
