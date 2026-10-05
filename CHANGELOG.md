@@ -9,6 +9,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **SPX density cone asymmetric-innovation arm (`SKEWT`)** — `density/fit.ARMS` gains one
+  argon-added research arm: arm G's configuration (multi-start, retry ladder,
+  `MAX_FAILURE_CARRY_DAYS`) with Hansen (1994)'s **skewed t** (arch's `SkewStudent`,
+  params `eta` = df, `lambda` = skewness) as the GJR likelihood's innovation family,
+  instead of G's Normal or H's symmetric t. Branch-guarded on `family == "skewt"`, so the
+  vendored `normal`/`t` paths and the golden parity test are untouched; production `ARM`
+  stays `G`. `spx_density_arm_h.py --arm SKEWT` persists run 7,
+  `spx-density-calibration-arm-skewt`, and now records the fitted parameter RANGES
+  (min/median/max per parameter, plus how often the skew is pinned on a bound) in
+  `params_grid.fitted_param_ranges` and `notes`. Asymmetry IS identified — `lambda` sits in
+  [-0.1916, -0.1877] on all 82 sessions, never at a bound, never at 0 — but the cone is a
+  block bootstrap over empirical standardized residuals, so a family can only move
+  omega/alpha/gamma/beta, never the simulated innovation shape. Verdict flat, as for H:
+  prospective q95 ratio 0.879 vs G's 0.919 (H 0.888), reconstructed q05 worsens to 1.080 vs
+  G's 1.048. `ARM` stays `G`.
 - **SPX density cone arm counterfactuals** — `scripts/research/spx_density_arm_h.py`
   replays every published `spx_density_forecast` as_of through
   `compute_forecast(..., arm=, seed_offset=)` (two new research-only kwargs; production
