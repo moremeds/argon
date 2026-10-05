@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import date
 
 from uw_scan.config import Settings
-from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS, HealContext, RequestBudget
+from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 
 def test_vol_index_adapter_calls_the_production_sync(

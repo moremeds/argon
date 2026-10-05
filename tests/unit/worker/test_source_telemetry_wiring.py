@@ -24,7 +24,8 @@ from pydantic import SecretStr
 
 import uw_scan.worker.scheduler as scheduler
 from uw_scan.config import Settings
-from uw_scan.worker.jobs import data_gap_adapters
+from uw_scan.worker.jobs import data_gap_heal_runners
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 
 class _Stop(Exception):
@@ -123,7 +124,7 @@ def _capture(captured: dict) -> Any:
 @dataclass(frozen=True)
 class _Case:
     """kind: "wrapper" (booted scheduler), "wrapper_repo" (also stubs
-    _repo/_uw_client/weekday), or "adapter" (data_gap_adapters._run_*)."""
+    _repo/_uw_client/weekday), or "adapter" (data_gap_heal_runners._run_*)."""
 
     kind: str
     job_id: str = ""
@@ -228,7 +229,7 @@ _CASES = [
         job_attr="uw_scan.worker.jobs.technical_live.technical_live_scan",
         kwarg="telemetry_recorder",
     ),
-    # healer adapters (data_gap_adapters.py)
+    # healer adapters (data_gap_heal_runners.py)
     _Case(
         "adapter",
         adapter="_run_macro_fred",
@@ -290,17 +291,17 @@ def test_wired_path_reaches_recorder(monkeypatch, case: _Case) -> None:
 
     if case.kind == "adapter":
         settings = _settings()
-        ctx = data_gap_adapters.HealContext(
+        ctx = HealContext(
             repo=SimpleNamespace(),
             gap=None,
             schema="uw_scan",
             today=date(2026, 5, 18),
-            budget=data_gap_adapters.RequestBudget(None),
+            budget=RequestBudget(None),
             settings=settings,
             recorder=recorder,
         )
         monkeypatch.setattr(case.job_attr, _capture(captured))
-        getattr(data_gap_adapters, case.adapter)(ctx, *case.adapter_args)
+        getattr(data_gap_heal_runners, case.adapter)(ctx, *case.adapter_args)
         kwargs = captured["kwargs"]
     else:
         jobs = _boot_jobs(monkeypatch)

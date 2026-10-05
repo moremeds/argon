@@ -9,7 +9,7 @@ records skipped_budget.
 
 from __future__ import annotations
 
-from uw_scan.worker.jobs.data_gap_adapters import RequestBudget
+from uw_scan.worker.jobs.data_gap_heal_context import RequestBudget
 
 
 def test_dataset_slice_caps_one_dataset() -> None:
@@ -63,11 +63,11 @@ def _run_with_no_data(repo, dataset: str, ticker: str, d, *, settings, runs: int
     false and is recorded provider_no_data."""
     from uw_scan.reports.data_gap_types import GapItem
     from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
-    from uw_scan.worker.jobs.data_gap_adapters import (
+    from uw_scan.worker.jobs.data_gap_executor import execute_run
+    from uw_scan.worker.jobs.data_gap_heal_context import (
         HealContext,
         HealSpec,
         RequestBudget,
-        execute_run,
     )
 
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
@@ -122,11 +122,8 @@ def test_our_own_bugs_are_never_caveated_away(seeded_db_empty_cards) -> None:
     from uw_scan.config import Settings
     from uw_scan.reports.data_gap_types import GapItem
     from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
-    from uw_scan.worker.jobs.data_gap_adapters import (
-        HealContext,
-        RequestBudget,
-        execute_run,
-    )
+    from uw_scan.worker.jobs.data_gap_executor import execute_run
+    from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
     repo = seeded_db_empty_cards
     settings = Settings.from_env().model_copy(

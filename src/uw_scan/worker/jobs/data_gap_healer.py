@@ -31,13 +31,9 @@ from uw_scan.reports.data_gap_types import CoverageSummary, GapItem
 from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
-from uw_scan.worker.jobs.data_gap_adapters import (
-    HEAL_SPECS,
-    HealContext,
-    RequestBudget,
-    execute_run,
-    run_refresh_adapters,
-)
+from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS, run_refresh_adapters
+from uw_scan.worker.jobs.data_gap_executor import execute_run
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 logger = logging.getLogger(__name__)
 

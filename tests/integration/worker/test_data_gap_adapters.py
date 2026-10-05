@@ -9,11 +9,11 @@ from datetime import date, timedelta
 
 from uw_scan.reports.data_gap_types import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
-from uw_scan.worker.jobs.data_gap_adapters import (
+from uw_scan.worker.jobs.data_gap_executor import execute_run
+from uw_scan.worker.jobs.data_gap_heal_context import (
     HealContext,
     HealSpec,
     RequestBudget,
-    execute_run,
 )
 
 _TODAY = date(2026, 6, 30)

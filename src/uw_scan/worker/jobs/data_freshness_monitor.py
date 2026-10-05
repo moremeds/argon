@@ -30,7 +30,8 @@ from uw_scan.storage.advisory_locks import single_flight
 from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
-from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS, HealContext, RequestBudget
+from uw_scan.worker.jobs.data_gap_adapters import HEAL_SPECS
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 from uw_scan.worker.jobs.data_gap_adapters import run_refresh_adapters as _run_refresh
 from uw_scan.worker.jobs.data_gap_healer import (
     _LOCK_KEY as _GAP_HEALER_LOCK_KEY,

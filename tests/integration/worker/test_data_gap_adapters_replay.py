@@ -8,7 +8,8 @@ within a single heal run.
 
 from datetime import date
 
-from uw_scan.worker.jobs import data_gap_adapters as A
+from uw_scan.worker.jobs import data_gap_heal_runners as A
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
 
 
 class _Repo:
@@ -24,15 +25,15 @@ def _ctx(monkeypatch, calls):
         calls.append((ticker, market_date))
 
     monkeypatch.setattr(A, "_replay_run_single_stock", fake_run_single_stock)
-    ctx = A.HealContext(
+    ctx = HealContext(
         repo=_Repo(),
         gap=object(),
         schema="uw_scan",
         today=date(2026, 8, 16),
-        budget=A.RequestBudget(uw_cap=None),
+        budget=RequestBudget(uw_cap=None),
         settings=object(),
     )
-    monkeypatch.setattr(A.HealContext, "uw_client", lambda self: object())
+    monkeypatch.setattr(HealContext, "uw_client", lambda self: object())
     return ctx
 
 

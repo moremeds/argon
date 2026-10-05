@@ -11,11 +11,8 @@ from __future__ import annotations
 from datetime import date
 
 from uw_scan.config import Settings
-from uw_scan.worker.jobs.data_gap_adapters import (
-    HealContext,
-    RequestBudget,
-    _run_greek_exposure,
-)
+from uw_scan.worker.jobs.data_gap_heal_context import HealContext, RequestBudget
+from uw_scan.worker.jobs.data_gap_heal_runners import _run_greek_exposure
 
 
 class _StubUw:
