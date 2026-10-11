@@ -144,3 +144,48 @@ def fetch_ib_option_quote(
         "vega": greeks.get("vega"),
         "theta": greeks.get("theta"),
     }
+
+
+def fetch_ib_daily_midpoints(
+    *,
+    base_url: str,
+    api_key: str | None,
+    sec_type: str,
+    symbol: str,
+    currency: str = "USD",
+    duration: str = "1 M",
+    end_date_time: str = "",
+    timeout_s: float = 60.0,
+    client: httpx.Client | None = None,
+) -> list[tuple[str, float]]:
+    """IB 1-day MIDPOINT closes via POST /historical/bars, as (YYYY-MM-DD, close), oldest first.
+
+    For FX (sec_type CASH, xenon resolves IDEALPRO) and CMDTY (XAUUSD). The bar dated D is
+    17:15 New York on D-1 to 17:00 New York on D. ``duration`` is IB's ("1 M", "2 Y"); ``end_date_time``
+    ("YYYYMMDD-HH:MM:SS" UTC, "" = now) ends the window. One call of 17 Y or more outruns IB's
+    60 s timeout, so long history is fetched in overlapping windows.
+    Raises SourceUnavailable when xenon could not answer (same contract as the greeks calls).
+    """
+    headers = {"X-API-Key": api_key} if api_key else {}
+    payload = {
+        "contract": {"sec_type": sec_type, "symbol": symbol, "currency": currency},
+        "duration": duration,
+        "end_date_time": end_date_time,
+        "bar_size": "1 day",
+        "what_to_show": "MIDPOINT",
+        "use_rth": False,
+    }
+    what = f"xenon daily midpoints {symbol}.{currency} {duration} to {end_date_time or 'now'}"
+    own = client is None
+    c = client or httpx.Client(timeout=timeout_s, trust_env=False)
+    try:
+        try:
+            resp = c.post(f"{base_url}/historical/bars", json=payload, headers=headers)
+            resp.raise_for_status()
+            bars = resp.json()["bars"]
+            return [(str(b["date"])[:10], float(b["close"])) for b in bars]
+        except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
+            raise SourceUnavailable("xenon_query", f"{what}: {exc!r}") from exc
+    finally:
+        if own:
+            c.close()

@@ -149,6 +149,7 @@ type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type GoldStateResponse = Json<"/api/gold/state", "get">;
 type GoldReplayResponse = Json<"/api/gold/replay", "get">;
 type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
+type GoldFactorResponse = Json<"/api/gold/factor", "get">;
 type GoldLensResponse = Json<"/api/gold/lenses/{lens_id}", "get">;
 type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
@@ -422,6 +423,12 @@ export const api = {
         allow404: true,
       },
     ),
+  // The gold factor model (real yield / dollar / haven). No date parameter: live only.
+  // 404 = not computed yet, which is a fact, not a failure.
+  goldFactor: (): Promise<GoldFactorResponse | null> =>
+    _fetch<GoldFactorResponse | null>(`/api/gold/factor`, undefined, {
+      allow404: true,
+    }),
   goldLens: (
     lensId: "structural" | "cyclical" | "valuation",
   ): Promise<GoldLensResponse | null> =>
