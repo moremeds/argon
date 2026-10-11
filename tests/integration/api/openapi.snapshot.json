@@ -8497,6 +8497,339 @@
         "title": "GoldDecompositionRow",
         "type": "object"
       },
+      "GoldFactorPoint": {
+        "properties": {
+          "b_d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B D"
+          },
+          "b_d_hi95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B D Hi95"
+          },
+          "b_d_lo95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B D Lo95"
+          },
+          "b_r": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B R"
+          },
+          "b_r_hi95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B R Hi95"
+          },
+          "b_r_lo95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B R Lo95"
+          },
+          "b_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B S"
+          },
+          "b_s_hi95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B S Hi95"
+          },
+          "b_s_lo95": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B S Lo95"
+          },
+          "dollar_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dollar Part"
+          },
+          "explained_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explained Share"
+          },
+          "gold_change": {
+            "title": "Gold Change",
+            "type": "number"
+          },
+          "haven_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Haven Part"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "own_trailing_drift": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Own Trailing Drift"
+          },
+          "published_label": {
+            "anyOf": [
+              {
+                "enum": [
+                  "much",
+                  "part",
+                  "little"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Label"
+          },
+          "real_yield_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Real Yield Part"
+          },
+          "unexplained_1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unexplained 1"
+          },
+          "unexplained_21": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unexplained 21"
+          }
+        },
+        "required": [
+          "obs_date",
+          "b_r",
+          "b_r_lo95",
+          "b_r_hi95",
+          "b_d",
+          "b_d_lo95",
+          "b_d_hi95",
+          "b_s",
+          "b_s_lo95",
+          "b_s_hi95",
+          "explained_share",
+          "published_label",
+          "gold_change",
+          "own_trailing_drift",
+          "real_yield_part",
+          "dollar_part",
+          "haven_part",
+          "unexplained_1",
+          "unexplained_21"
+        ],
+        "title": "GoldFactorPoint",
+        "type": "object"
+      },
+      "GoldFactorResponse": {
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "explained_high": {
+            "title": "Explained High",
+            "type": "number"
+          },
+          "explained_low": {
+            "title": "Explained Low",
+            "type": "number"
+          },
+          "last_date": {
+            "format": "date",
+            "title": "Last Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/GoldFactorPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/GoldFactorYear"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "computed_at",
+          "last_date",
+          "explained_low",
+          "explained_high",
+          "points",
+          "years"
+        ],
+        "title": "GoldFactorResponse",
+        "type": "object"
+      },
+      "GoldFactorYear": {
+        "description": "Sums over the rows of a calendar year that have every part (percent).",
+        "properties": {
+          "dollar_part": {
+            "title": "Dollar Part",
+            "type": "number"
+          },
+          "explained_share": {
+            "title": "Explained Share",
+            "type": "number"
+          },
+          "gold_change": {
+            "title": "Gold Change",
+            "type": "number"
+          },
+          "haven_part": {
+            "title": "Haven Part",
+            "type": "number"
+          },
+          "own_trailing_drift": {
+            "title": "Own Trailing Drift",
+            "type": "number"
+          },
+          "partial_year": {
+            "title": "Partial Year",
+            "type": "boolean"
+          },
+          "real_yield_part": {
+            "title": "Real Yield Part",
+            "type": "number"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          },
+          "unexplained": {
+            "title": "Unexplained",
+            "type": "number"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "rows",
+          "partial_year",
+          "gold_change",
+          "own_trailing_drift",
+          "real_yield_part",
+          "dollar_part",
+          "haven_part",
+          "unexplained",
+          "explained_share"
+        ],
+        "title": "GoldFactorYear",
+        "type": "object"
+      },
       "GoldGauge60dTimeSeriesPoint": {
         "properties": {
           "corr_60d": {
@@ -31574,6 +31907,57 @@
           "gold",
           "gold"
         ]
+      }
+    },
+    "/api/gold/factor": {
+      "get": {
+        "tags": [
+          "gold",
+          "gold"
+        ],
+        "summary": "Get Gold Factor",
+        "operationId": "get_gold_factor_api_gold_factor_get",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldFactorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/gold/state": {

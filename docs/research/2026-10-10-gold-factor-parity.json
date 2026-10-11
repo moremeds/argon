@@ -1,0 +1,119 @@
+{
+ "study": "/Users/chenxi/projects/signal-lab/.worktrees/research-gold-yield-usd-triad",
+ "study_commit": "2408775",
+ "frozen_end": "2026-10-07",
+ "inputs": {
+  "rows_argon": 4079,
+  "rows_study": 4079,
+  "same_dates": true,
+  "max_abs_y": 0.0,
+  "max_abs_r": 0.0,
+  "max_abs_d": 0.0,
+  "max_abs_s": 0.0
+ },
+ "estimator": {
+  "01.a": 0.0,
+  "01.b_r": 0.0,
+  "01.b_d": 0.0,
+  "01.b_s": 0.0,
+  "01.b_r_lo95": 0.0,
+  "01.b_r_hi95": 0.0,
+  "01.b_d_lo95": 0.0,
+  "01.b_d_hi95": 0.0,
+  "01.b_s_lo95": 0.0,
+  "01.b_s_hi95": 0.0,
+  "01.e": 0.0,
+  "03b.gold_change": 0.0,
+  "03b.own_trailing_drift": 0.0,
+  "03b.real_yield_part": 0.0,
+  "03b.dollar_part": 0.0,
+  "03b.haven_part": 0.0,
+  "03b.U_1": 4.440892098500626e-15,
+  "03b.U_5": 0.0,
+  "03b.U_21": 0.0,
+  "01.published_name_mismatches": 0,
+  "01.raw_name_mismatches": 0,
+  "thresholds_recomputed": [
+   0.21839387732373133,
+   0.4020650422009684
+  ],
+  "thresholds_constant": [
+   0.21839387732373133,
+   0.4020650422009684
+  ]
+ },
+ "xenon": {
+  "dir": "/tmp/xenon-argon-verify",
+  "legs": {
+   "XAUUSD": {
+    "first": "2010-06-09",
+    "overlap": 4218,
+    "mismatch_dates": [],
+    "study_only_dates": []
+   },
+   "EURUSD": {
+    "first": "2005-03-09",
+    "overlap": 5597,
+    "mismatch_dates": [
+     "2005-12-27",
+     "2006-01-03",
+     "2006-05-29"
+    ],
+    "study_only_dates": []
+   },
+   "USDJPY": {
+    "first": "2005-03-09",
+    "overlap": 5597,
+    "mismatch_dates": [
+     "2005-12-27",
+     "2006-01-03",
+     "2006-05-29"
+    ],
+    "study_only_dates": []
+   },
+   "GBPUSD": {
+    "first": "2005-03-09",
+    "overlap": 5597,
+    "mismatch_dates": [
+     "2005-12-27",
+     "2006-01-03",
+     "2006-05-29"
+    ],
+    "study_only_dates": []
+   },
+   "USDCAD": {
+    "first": "2005-03-09",
+    "overlap": 5597,
+    "mismatch_dates": [
+     "2005-12-27",
+     "2006-01-03",
+     "2006-05-29"
+    ],
+    "study_only_dates": []
+   },
+   "USDSEK": {
+    "first": "2006-09-01",
+    "overlap": 5212,
+    "mismatch_dates": [],
+    "study_only_dates": []
+   },
+   "USDCHF": {
+    "first": "2005-03-09",
+    "overlap": 5597,
+    "mismatch_dates": [
+     "2005-12-27",
+     "2006-01-03",
+     "2006-05-29"
+    ],
+    "study_only_dates": []
+   }
+  },
+  "rows": [
+   4079,
+   4079
+  ],
+  "same_dates": true,
+  "max_abs_diff": 0.0,
+  "label_mismatches": 0
+ }
+}

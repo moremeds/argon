@@ -91,6 +91,17 @@ GOLD_RATES_MACRO.extend(
             source_system="derived",
         ),
         DatasetRegistryEntry(
+            "gold_factor_daily",
+            "gold_rates_macro",
+            "freshness_only",
+            date_col="obs_date",
+            ticker_col=None,
+            provider="db",
+            granularity="run_once",
+            healer_adapter="gold_factor",
+            source_system="derived",
+        ),
+        DatasetRegistryEntry(
             "uw_gold_options_daily",
             "gold_rates_macro",
             "freshness_only",

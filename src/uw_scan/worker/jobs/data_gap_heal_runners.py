@@ -214,6 +214,14 @@ def _run_rates_fred(ctx: HealContext, lookback_days: int) -> int:
     return 0
 
 
+def _run_gold_factor(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_factor import gold_factor_compute_job
+
+    # Recomputes and upserts the whole history from stored inputs; no external spend.
+    gold_factor_compute_job(dsn=ctx.settings.db_dsn())
+    return 0
+
+
 def _run_gold_posture(ctx: HealContext) -> int:
     from uw_scan.worker.jobs.gold_jobs import (
         _latest_gold_market_date,

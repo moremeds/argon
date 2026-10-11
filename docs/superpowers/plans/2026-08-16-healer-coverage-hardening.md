@@ -161,6 +161,12 @@ forbidden, and `select_sessions` is what forbids it. The trigger was
 `2026-08-14` going missing during the 08-11..14 outage with no mechanism able to
 reach it.
 
+**Post-plan amendment, 2026-10-10 — scope 59 → 60.** `gold_factor_daily`
+(migration 162, the gold factor model) entered the daily scope wired: its
+`gold_factor` adapter reruns `gold_factor_compute_job`, which recomputes the whole
+history from `macro_series_daily` with no external spend. **33 wired + 27 dated
+refusals.**
+
 | task | datasets it makes healable |
 |---|---|
 | already wired | `option_surface_grid_daily`, `greek_exposure_daily`, `uw_gex_levels_daily`, `uw_volatility_signal_daily`, `uw_short_pressure_daily`, `daily_ohlc`, `vrp_daily`, `stock_analytics_daily`, `realized_volatility_history`, `volatility_stats_history`, `market_tide_sentiment_daily`, `macro_series_daily`, `rates_*`, `gold_posture_daily`, `uw_gold_options_daily` |

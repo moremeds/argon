@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Gold factor model, computed by argon.** A port of the signal-lab gold study: a rolling 252-day fit of gold's daily move (XAUUSD) on the 10-year real yield (DFII10), a synthetic ICE dollar index and a safe-haven spread, with coefficients lagged two rows. It produces the 95% intervals, the 63-day explained share and its label, and each day's move split into real-yield, dollar, safe-haven, last-year's-pace and unexplained parts. It is a historical description, not a forecast: the study's direction test failed. Engine `macro/gold_factor.py`. Results go to `gold_factor_daily` (migration 162). The new `gold_factor_compute` job (17:40 ET Mon–Fri, massive-0) fetches the last month of IB 1-day MIDPOINT closes through xenon `POST /historical/bars`, stores them in `macro_series_daily` (source `IB`), then recomputes and upserts the whole history. The IB fetch runs only when `XENON_QUERY_API_KEY` is set, and needs xenon PR #174 deployed. `GET /api/gold/factor` serves daily points and yearly sums. The Gold tab opens with a "What moved gold" band of six charts. `scripts/backfill/gold_factor_seed.py` seeds the history: IB closes through xenon in overlapping 6-year windows (one call of 17 years or more outruns IB's 60 s timeout), plus FRED DFII10/DGS10 from 2010 run through the real FRED job. `scripts/research/gold_factor_parity.py` checks the port: from the study's own IB closes, argon matches the study exactly on inputs, coefficients, intervals, parts and labels; with `--xenon`, the same run on closes pulled through xenon matches it exactly too, on all 4079 rows (`docs/research/2026-10-10-gold-factor-parity.json`). `statsmodels` (already installed via `arch`) is now declared.
+
 ## [0.13.29] — 2026-10-05
 
 

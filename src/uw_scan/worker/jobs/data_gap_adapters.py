@@ -32,6 +32,7 @@ from uw_scan.worker.jobs.data_gap_heal_runners import (
     _run_gex_levels,
     _run_gold_cot,
     _run_gold_lbma,
+    _run_gold_factor,
     _run_gold_posture,
     _run_gold_uw_options,
     _run_greek_exposure,
@@ -228,6 +229,9 @@ HEAL_SPECS: dict[str, HealSpec] = {
     ),
     "rates_fred": HealSpec(
         "rates_fred", "external", "run_once_lookback", _run_rates_fred, est_per_item=0
+    ),
+    "gold_factor": HealSpec(
+        "gold_factor", "db", "run_once", _run_gold_factor, est_per_item=0
     ),
     "gold_posture": HealSpec(
         "gold_posture", "db", "run_once", _run_gold_posture, est_per_item=0

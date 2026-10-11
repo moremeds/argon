@@ -82,6 +82,7 @@ from .fundamentals_desk import (
     ProfitPoolLayer,
     ScopeGroup,
 )
+from .gold_factor import GoldFactorPoint, GoldFactorResponse, GoldFactorYear
 from .gold import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
@@ -417,6 +418,9 @@ from .vrp_lifecycle import (
 
 __all__ = [
     "_UwBase",
+    "GoldFactorPoint",
+    "GoldFactorResponse",
+    "GoldFactorYear",
     "AgentRunIndexRow",
     "AgentRunIngest",
     "AgentRunIngestResult",

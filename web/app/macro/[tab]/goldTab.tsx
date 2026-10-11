@@ -1,4 +1,5 @@
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
+import { GoldFactorBand } from "@/components/gold/factor/GoldFactorBand";
 import { GoldMetaChips } from "@/components/gold/GoldMetaChips";
 import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
 import {
@@ -131,7 +132,7 @@ export async function GoldTab({ replay }: MacroTabProps) {
   // tab's date to that endpoint would put two different questions under one pill and let
   // the answer to the second pass for the answer to the first. Live, both mean "newest",
   // so they agree and the pill is honest.
-  const [posture, domain, gauge] = await Promise.all([
+  const [posture, domain, gauge, factor] = await Promise.all([
     settle(
       () => (asOf === null ? api.goldState() : api.goldReplay(asOf)),
       "gold posture API",
@@ -147,7 +148,22 @@ export async function GoldTab({ replay }: MacroTabProps) {
     asOf === null
       ? settle(() => api.goldGauge(), "gold gauge API")
       : Promise.resolve({ value: null, error: undefined }),
+    // The factor model, live-only for the same clock reason: `/api/gold/factor` takes no
+    // date. Settled on its own so an outage costs this band, not the tab.
+    asOf === null
+      ? settle(() => api.goldFactor(), "gold factor API")
+      : Promise.resolve({ value: null, error: undefined }),
   ]);
+  const factorBand = factor.value ? (
+    <GoldFactorBand data={factor.value} />
+  ) : factor.error ? (
+    <GoldPostureNotice
+      tone="failed"
+      headline="Gold factor model · request failed"
+      detail={factor.error}
+      body="The API could not be read, so whether the model has been computed is unknown."
+    />
+  ) : null;
 
   const verdict = replayVerdictForObsDate(replay, {
     obsDate: posture.value?.obs_date,
@@ -196,6 +212,7 @@ export async function GoldTab({ replay }: MacroTabProps) {
     <>
       {status}
       <div className="board">
+        {factorBand}
         <GoldCompassLayout
           state={posture.value}
           replayDate={asOf ?? undefined}

@@ -24,6 +24,7 @@ dependencies = [
   "websockets>=12.0",
   "scipy>=1.17.1",
   "arch==8.0.0",
+  "statsmodels>=0.14",
 ]
 
 [project.scripts]

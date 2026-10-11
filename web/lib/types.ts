@@ -1709,6 +1709,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gold/factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gold Factor */
+        get: operations["get_gold_factor_api_gold_factor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rates/snapshot": {
         parameters: {
             query?: never;
@@ -5569,6 +5586,97 @@ export interface components {
             factor: string;
             /** Contribution */
             contribution: string;
+        };
+        /** GoldFactorPoint */
+        GoldFactorPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** B R */
+            b_r: number | null;
+            /** B R Lo95 */
+            b_r_lo95: number | null;
+            /** B R Hi95 */
+            b_r_hi95: number | null;
+            /** B D */
+            b_d: number | null;
+            /** B D Lo95 */
+            b_d_lo95: number | null;
+            /** B D Hi95 */
+            b_d_hi95: number | null;
+            /** B S */
+            b_s: number | null;
+            /** B S Lo95 */
+            b_s_lo95: number | null;
+            /** B S Hi95 */
+            b_s_hi95: number | null;
+            /** Explained Share */
+            explained_share: number | null;
+            /** Published Label */
+            published_label: ("much" | "part" | "little") | null;
+            /** Gold Change */
+            gold_change: number;
+            /** Own Trailing Drift */
+            own_trailing_drift: number | null;
+            /** Real Yield Part */
+            real_yield_part: number | null;
+            /** Dollar Part */
+            dollar_part: number | null;
+            /** Haven Part */
+            haven_part: number | null;
+            /** Unexplained 1 */
+            unexplained_1: number | null;
+            /** Unexplained 21 */
+            unexplained_21: number | null;
+        };
+        /** GoldFactorResponse */
+        GoldFactorResponse: {
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /**
+             * Last Date
+             * Format: date
+             */
+            last_date: string;
+            /** Explained Low */
+            explained_low: number;
+            /** Explained High */
+            explained_high: number;
+            /** Points */
+            points: components["schemas"]["GoldFactorPoint"][];
+            /** Years */
+            years: components["schemas"]["GoldFactorYear"][];
+        };
+        /**
+         * GoldFactorYear
+         * @description Sums over the rows of a calendar year that have every part (percent).
+         */
+        GoldFactorYear: {
+            /** Year */
+            year: number;
+            /** Rows */
+            rows: number;
+            /** Partial Year */
+            partial_year: boolean;
+            /** Gold Change */
+            gold_change: number;
+            /** Own Trailing Drift */
+            own_trailing_drift: number;
+            /** Real Yield Part */
+            real_yield_part: number;
+            /** Dollar Part */
+            dollar_part: number;
+            /** Haven Part */
+            haven_part: number;
+            /** Unexplained */
+            unexplained: number;
+            /** Explained Share */
+            explained_share: number;
         };
         /** GoldGauge60dTimeSeriesPoint */
         GoldGauge60dTimeSeriesPoint: {
@@ -15838,6 +15946,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoldStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gold_factor_api_gold_factor_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldFactorResponse"];
                 };
             };
             /** @description Validation Error */

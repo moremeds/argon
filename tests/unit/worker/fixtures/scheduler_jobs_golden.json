@@ -335,6 +335,14 @@
    "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
   },
   {
+   "func": "_gold_factor_compute",
+   "id": "gold_factor_compute",
+   "options": {
+    "name": "'Gold: factor model (real yield / dollar / haven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+  },
+  {
    "func": "_gold_fred_ingest",
    "id": "gold_fred_ingest",
    "options": {
@@ -1140,6 +1148,14 @@
     "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
    },
    "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_factor_compute",
+   "id": "gold_factor_compute",
+   "options": {
+    "name": "'Gold: factor model (real yield / dollar / haven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",
@@ -2437,6 +2453,14 @@
    "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
   },
   {
+   "func": "_gold_factor_compute",
+   "id": "gold_factor_compute",
+   "options": {
+    "name": "'Gold: factor model (real yield / dollar / haven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+  },
+  {
    "func": "_gold_fred_ingest",
    "id": "gold_fred_ingest",
    "options": {
@@ -3072,6 +3096,14 @@
     "name": "'Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)'"
    },
    "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='18', minute='30'] tz=America/New_York"
+  },
+  {
+   "func": "_gold_factor_compute",
+   "id": "gold_factor_compute",
+   "options": {
+    "name": "'Gold: factor model (real yield / dollar / haven)'"
+   },
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",

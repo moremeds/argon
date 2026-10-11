@@ -29,6 +29,7 @@ and the API in `api/routers/macro.py`. The web surface is `web/components/macro/
 | `usd.py`               | Point-in-time USD transmission state                                               |
 | `gold.py`              | Gold's declared inputs, and the manifest that proves what was read                 |
 | `gold_state.py`        | The gold domain state: whether the relationship Lens 2 rests on is in force        |
+| `gold_factor.py`       | Gold factor model: rolling fit of gold on real yield / dollar / haven, daily parts (signal-lab port; parity `scripts/research/gold_factor_parity.py`) |
 | `gold_ingest.py`       | Gold's own two series, promoted from the warm store into the evidence store        |
 | `policy.py`            | Pure assembly of independent policy paths                                          |
 | `policy_report.py`     | Point-in-time policy comparison assembly from immutable observations               |

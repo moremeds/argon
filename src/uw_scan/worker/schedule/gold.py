@@ -24,6 +24,7 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_uw_options_ingest_job,
     gold_wgc_cb_ingest_job,
 )
+from uw_scan.worker.jobs.gold_factor import gold_factor_compute_job
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,14 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
                 record_request=lambda _provider, event: recorder.record(event),
             )
 
+    def _gold_factor_compute() -> None:
+        key = settings.xenon_query_api_key
+        gold_factor_compute_job(
+            dsn=settings.db_dsn(),
+            xenon_url=settings.xenon_query_api_url,
+            xenon_key=key.get_secret_value() if key is not None else None,
+        )
+
     def _gold_posture_compute() -> None:
         gold_posture_compute_job(dsn=settings.db_dsn())
 
@@ -117,6 +126,14 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         CronTrigger.from_crontab("0 17 * * 0-4", timezone=settings.rth_tz),
         id="gold_fred_ingest",
         name="Gold: FRED daily refresh",
+    )
+    # 17:40, after the 17:00 FRED refresh: FRED posts DFII10 for day t on t+1, so this run
+    # completes row t; row t+1 waits for tomorrow's yield (no forward fill).
+    sched.add_job(
+        _gold_factor_compute,
+        CronTrigger.from_crontab("40 17 * * 0-4", timezone=settings.rth_tz),
+        id="gold_factor_compute",
+        name="Gold: factor model (real yield / dollar / haven)",
     )
     sched.add_job(
         _gold_spot_ingest,
