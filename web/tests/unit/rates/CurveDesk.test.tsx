@@ -2,7 +2,13 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { CurveDesk } from "@/components/rates/CurveDesk";
-import { POLICY_RATES_STATE, SNAPSHOT, TENORS } from "./fixture";
+import {
+  GOLD_FACTOR_PROD,
+  POLICY_RATES_STATE,
+  SNAPSHOT,
+  SNAPSHOT_PROD_2026_10_09,
+  TENORS,
+} from "./fixture";
 
 /**
  * Macro desk tab 02. The market half of the old `/rates` page: the traded curve, what
@@ -240,6 +246,139 @@ describe("CurveDesk", () => {
   it("does not add a standalone source-freshness panel absent from the artifact", () => {
     render(<CurveDesk snapshot={SNAPSHOT} />);
     expect(screen.queryByRole("region", { name: /source freshness/i })).toBeNull();
+  });
+
+  it("dashes the five model columns when a window saw no new monthly vintage", () => {
+    // Prod as of 2026-10-09: 1D/1W/1M read the same 2026-09-01 Cleveland vintage at
+    // both ends, so every model delta is a stored value minus itself — an exact 0.0.
+    // Printing it would read as "the model explains nothing"; the table prints an
+    // em dash and says why on hover instead.
+    render(<CurveDesk snapshot={SNAPSHOT_PROD_2026_10_09} />);
+
+    const drivers = screen.getByRole("region", { name: /move drivers/i });
+    for (const [window, nominal, residual, driver] of [
+      ["1D", "+2.0", "+2.0", "Real rate"],
+      ["1W", "-4.0", "-4.0", "Breakeven"],
+      ["1M", "+41.0", "+41.0", "Real rate"],
+    ] as const) {
+      const cells = within(
+        within(drivers).getByRole("row", { name: new RegExp(`^${window}\\b`) }),
+      ).getAllByRole("cell");
+      // cells: window, 10Y, Model, E[real], E[infl], Real term, Infl risk, Residual, Driver
+      expect(cells[1].textContent).toBe(nominal);
+      for (const cell of cells.slice(2, 7)) {
+        expect(cell.textContent).toBe("—");
+        expect(cell.title).toBe("no new monthly model value in this window");
+      }
+      // Residual and driver stay — tape minus a static model is still real.
+      expect(cells[7].textContent).toBe(residual);
+      expect(cells[8].textContent).toBe(driver);
+    }
+    // YTD crosses a vintage boundary, so its model columns are real numbers.
+    const ytd = within(
+      within(drivers).getByRole("row", { name: /^YTD\b/ }),
+    ).getAllByRole("cell");
+    expect(ytd[2].textContent).toBe("+83.0");
+  });
+
+  it("keeps the numeric model columns when the vintage changed or the flag is absent", () => {
+    // `SNAPSHOT` has no `model_vintage_changed` (older API response): every cell
+    // prints as before, and the 1M read still names a model number.
+    render(<CurveDesk snapshot={SNAPSHOT} />);
+
+    const drivers = screen.getByRole("region", { name: /move drivers/i });
+    const oneM = within(
+      within(drivers).getByRole("row", { name: /^1M\b/ }),
+    ).getAllByRole("cell");
+    expect(oneM[2].textContent).toBe("+15.3");
+    expect(drivers.textContent).toContain("the Cleveland model accounts for");
+  });
+
+  it("says the window has no new monthly model value instead of claiming +0.0", () => {
+    render(<CurveDesk snapshot={SNAPSHOT_PROD_2026_10_09} />);
+
+    const drivers = screen.getByRole("region", { name: /move drivers/i });
+    expect(drivers.textContent).toContain("+41.0 bps");
+    expect(drivers.textContent).toContain("no new monthly model value");
+    expect(drivers.textContent).toContain("2026-09-01");
+    expect(drivers.textContent).not.toContain("model accounts for");
+  });
+
+  it("shows gold's real-yield sensitivity beside the decompositions when the factor is live", () => {
+    render(<CurveDesk snapshot={SNAPSHOT} goldFactor={GOLD_FACTOR_PROD} />);
+
+    const panel = screen.getByRole("region", { name: /real-yield sensitivity/i });
+    // Prod's last point (2026-10-09): b_r −0.0513 %/bp, 95% interval crossing zero.
+    expect(panel.textContent).toContain("−0.051");
+    expect(panel.textContent).toContain("interval crosses zero");
+    expect(panel.textContent).toContain("through 2026-10-09");
+    expect(panel.textContent).toContain("Describes the past, not a forecast");
+    // Only the real-yield leg renders — dollar and haven stay on the gold tab.
+    expect(panel.textContent).not.toContain("Dollar · %/%");
+    expect(panel.textContent).not.toContain("Haven · %/%");
+    // Beside the model decomposition — same grid, not a separate band.
+    const cleveland = screen.getByRole("region", {
+      name: /model decomposition/i,
+    });
+    expect(panel.parentElement).toBe(cleveland.parentElement);
+  });
+
+  it("hides the gold sensitivity when no factor was fetched — replay or outage", () => {
+    render(<CurveDesk snapshot={SNAPSHOT} />);
+
+    expect(
+      screen.queryByRole("region", { name: /sensitivity/i }),
+    ).toBeNull();
+  });
+
+  it("hides the gold sensitivity when the latest fit lacks the real-yield row", () => {
+    const factor = {
+      ...GOLD_FACTOR_PROD,
+      points: GOLD_FACTOR_PROD.points.map((point, index) =>
+        index === GOLD_FACTOR_PROD.points.length - 1
+          ? { ...point, b_r: null, b_r_lo95: null, b_r_hi95: null }
+          : point,
+      ),
+    };
+    render(<CurveDesk snapshot={SNAPSHOT} goldFactor={factor} />);
+
+    expect(
+      screen.queryByRole("region", { name: /sensitivity/i }),
+    ).toBeNull();
+  });
+
+  it("prints each yield series' data date and first-stored time in New York", () => {
+    render(<CurveDesk snapshot={SNAPSHOT_PROD_2026_10_09} />);
+
+    const table = screen.getByTestId("data-dates");
+    // Header + eleven curve series + DFII10 + T10YIE.
+    expect(within(table).getAllByRole("row")).toHaveLength(14);
+
+    // H.15 rows for Friday 2026-10-09 were first stored Monday 2026-10-13 at 18:45 ET.
+    const dgs10 = within(table).getByRole("row", {
+      name: /DGS10 · 10Y Treasury nominal/,
+    });
+    expect(dgs10.textContent).toContain("2026-10-09");
+    expect(dgs10.textContent).toContain("2026-10-13 18:45 ET");
+
+    // T10YIE is stored on the observation day itself.
+    const t10yie = within(table).getByRole("row", {
+      name: /T10YIE · 10Y breakeven inflation/,
+    });
+    expect(t10yie.textContent).toContain("2026-10-13");
+    expect(t10yie.textContent).toContain("2026-10-13 18:45 ET");
+
+    // A series without a prod first_seen_at prints a dash, never an invented time.
+    const dgs2 = within(table).getByRole("row", {
+      name: /DGS2 · 2Y Treasury nominal/,
+    });
+    expect(dgs2.textContent).toContain("2026-10-09");
+    expect(dgs2.textContent).toContain("—");
+
+    // The caption states what the column is and what the warehouse cannot say.
+    expect(table.textContent).toContain(
+      "FRED's own publish time is not stored",
+    );
   });
 
   it("renders an explicit empty state when no snapshot exists", () => {

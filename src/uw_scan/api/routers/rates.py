@@ -107,6 +107,7 @@ def _mark_stale_snapshot_sources(
             label=source.label,
             latest_obs_date=source.latest_obs_date,
             last_seen_at=source.last_seen_at,
+            first_seen_at=source.first_seen_at,
             status="stale" if source.status == "ok" else source.status,
         )
         for source in snapshot.source_freshness

@@ -1,18 +1,21 @@
+"use client";
+
 import { WIDE_FRAME, axisTicks } from "@/components/macro/chartGeometry";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
 import { humanizeIdentifier } from "@/components/macro/presentation";
+import { useChartWidth } from "@/lib/useChartWidth";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPath, PolicyPathSlot } from "./types";
 
+// Pads and heights are width-independent; width and plotW come from the
+// measured box below so the viewBox matches the rendered pixel width.
 const {
-  width: WIDTH,
   height: HEIGHT,
   padLeft: PAD_LEFT,
   padRight: PAD_RIGHT,
   padTop: PAD_TOP,
-  plotW: PLOT_W,
   plotH: PLOT_H,
   xLabelNear: X_LABEL_NEAR,
 } = WIDE_FRAME;
@@ -118,6 +121,7 @@ export function DealerPathChart({
 }: {
   slot: PolicyPathSlot | null | undefined;
 }) {
+  const [chartRef, width] = useChartWidth<SVGSVGElement>(WIDE_FRAME.width);
   const resolved = plottable(slot);
   if (resolved.status === "empty") {
     return (
@@ -172,7 +176,8 @@ export function DealerPathChart({
   const to = Math.max(...everyRow.map((row) => row.at));
   const range = Math.max(to - from, 1);
 
-  const xFor = (at: number) => PAD_LEFT + ((at - from) / range) * PLOT_W;
+  const plotW = width - PAD_LEFT - PAD_RIGHT;
+  const xFor = (at: number) => PAD_LEFT + ((at - from) / range) * plotW;
   const yFor = (value: number) => PAD_TOP + (1 - (value - lo) / span) * PLOT_H;
 
   // The band is drawn only across the run where both quartiles exist, so a gap in the
@@ -214,14 +219,15 @@ export function DealerPathChart({
           </div>
         </div>
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          ref={chartRef}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
           aria-label="New York Fed Survey of Market Expectations: median expected policy rate by meeting date, latest survey with interquartile range and the surveys before it"
         >
           <rect
             x="0"
             y="0"
-            width={WIDTH}
+            width={width}
             height={HEIGHT}
             rx="8"
             fill="var(--bg-panel)"
@@ -230,7 +236,7 @@ export function DealerPathChart({
             <g key={tick.toFixed(3)}>
               <line
                 x1={PAD_LEFT}
-                x2={WIDTH - PAD_RIGHT}
+                x2={width - PAD_RIGHT}
                 y1={yFor(tick)}
                 y2={yFor(tick)}
                 stroke="var(--border-dim)"

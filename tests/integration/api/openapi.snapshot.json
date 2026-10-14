@@ -17926,6 +17926,17 @@
             ],
             "title": "Model Nominal 10Y Bps"
           },
+          "model_vintage_changed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Vintage Changed"
+          },
           "nominal_10y_bps": {
             "anyOf": [
               {
@@ -18878,6 +18889,18 @@
       },
       "RatesSourceFreshness": {
         "properties": {
+          "first_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Seen At"
+          },
           "id": {
             "title": "Id",
             "type": "string"

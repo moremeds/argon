@@ -7,6 +7,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Treasuries tab (02): gold real-yield sensitivity, honest model attribution, per-series data dates.** The `rates` macro tab gains a "Gold · real-yield sensitivity" panel beside the decompositions — the gold factor's real-yield slope with its 95% interval, live only (`/api/gold/factor` takes no `as_of`, so it hides under replay) and carrying "Describes the past, not a forecast · the direction test (Phase 3) failed". `RatesDecompositionAttribution` gains `model_vintage_changed`: when both window ends read the same monthly Cleveland vintage the five model columns print `—` ("no new monthly model value in this window") instead of a misleading `+0.0`, and the 1M read names the vintage rather than "accounts for 0.0bps". `RatesSourceFreshness` gains `first_seen_at`, and a compact "Data dates" table inside the curve panel lists each yield series' observation date and argon first-storage time in New York; the caption states that FRED's own publish time is not stored.
+
+### Fixed
+
+- **Macro desk charts rendered their text at 9–23px instead of the designed px.** `.board .chart svg { width: 100%; height: auto }` stretches a fixed viewBox's coordinate system — text included — so the gold-factor charts, the DXY panels, `usd-gold-month`, the gold-flow minis, the Fed `paths` chart, the dealer-path and SEP dot-plot charts and the yield curve drew on 300/620/760/1200-unit frames that a ~1590px single-column panel magnified and a narrow column shrank. The new `lib/useChartWidth` hook measures each chart's rendered width (ResizeObserver + initial `getBoundingClientRect`, disconnect on unmount; the fallback width stands under jsdom/SSR) and those charts now draw `viewBox` equal to the measured width, so one user unit is one CSS pixel and 10px labels render at 10px at any viewport.
+
 ## [0.13.32] — 2026-10-14
 
 

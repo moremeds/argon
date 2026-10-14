@@ -1,18 +1,21 @@
+"use client";
+
 import { WIDE_FRAME } from "@/components/macro/chartGeometry";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
 import { humanizeIdentifier } from "@/components/macro/presentation";
+import { useChartWidth } from "@/lib/useChartWidth";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
 
+// Pads and heights are width-independent; width and plotW come from the
+// measured box below so the viewBox matches the rendered pixel width.
 const {
-  width: WIDTH,
   height: HEIGHT,
   padLeft: PAD_LEFT,
   padRight: PAD_RIGHT,
   padTop: PAD_TOP,
-  plotW: PLOT_W,
   plotH: PLOT_H,
   xLabelNear: X_LABEL_NEAR,
   xLabelFar: X_LABEL_FAR,
@@ -49,6 +52,7 @@ export function SepDotPlot({
 }: {
   slot: PolicyPathSlot | null | undefined;
 }) {
+  const [chartRef, width] = useChartWidth<SVGSVGElement>(WIDE_FRAME.width);
   const resolved = plottable(slot);
   if (resolved.status === "empty") {
     return (
@@ -106,7 +110,8 @@ export function SepDotPlot({
   const lo = Math.min(...values) - 0.2;
   const hi = Math.max(...values) + 0.2;
   const span = Math.max(hi - lo, 0.5);
-  const colW = PLOT_W / Math.max(columns.length, 1);
+  const plotW = width - PAD_LEFT - PAD_RIGHT;
+  const colW = plotW / Math.max(columns.length, 1);
 
   const yFor = (rate: number) => PAD_TOP + (1 - (rate - lo) / span) * PLOT_H;
   const xFor = (index: number) => PAD_LEFT + colW * (index + 0.5);
@@ -153,14 +158,15 @@ export function SepDotPlot({
           </div>
         </div>
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          ref={chartRef}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
           aria-label={`FOMC Summary of Economic Projections dot plot, up to ${participants} anonymous participant projections per horizon`}
         >
           <rect
             x="0"
             y="0"
-            width={WIDTH}
+            width={width}
             height={HEIGHT}
             rx="8"
             fill="var(--bg-panel)"
@@ -169,7 +175,7 @@ export function SepDotPlot({
             <g key={tick.toFixed(3)}>
               <line
                 x1={PAD_LEFT}
-                x2={WIDTH - PAD_RIGHT}
+                x2={width - PAD_RIGHT}
                 y1={yFor(tick)}
                 y2={yFor(tick)}
                 stroke="var(--border-dim)"

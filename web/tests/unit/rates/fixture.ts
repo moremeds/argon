@@ -314,6 +314,215 @@ export const SNAPSHOT: Snapshot = {
   ],
 };
 
+/**
+ * Prod reads, all copied from files the lead fetched on 2026-10-14:
+ * `impl/prod_rates_snapshot_2026-10-14.json` (`/api/rates/snapshot`, as_of
+ * 2026-10-09) and `impl/prod_gold_factor_2026-10-14.json` (`/api/gold/factor`,
+ * last point 2026-10-09). Nothing below is invented; fields a test does not
+ * exercise keep the base fixture's values.
+ *
+ * What the prod payload shows: Cleveland vintage 2026-09-01, and the 1D/1W/1M
+ * model deltas are an exact 0.0 because both window ends read that same monthly
+ * vintage — `model_vintage_changed` did not exist on prod yet, but its value
+ * follows from that verified state, so it is `false` on the three short rows
+ * and `true` on YTD, whose +83.0bp model delta spans the boundary.
+ *
+ * `first_seen_at` is likewise not served yet — the three timestamps below are
+ * the lead's reads of prod `rates_observations` (minute precision): H.15 rows
+ * for obs date D store at 18:45 ET the next business day (Friday 2026-10-09 →
+ * Monday 2026-10-13), T10YIE stores day D. Every other series stays null —
+ * a number is not invented just to fill a column.
+ */
+export const SNAPSHOT_PROD_2026_10_09: Snapshot = {
+  ...SNAPSHOT,
+  as_of: "2026-10-09",
+  curve: {
+    ...SNAPSHOT.curve!,
+    points: [
+      { tenor: "1M", series_id: "DGS1MO", value: 4.13, delta_1d_bps: -1, delta_1w_bps: 9, delta_1m_bps: 32, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "3M", series_id: "DGS3MO", value: 4.25, delta_1d_bps: 2, delta_1w_bps: 6, delta_1m_bps: 30, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "6M", series_id: "DGS6MO", value: 4.32, delta_1d_bps: 2, delta_1w_bps: 5, delta_1m_bps: 31, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "1Y", series_id: "DGS1", value: 4.47, delta_1d_bps: 3, delta_1w_bps: 1, delta_1m_bps: 30, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "2Y", series_id: "DGS2", value: 4.8, delta_1d_bps: 5, delta_1w_bps: -3, delta_1m_bps: 37, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "3Y", series_id: "DGS3", value: 4.89, delta_1d_bps: 4, delta_1w_bps: -7, delta_1m_bps: 40, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "5Y", series_id: "DGS5", value: 5.02, delta_1d_bps: 3, delta_1w_bps: -4, delta_1m_bps: 41, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "7Y", series_id: "DGS7", value: 5.13, delta_1d_bps: 2, delta_1w_bps: -4, delta_1m_bps: 42, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "10Y", series_id: "DGS10", value: 5.24, delta_1d_bps: 2, delta_1w_bps: -4, delta_1m_bps: 41, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "20Y", series_id: "DGS20", value: 5.65, delta_1d_bps: 1, delta_1w_bps: -2, delta_1m_bps: 37, obs_date: "2026-10-09", status: "ok" },
+      { tenor: "30Y", series_id: "DGS30", value: 5.6, delta_1d_bps: 0, delta_1w_bps: -3, delta_1m_bps: 32, obs_date: "2026-10-09", status: "ok" },
+    ],
+  },
+  decomposition: {
+    ...SNAPSHOT.decomposition!,
+    nominal_10y: 5.24,
+    real_10y: 2.91,
+    breakeven_10y: 2.33,
+    forward_inflation_5y5y: 2.32,
+    term_forward_compensation: 0,
+    clarida_model_date: "2026-09-01",
+    model_real_yield_10y: 2.24,
+    expected_short_real_rate_10y: 0.91,
+    expected_short_inflation_10y: 2.57,
+    real_term_premium_10y: 1.34,
+    inflation_risk_premium_10y: 0.46,
+    model_nominal_10y: 5.28,
+    fred_model_residual_10y: -0.04,
+    attribution: [
+      {
+        window: "1D",
+        nominal_10y_bps: 2,
+        real_10y_bps: 4,
+        breakeven_10y_bps: -2,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: 2,
+        model_vintage_changed: false,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "1W",
+        nominal_10y_bps: -4,
+        real_10y_bps: -1,
+        breakeven_10y_bps: -3,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: -4,
+        model_vintage_changed: false,
+        driver: "Breakeven",
+        status: "ok",
+      },
+      {
+        window: "1M",
+        nominal_10y_bps: 41,
+        real_10y_bps: 45,
+        breakeven_10y_bps: -4,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: 41,
+        model_vintage_changed: false,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "YTD",
+        nominal_10y_bps: 106,
+        real_10y_bps: 98,
+        breakeven_10y_bps: 8,
+        residual_bps: 0,
+        model_nominal_10y_bps: 83,
+        expected_short_real_bps: 49,
+        expected_short_inflation_bps: 24,
+        real_term_premium_bps: 9,
+        inflation_risk_premium_bps: 1,
+        fred_model_residual_bps: 23,
+        model_vintage_changed: true,
+        driver: "Expected short real",
+        status: "ok",
+      },
+    ],
+  },
+  source_freshness: [
+    ...[
+      ["DGS1MO", "1M Treasury nominal"],
+      ["DGS3MO", "3M Treasury nominal"],
+      ["DGS6MO", "6M Treasury nominal"],
+      ["DGS1", "1Y Treasury nominal"],
+      ["DGS2", "2Y Treasury nominal"],
+      ["DGS3", "3Y Treasury nominal"],
+      ["DGS5", "5Y Treasury nominal"],
+      ["DGS7", "7Y Treasury nominal"],
+      ["DGS10", "10Y Treasury nominal"],
+      ["DGS20", "20Y Treasury nominal"],
+      ["DGS30", "30Y Treasury nominal"],
+    ].map(([id, label]) => ({
+      id,
+      label,
+      latest_obs_date: "2026-10-09",
+      last_seen_at: "2026-10-14T08:07:31.940782+08:00",
+      first_seen_at: id === "DGS10" ? "2026-10-13T22:45:00Z" : null,
+      status: "ok" as const,
+    })),
+    {
+      id: "DFII10",
+      label: "10Y TIPS real yield",
+      latest_obs_date: "2026-10-09",
+      last_seen_at: "2026-10-14T08:07:31.940782+08:00",
+      first_seen_at: "2026-10-13T22:45:00Z",
+      status: "ok" as const,
+    },
+    {
+      id: "T10YIE",
+      label: "10Y breakeven inflation",
+      latest_obs_date: "2026-10-13",
+      last_seen_at: "2026-10-14T08:07:31.940782+08:00",
+      first_seen_at: "2026-10-13T22:45:00Z",
+      status: "ok" as const,
+    },
+  ],
+};
+
+/**
+ * Prod `/api/gold/factor` last point verbatim (2026-10-09): a real-yield slope
+ * of −0.0513 %/bp with the 95% interval [−0.116, +0.013] crossing zero. The
+ * rates tab renders this leg alone beside its decompositions.
+ */
+export const GOLD_FACTOR_PROD: components["schemas"]["GoldFactorResponse"] = {
+  computed_at: "2026-10-14T11:53:16.725902+08:00",
+  last_date: "2026-10-09",
+  explained_low: 0.21839387732373133,
+  explained_high: 0.4020650422009684,
+  points: [
+    {
+      obs_date: "2026-10-09",
+      b_r: -0.051294477378378715,
+      b_r_lo95: -0.11600065719198994,
+      b_r_hi95: 0.013411702435230946,
+      b_d: -2.331217331195276,
+      b_d_lo95: -3.3707428053142294,
+      b_d_hi95: -1.2916918570762734,
+      b_s: 0.5331542790935692,
+      b_s_lo95: -0.4874718141442279,
+      b_s_hi95: 1.5537803723312478,
+      explained_share: 0.24884910835106078,
+      published_label: "part",
+      gold_change: 1.4591365629760489,
+      own_trailing_drift: 0.08608550471963793,
+      real_yield_part: -0.20760824550643278,
+      dollar_part: -0.25018412857130756,
+      haven_part: -0.045883126379923284,
+      unexplained_1: 1.8767265587140747,
+      unexplained_21: 4.520902960389897,
+    },
+  ],
+  years: [
+    {
+      year: 2026,
+      rows: 194,
+      partial_year: true,
+      gold_change: -2.958979938384765,
+      own_trailing_drift: 24.517319575457613,
+      real_yield_part: -2.968230374280132,
+      dollar_part: -8.133439870249711,
+      haven_part: 0.13102416447078222,
+      unexplained: -16.505653433783316,
+      explained_share: 0.1873198823764578,
+    },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // MC2 fixtures.
 //

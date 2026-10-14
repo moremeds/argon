@@ -175,34 +175,63 @@ export function MoveAttributionSection({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.window}>
-                <td>{row.window}</td>
-                {[
-                  row.nominal_10y_bps,
-                  row.model_nominal_10y_bps,
-                  row.expected_short_real_bps,
-                  row.expected_short_inflation_bps,
-                  row.real_term_premium_bps,
-                  row.inflation_risk_premium_bps,
-                  row.fred_model_residual_bps,
-                ].map((value, index) => (
-                  <td className={`num ${signClass(value)}`} key={index}>
-                    {fmtSigned(value, "", 1)}
-                  </td>
-                ))}
-                <td>{row.driver ?? "n/a"}</td>
-              </tr>
-            ))}
+            {rows.map((row) => {
+              // `model_vintage_changed === false` means both window ends read the
+              // same monthly Cleveland vintage, so every model delta is a stored
+              // value minus itself — an exact 0.0 that would print as "the model
+              // explains nothing" when it really says "nothing new arrived". Those
+              // cells show an em dash and say why on hover; residual and driver
+              // stay, because they are still tape minus a static model.
+              const sameVintage = row.model_vintage_changed === false;
+              return (
+                <tr key={row.window}>
+                  <td>{row.window}</td>
+                  {[
+                    { value: row.nominal_10y_bps, model: false },
+                    { value: row.model_nominal_10y_bps, model: true },
+                    { value: row.expected_short_real_bps, model: true },
+                    { value: row.expected_short_inflation_bps, model: true },
+                    { value: row.real_term_premium_bps, model: true },
+                    { value: row.inflation_risk_premium_bps, model: true },
+                    { value: row.fred_model_residual_bps, model: false },
+                  ].map((column, index) =>
+                    sameVintage && column.model ? (
+                      <td
+                        className="num delta-flat"
+                        key={index}
+                        title="no new monthly model value in this window"
+                      >
+                        —
+                      </td>
+                    ) : (
+                      <td className={`num ${signClass(column.value)}`} key={index}>
+                        {fmtSigned(column.value, "", 1)}
+                      </td>
+                    ),
+                  )}
+                  <td>{row.driver ?? "n/a"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       <div className="grid g2">
         <BoardRead>
           Over 1M, the traded 10Y moved{" "}
-          <b>{fmtSigned(oneMonth?.nominal_10y_bps, "bps", 1)}</b>; the
-          Cleveland model accounts for{" "}
-          <b>{fmtSigned(oneMonth?.model_nominal_10y_bps, "bps", 1)}</b>.
+          <b>{fmtSigned(oneMonth?.nominal_10y_bps, "bps", 1)}</b>;{" "}
+          {oneMonth?.model_vintage_changed === false ? (
+            <>
+              the window has no new monthly model value — the Cleveland vintage
+              is still {decomposition.clarida_model_date ?? "unavailable"}, so
+              its columns are silent rather than zero.
+            </>
+          ) : (
+            <>
+              the Cleveland model accounts for{" "}
+              <b>{fmtSigned(oneMonth?.model_nominal_10y_bps, "bps", 1)}</b>.
+            </>
+          )}
         </BoardRead>
         <BoardRead>
           The residual is{" "}

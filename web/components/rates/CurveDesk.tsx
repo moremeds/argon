@@ -1,12 +1,13 @@
 import type { components } from "@/lib/types";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { SensitivityPanel } from "@/components/macro/goldFactor/GoldFactorPanels";
 
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
 import { RatesSection } from "./RatesSection";
 import { DeskEmptyState, DeskHeader } from "./deskShared";
-import { fmtValue } from "./format";
+import { fmtEtTimestamp, fmtValue } from "./format";
 import {
   ClevelandDecompositionSection,
   MoveAttributionSection,
@@ -107,6 +108,66 @@ function FundingReadings({ policy }: { policy: Policy }) {
   );
 }
 
+// The decomposition legs are not curve tenors but they are stored yield series
+// with the same two dates worth printing, so the table lists them beside the
+// eleven nominal points rather than letting the reader assume them.
+const DATA_DATES_EXTRA_SERIES = ["DFII10", "T10YIE"];
+
+/**
+ * "Data dates" — one row per stored yield series. Both columns are dates the
+ * warehouse can prove: the observation date FRED printed, and the instant argon
+ * first stored the row. FRED's own publish instant is not stored anywhere
+ * (`release_date` is null for every H.15 yield row), so nothing here claims it.
+ * The series id leads each row so a screen reader — and the tab's own tests —
+ * can tell "DGS10 · 10Y Treasury nominal" from the curve table's "10Y …" rows.
+ */
+function DataDatesTable({
+  points,
+  freshness,
+}: {
+  points: NonNullable<Snapshot["curve"]>["points"];
+  freshness: Snapshot["source_freshness"];
+}) {
+  const byId = new Map((freshness ?? []).map((row) => [row.id, row]));
+  const seriesIds = [
+    ...(points ?? []).map((point) => point.series_id),
+    ...DATA_DATES_EXTRA_SERIES,
+  ];
+  return (
+    <div data-testid="data-dates">
+      <p className="cap">Data dates</p>
+      <div className="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Series</th>
+              <th className="num">Data date</th>
+              <th className="num">First stored</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seriesIds.map((id) => {
+              const row = byId.get(id);
+              return (
+                <tr key={id}>
+                  <td>{row ? `${row.id} · ${row.label}` : id}</td>
+                  <td className="num">{row?.latest_obs_date ?? "—"}</td>
+                  <td className="num">{fmtEtTimestamp(row?.first_seen_at)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="cap">
+        {
+          "First stored = when argon first saved the value from FRED; FRED's own publish time is not stored."
+        }
+      </p>
+    </div>
+  );
+}
+
 // A slope is the difference between two traded yields and nothing else.  Naming it a
 // term premium promotes a shape into an estimate of compensation for duration risk,
 // which only a model can produce -- here, the Cleveland Fed's, whose figure appears in
@@ -116,6 +177,7 @@ export function CurveDesk({
   snapshot,
   errorMessage,
   subStates,
+  goldFactor,
 }: {
   snapshot: Snapshot | null;
   errorMessage?: string;
@@ -128,6 +190,12 @@ export function CurveDesk({
    * or the engine has not run — the sub-state panels then show their readings alone.
    */
   subStates?: components["schemas"]["MacroSubStateItem"][] | null;
+  /**
+   * `/api/gold/factor`, live only. The endpoint takes no `as_of`, so the page
+   * passes nothing under replay — the sensitivity panel must hide rather than
+   * show today's fit as the requested day's.
+   */
+  goldFactor?: components["schemas"]["GoldFactorResponse"] | null;
 }) {
   if (!snapshot) {
     return (
@@ -165,6 +233,15 @@ export function CurveDesk({
     (subStates ?? []).find((s) => s.role === role);
   const twoYear = (curve.points ?? []).find((point) => point.tenor === "2Y");
   const tenYear = (curve.points ?? []).find((point) => point.tenor === "10Y");
+  // The sensitivity panel gates on the same completeness check the section applies,
+  // so the grid only widens for a panel that will actually render.
+  const lastFactorPoint = goldFactor?.points?.at(-1);
+  const goldSensitivity =
+    lastFactorPoint?.b_r != null &&
+    lastFactorPoint?.b_r_lo95 != null &&
+    lastFactorPoint?.b_r_hi95 != null
+      ? lastFactorPoint
+      : null;
 
   return (
     <div className={styles.page}>
@@ -253,6 +330,10 @@ export function CurveDesk({
               </BoardRead>
             </div>
           </div>
+          <DataDatesTable
+            points={curve.points ?? []}
+            freshness={snapshot.source_freshness}
+          />
         </RatesSection>
 
         {/* The board's three decomposition panels. They were one section until
@@ -261,14 +342,24 @@ export function CurveDesk({
         {/* The board groups the three decompositions rather than stacking them, and the
           grouping is the claim: they are three different cuts of ONE move, so a
           column of three reads as a sequence where a row of three reads as
-          alternatives. */}
-        <div className="grid g2">
+          alternatives. The gold sensitivity joins the row only when a live factor
+          was fetched — it is the same answer to the same question (what does the
+          real yield transmit), so it stands with them, not in its own band. */}
+        <div className={goldSensitivity ? "grid g3" : "grid g2"}>
           <NominalDecompositionSection
             decomposition={decomposition}
             policy={policy}
             slopes={curve.slopes ?? []}
           />
           <ClevelandDecompositionSection decomposition={decomposition} />
+          {goldSensitivity ? (
+            <SensitivityPanel
+              last={goldSensitivity}
+              legs={["yield"]}
+              id="gold-real-yield-sensitivity"
+              title="Gold · real-yield sensitivity"
+            />
+          ) : null}
         </div>
         <MoveAttributionSection decomposition={decomposition} />
 

@@ -9,8 +9,9 @@ import { expect, test } from "@playwright/test";
  * k. The original comparison exposed an SEP dot plot at k = 2.02 and a central-bank
  * strip at k = 0.63 — a 20px label beside a 6px one, on the same page, with both files
  * declaring 10. `components/macro/chartGeometry.ts` already solved this in
- * argon by sizing each frame to the container it actually occupies; this gate is what
- * stops the answer from being lost during the port.
+ * argon, and the charts now go one step further: each draws its `viewBox` at the
+ * container's measured pixel width (`useChartWidth`), so k is exactly 1 on the
+ * client; this gate is what stops the answer from being lost during the port.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────
  * STATUS: LIVE since P3. The `test.fixme` marker P2 shipped is gone — tabs 01/02 brought
@@ -33,8 +34,8 @@ import { expect, test } from "@playwright/test";
  * there.
  *
  * `role="img"` is not a marker invented for this gate — `web/components/CLAUDE.md` already
- * mandates it on chart SVGs, and all three rates charts carry it (`SepDotPlot.tsx:150`,
- * `RatesCurveChart.tsx:124`, `DealerPathChart.tsx:213`). Measured, it selects exactly the
+ * mandates it on chart SVGs, and all three rates charts carry it (`SepDotPlot.tsx`,
+ * `RatesCurveChart.tsx`, `DealerPathChart.tsx`). Measured, it selects exactly the
  * three charts and zero icons.
  *
  * A selector can go blind, so the second assertion below guards it: any SVG in the content
@@ -57,11 +58,14 @@ import { expect, test } from "@playwright/test";
  * moving the number the frame was cut to fit.
  *
  * IT DID NOT. §5 predicted k ≈ 0.94 for `WIDE_FRAME` at 1440px and measured 1132px there
- * before the port; it renders at 1128px after — 0.35%. So the constants are DELIBERATELY
- * UNCHANGED. Pinning `NARROW_FRAME` to today's 708.9 would hard-code one viewport into a
- * module whose whole thesis is that the SCALE FACTOR, not the viewBox, is the invariant.
- * Re-measure again when P4 adds the replay banner — that one adds vertical chrome, but a
- * banner that wraps at a narrow width would take horizontal space too.
+ * before the port; it renders at 1128px after — 0.35%.
+ *
+ * UPDATE, later: the charts stopped depending on that P3 sizing entirely. Each now
+ * measures its rendered width with `useChartWidth` and draws `viewBox = measured`, so
+ * k = 1 at every viewport and no frame constant can drift off-band again. The
+ * `WIDE_FRAME`/`NARROW_FRAME` widths remain as the SSR/jsdom fallback (and supply the
+ * shared heights and pads); they no longer pin a viewport because the viewBox no
+ * longer comes from them on the client.
  * ─────────────────────────────────────────────────────────────────────────────────────
  */
 

@@ -1,12 +1,16 @@
+"use client";
+
 import { BoardPanel, BoardRead } from "@/components/macro/domain/BoardPanel";
 import { chartFrame, pathFromPoints } from "@/lib/svgChart";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 import { AXIS, COLOR, yearTicks, type GoldFlows } from "./shared";
 
 type FlowPoint = GoldFlows["china_reserves_t"][number];
 
 function FlowLine({ points, label }: { points: FlowPoint[]; label: string }) {
-  const f = chartFrame(300, 150, { top: 8, right: 8, bottom: 18, left: 40 });
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(300);
+  const f = chartFrame(w, 150, { top: 8, right: 8, bottom: 18, left: 40 });
   const vs = points.map((p) => p.value);
   const lo = Math.min(...vs);
   const hi = Math.max(...vs);
@@ -16,7 +20,7 @@ function FlowLine({ points, label }: { points: FlowPoint[]; label: string }) {
   const ticks = yearTicks(points.map((p) => p.obs_date));
   const every = Math.ceil(ticks.length / 4);
   return (
-    <svg {...f.svg} aria-label={label}>
+    <svg {...f.svg} ref={chartRef} aria-label={label}>
       {[lo, hi].map((t) => (
         <text key={t} x={f.M.left - 4} y={y(t) + 3} {...AXIS} textAnchor="end">
           {Math.round(t).toLocaleString("en-US")}

@@ -1,21 +1,18 @@
 /**
  * Shared frames for the hand-rolled SVG charts across the macro desk's tabs.
  *
- * These are sized by `viewBox` and stretched to `width: 100%`, so the viewBox is not a
- * drawing detail -- it is the type scale. Everything inside scales by
+ * `.chart svg` is `width: 100%; height: auto`, so a fixed viewBox is not a drawing
+ * detail -- it is the type scale. Everything inside scales by
  * `containerWidth / viewBoxWidth`, TEXT INCLUDED, so a chart drawn at 780 units inside
  * a 1200px panel silently magnified its own labels ~1.5x. The `.svgLabel` rule says
  * 11px and roughly 17px arrived.
  *
- * The thing to hold equal is therefore the SCALE FACTOR, not the viewBox. Two charts
- * sharing one viewBox in containers of different widths render at different text
- * sizes -- which is the state this replaced, where the two policy paths sat full width
- * at 780x400 and the curve sat in a ~760px grid cell at 760x320, magnifying by 1.54x
- * and 0.99x respectively. So each frame below is sized to the container it is actually
- * rendered into, giving every chart a scale near 1 and one shared type size.
- *
- * Measured in a 1512px viewport: the full-width chart panel is ~1200px, the curve grid
- * cell ~760px (`.curveGrid` gives it 1.4fr of the 1440px shell).
+ * The thing to hold equal is therefore the SCALE FACTOR, not the viewBox. The charts
+ * that use these frames now draw their `viewBox` width from the container's MEASURED
+ * pixel width (`useChartWidth`), so the factor is exactly 1 at every viewport and the
+ * designed font sizes render at face value. The frame `width` remains as the
+ * SSR/jsdom fallback -- vitest and the server render keep this geometry -- while the
+ * heights and pads below are still the shared fixed geometry.
  *
  * The heights are the other half of the old bug. At aspect 1.95 a full-width chart
  * wanted to be over 600px tall, and `.chartPanel svg { min-height: 420px }` then
@@ -56,7 +53,10 @@ function frame(
   };
 }
 
-/** Full-width chart panels: the SEP dot plot and the dealer path. */
+/**
+ * Full-width chart panels: the SEP dot plot and the dealer path. Width is the
+ * fallback for SSR/jsdom; the client draws at the container's measured width.
+ */
 export const WIDE_FRAME = frame(1200, 360, {
   left: 64,
   right: 28,
@@ -64,7 +64,10 @@ export const WIDE_FRAME = frame(1200, 360, {
   bottom: 56,
 });
 
-/** The narrower grid cell the yield curve shares with its slope table. */
+/**
+ * The narrower grid cell the yield curve shares with its slope table. Width is
+ * the fallback for SSR/jsdom; the client draws at the cell's measured width.
+ */
 export const NARROW_FRAME = frame(760, 300, {
   left: 58,
   right: 24,

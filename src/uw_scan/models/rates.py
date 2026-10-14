@@ -62,6 +62,12 @@ class RatesDecompositionAttribution(_UwBase):
     real_term_premium_bps: float | None = None
     inflation_risk_premium_bps: float | None = None
     fred_model_residual_bps: float | None = None
+    #: Whether the Cleveland model's monthly vintage differs between the window's
+    #: two ends.  ``False`` means every model delta is the same vintage minus itself
+    #: -- an exact 0.0 that reads as "the model explains nothing" when it really
+    #: means "no new model value in this window".  ``None`` when either end has no
+    #: model date at all.
+    model_vintage_changed: bool | None = None
     driver: str | None = None
     status: RatesAvailability = "partial"
 
@@ -233,6 +239,10 @@ class RatesSourceFreshness(_UwBase):
     label: str
     latest_obs_date: date | None = None
     last_seen_at: datetime | None = None
+    #: When argon first stored the latest observation row.  FRED's own publish
+    #: instant is not stored (``release_date`` is null for every H.15 yield row),
+    #: so this is the earliest desk-side timestamp the value can claim.
+    first_seen_at: datetime | None = None
     status: RatesAvailability = "missing"
 
 
