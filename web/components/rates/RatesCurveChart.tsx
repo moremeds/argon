@@ -1,5 +1,8 @@
+"use client";
+
 import type { components } from "@/lib/types";
 import { NARROW_FRAME } from "@/components/macro/chartGeometry";
+import { useChartWidth } from "@/lib/useChartWidth";
 import styles from "./RatesDesk.module.css";
 import { fmtSigned, fmtValue, toFiniteNumber } from "./format";
 
@@ -26,6 +29,7 @@ function deltaClass(value: unknown): string {
 }
 
 export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
+  const [chartRef, width] = useChartWidth<SVGSVGElement>(NARROW_FRAME.width);
   const series: CurveSeries[] = [
     {
       id: "current",
@@ -72,11 +76,10 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
     ? Math.max(...numeric.map((item) => item.value))
     : 1;
   const span = Math.max(max - min, 0.25);
-  // Sized to the grid cell this chart actually occupies, not to the full-width
-  // panels, so its scale factor lands near 1 like theirs and the three charts share
-  // one rendered type size. See @/components/macro/chartGeometry.ts -- equal viewBox in unequal
-  // containers is exactly what made these disagree.
-  const width = NARROW_FRAME.width;
+  // viewBox width is the measured rendered width, so the scale factor is 1 at
+  // every viewport and all three charts share one rendered type size.
+  // NARROW_FRAME supplies the SSR/jsdom fallback plus the fixed height and
+  // pads. See @/components/macro/chartGeometry.ts.
   const height = NARROW_FRAME.height;
   const padX = NARROW_FRAME.padLeft;
   const padTop = NARROW_FRAME.padTop;
@@ -120,6 +123,7 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
           </div>
         </div>
         <svg
+          ref={chartRef}
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label="US Treasury yield curve"

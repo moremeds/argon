@@ -13,7 +13,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **Macro desk charts rendered their text at 9–23px instead of the designed px.** `.board .chart svg { width: 100%; height: auto }` stretches a fixed viewBox's coordinate system — text included — so the gold-factor charts, the DXY panels, `usd-gold-month`, the gold-flow minis and the Fed `paths` chart drew on 300/620-unit frames that a ~1110px single-column panel magnified ~1.8× and a narrow column shrank. The new `lib/useChartWidth` hook measures each chart's rendered width (ResizeObserver + initial `getBoundingClientRect`, disconnect on unmount; the fallback width stands under jsdom/SSR) and those charts now draw `viewBox` equal to the measured width, so one user unit is one CSS pixel and 10px labels render at 10px at any viewport.
+- **Macro desk charts rendered their text at 9–23px instead of the designed px.** `.board .chart svg { width: 100%; height: auto }` stretches a fixed viewBox's coordinate system — text included — so the gold-factor charts, the DXY panels, `usd-gold-month`, the gold-flow minis, the Fed `paths` chart, the dealer-path and SEP dot-plot charts and the yield curve drew on 300/620/760/1200-unit frames that a ~1590px single-column panel magnified and a narrow column shrank. The new `lib/useChartWidth` hook measures each chart's rendered width (ResizeObserver + initial `getBoundingClientRect`, disconnect on unmount; the fallback width stands under jsdom/SSR) and those charts now draw `viewBox` equal to the measured width, so one user unit is one CSS pixel and 10px labels render at 10px at any viewport.
 
 ## [0.13.32] — 2026-10-14
 
