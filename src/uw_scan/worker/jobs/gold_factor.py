@@ -13,11 +13,13 @@ naming the legs, so the failure reaches job_failures.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import UTC, date, datetime
 
 import psycopg
 
 from uw_scan.macro import gold_factor as gf
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.sources.xenon_query import fetch_ib_daily_midpoints
 from uw_scan.storage import gold_factor as store
 from uw_scan.storage.repository import Repository
@@ -29,6 +31,20 @@ def _ib_contract(leg: str) -> tuple[str, str, str]:
     return ("CMDTY", leg, "USD") if leg == "XAUUSD" else ("CASH", leg[:3], leg[3:])
 
 
+def _fetch_leg(retry_wait: float, **kw: str) -> list[tuple[str, float]]:
+    """xenon answers 503 when its idle IB data socket was reset, and reconnects on that same
+    request, so one retry after a short wait gets the bars. On prod (2026-10-13/14) the first leg
+    of each run failed this way and the other six passed."""
+    try:
+        return fetch_ib_daily_midpoints(**kw)
+    except SourceUnavailable as exc:
+        logger.warning(
+            "gold_factor: xenon fetch %s unavailable, retrying once: %s", kw["symbol"], repr(exc)
+        )
+        time.sleep(retry_wait)
+        return fetch_ib_daily_midpoints(**kw)
+
+
 def fetch_ib_legs(
     conn: psycopg.Connection,
     *,
@@ -36,6 +52,7 @@ def fetch_ib_legs(
     api_key: str,
     duration: str = "1 M",
     end_date_time: str = "",
+    retry_wait: float = 5.0,
 ) -> list[str]:
     """Store the IB closes of every price leg; returns the failures as 'LEG: error'."""
     repo = Repository(conn, schema="uw_scan")
@@ -44,8 +61,8 @@ def fetch_ib_legs(
     for leg in gf.PRICE_LEGS:
         sec_type, symbol, currency = _ib_contract(leg)
         try:
-            bars = fetch_ib_daily_midpoints(
-                base_url=base_url, api_key=api_key, sec_type=sec_type, symbol=symbol,
+            bars = _fetch_leg(
+                retry_wait, base_url=base_url, api_key=api_key, sec_type=sec_type, symbol=symbol,
                 currency=currency, duration=duration, end_date_time=end_date_time,
             )  # fmt: skip
         except Exception as exc:
