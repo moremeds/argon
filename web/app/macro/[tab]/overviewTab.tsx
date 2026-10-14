@@ -1,6 +1,7 @@
 import { OverviewDesk } from "@/components/macro/OverviewDesk";
 import {
   DELTA_SERIES,
+  DXY_SPEC,
   type DeltaSeries,
   type DomainWeek,
 } from "@/components/macro/overview/zone1";
@@ -66,7 +67,9 @@ export async function OverviewTab({ replay }: MacroTabProps) {
     gold,
     snapshot,
     policy,
-    gauge,
+    factor,
+    flows,
+    dxy,
     priorInflation,
     priorRates,
     priorUsd,
@@ -82,7 +85,14 @@ export async function OverviewTab({ replay }: MacroTabProps) {
     settle(() => api.macroDomainState("gold", asOf), "gold state API"),
     settle(() => api.macroContextSnapshot(asOf), "macro context snapshot API"),
     settle(() => api.macroPolicy(asOf), "macro policy comparison API"),
-    settle(() => api.goldGauge(asOf), "gold gauge API"),
+    // The factor model, its flows and the synthetic DXY are live-only reads (no `as_of`
+    // on their routes); replay skips them rather than show today's numbers as history.
+    settle(async () => (asOf ? null : api.goldFactor()), "gold factor API"),
+    settle(async () => (asOf ? null : api.goldFlows()), "gold flows API"),
+    settle(
+      async () => (asOf ? null : api.macroDxy(priorAsOf)),
+      "synthetic DXY API",
+    ),
     // The prior-instant reads. These deliberately carry NO replay verdict: they are
     // evidence inside one panel, not a publisher the tab stands on, and giving them a
     // verdict would let a missing week-ago state withhold the whole tab.
@@ -120,20 +130,17 @@ export async function OverviewTab({ replay }: MacroTabProps) {
     points: deltaResults[i]?.value?.points ?? [],
     error: deltaResults[i]?.error,
   }));
-
-  // The API applies the replay instant to both source vintages and persisted gauge rows.
-  // Keep the presentation boundary too: it protects a mixed-image deploy and makes an
-  // old API response without `history_60d` settle to honest empty coverage, not a crash.
-  const gaugeAtInstant = {
-    value: gauge.value
-      ? {
-          history_60d: (gauge.value.history_60d ?? []).filter(
-            (point) => asOf === undefined || point.obs_date <= asOf,
-          ),
-        }
-      : null,
-    error: gauge.error,
+  const dxyRow: DeltaSeries = {
+    spec: DXY_SPEC,
+    points: (dxy.value?.points ?? []).map((p) => ({
+      obs_date: p.obs_date,
+      value: String(p.dxy),
+      as_of: dxy.value?.computed_at ?? p.obs_date,
+    })),
+    error: asOf ? "live data; not shown in replay" : dxy.error,
   };
+  // The dollar sits after the three yields, before VIX.
+  deltas.splice(3, 0, dxyRow);
 
   /** One settled fetch plus what it answered for. `as_of` is the clock — see above. */
   /**
@@ -195,7 +202,8 @@ export async function OverviewTab({ replay }: MacroTabProps) {
       )}
       policy={policy}
       deltas={deltas}
-      gauge={gaugeAtInstant}
+      factor={factor}
+      flows={flows}
       priorLabel={priorLabel}
       nowLabel={nowLabel}
       windowLabel="1 week"

@@ -82,7 +82,15 @@ from .fundamentals_desk import (
     ProfitPoolLayer,
     ScopeGroup,
 )
-from .gold_factor import GoldFactorPoint, GoldFactorResponse, GoldFactorYear
+from .gold_factor import (
+    DxyPoint,
+    DxyResponse,
+    GoldFactorPoint,
+    GoldFactorResponse,
+    GoldFactorYear,
+    GoldFlowPoint,
+    GoldFlowsResponse,
+)
 from .gold import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
@@ -421,6 +429,10 @@ __all__ = [
     "GoldFactorPoint",
     "GoldFactorResponse",
     "GoldFactorYear",
+    "GoldFlowPoint",
+    "GoldFlowsResponse",
+    "DxyPoint",
+    "DxyResponse",
     "AgentRunIndexRow",
     "AgentRunIngest",
     "AgentRunIngestResult",

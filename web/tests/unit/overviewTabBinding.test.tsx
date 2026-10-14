@@ -21,8 +21,10 @@ vi.mock("@/lib/api", () => ({
     macroDomainState: vi.fn(),
     macroContextSnapshot: vi.fn(),
     macroPolicy: vi.fn(),
-    goldGauge: vi.fn(),
     goldInputSeries: vi.fn(),
+    goldFactor: vi.fn(),
+    goldFlows: vi.fn(),
+    macroDxy: vi.fn(),
   },
 }));
 
@@ -33,12 +35,21 @@ describe("OverviewTab data binding", () => {
     vi.mocked(api.macroContextSnapshot).mockReset().mockResolvedValue(null);
     vi.mocked(api.macroPolicy).mockReset().mockResolvedValue(null);
     vi.mocked(api.goldInputSeries).mockReset().mockResolvedValue(null);
-    vi.mocked(api.goldGauge)
+    vi.mocked(api.goldFactor).mockReset().mockResolvedValue(null);
+    vi.mocked(api.goldFlows).mockReset().mockResolvedValue(null as never);
+    vi.mocked(api.macroDxy)
       .mockReset()
-      .mockResolvedValue({ current: {}, history_252d: [] } as never);
+      .mockResolvedValue({
+        computed_at: "2026-10-13T21:40:00Z",
+        last_date: "2026-10-13",
+        points: [
+          { obs_date: "2026-10-06", dxy: 98.1 },
+          { obs_date: "2026-10-13", dxy: 99.0 },
+        ],
+      } as never);
   });
 
-  it("bounds every replay series and tolerates an old gauge response", async () => {
+  it("bounds every replay series and skips the live-only gold and dollar reads", async () => {
     render(
       await OverviewTab({
         replay: { kind: "replay", asOf: "2026-08-22" },
@@ -46,12 +57,29 @@ describe("OverviewTab data binding", () => {
     );
 
     expect(screen.getByTestId("overview-desk")).toBeTruthy();
-    expect(api.goldGauge).toHaveBeenCalledWith("2026-08-22");
     for (const [, range] of vi.mocked(api.goldInputSeries).mock.calls) {
       expect(range).toMatchObject({ asOf: "2026-08-22" });
     }
-    expect(captureOverview.mock.calls[0][0].gauge.value.history_60d).toEqual(
-      [],
+    expect(api.goldFactor).not.toHaveBeenCalled();
+    expect(api.macroDxy).not.toHaveBeenCalled();
+    const props = captureOverview.mock.calls[0][0];
+    expect(props.deltas[3].spec.id).toBe("DXY");
+    expect(props.deltas[3].points).toEqual([]);
+    expect(props.deltas[3].error).toMatch(/not shown in replay/);
+  });
+
+  it("puts the synthetic DXY after the three yields when live", async () => {
+    render(await OverviewTab({ replay: { kind: "live" } }));
+
+    expect(api.goldFactor).toHaveBeenCalled();
+    const ids = captureOverview.mock.calls[0][0].deltas.map(
+      (d: { spec: { id: string } }) => d.spec.id,
     );
+    expect(ids).toEqual(["DGS10", "DFII10", "T10YIE", "DXY", "VIXCLS"]);
+    expect(
+      captureOverview.mock.calls[0][0].deltas[3].points.map(
+        (p: { value: string }) => p.value,
+      ),
+    ).toEqual(["98.1", "99"]);
   });
 });

@@ -5379,6 +5379,138 @@
         "title": "DivergencePoint",
         "type": "object"
       },
+      "DxyPoint": {
+        "description": "Synthetic ICE dollar index; the six *_part sum to change_pct (percent, 100 x log).",
+        "properties": {
+          "change_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct"
+          },
+          "dxy": {
+            "title": "Dxy",
+            "type": "number"
+          },
+          "eurusd_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eurusd Part"
+          },
+          "gbpusd_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gbpusd Part"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "usdcad_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdcad Part"
+          },
+          "usdchf_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdchf Part"
+          },
+          "usdjpy_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdjpy Part"
+          },
+          "usdsek_part": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usdsek Part"
+          }
+        },
+        "required": [
+          "obs_date",
+          "dxy",
+          "change_pct",
+          "eurusd_part",
+          "usdjpy_part",
+          "gbpusd_part",
+          "usdcad_part",
+          "usdsek_part",
+          "usdchf_part"
+        ],
+        "title": "DxyPoint",
+        "type": "object"
+      },
+      "DxyResponse": {
+        "properties": {
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "last_date": {
+            "format": "date",
+            "title": "Last Date",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/DxyPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "computed_at",
+          "last_date",
+          "points"
+        ],
+        "title": "DxyResponse",
+        "type": "object"
+      },
       "EventClassStatus": {
         "description": "The discovery gate's verdict for one candidate class.\n\nA `killed` class is not a missing feature \u2014 it is a measured absence of\nsource, and `rationale` says which.",
         "properties": {
@@ -8828,6 +8960,58 @@
           "explained_share"
         ],
         "title": "GoldFactorYear",
+        "type": "object"
+      },
+      "GoldFlowPoint": {
+        "properties": {
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "obs_date",
+          "value"
+        ],
+        "title": "GoldFlowPoint",
+        "type": "object"
+      },
+      "GoldFlowsResponse": {
+        "description": "Stored flow and holdings history, latest vintage per date. Description only.",
+        "properties": {
+          "cftc_mm_net_pct_oi": {
+            "items": {
+              "$ref": "#/components/schemas/GoldFlowPoint"
+            },
+            "title": "Cftc Mm Net Pct Oi",
+            "type": "array"
+          },
+          "china_reserves_t": {
+            "items": {
+              "$ref": "#/components/schemas/GoldFlowPoint"
+            },
+            "title": "China Reserves T",
+            "type": "array"
+          },
+          "lbma_vault_t": {
+            "items": {
+              "$ref": "#/components/schemas/GoldFlowPoint"
+            },
+            "title": "Lbma Vault T",
+            "type": "array"
+          }
+        },
+        "required": [
+          "china_reserves_t",
+          "cftc_mm_net_pct_oi",
+          "lbma_vault_t"
+        ],
+        "title": "GoldFlowsResponse",
         "type": "object"
       },
       "GoldGauge60dTimeSeriesPoint": {
@@ -31943,6 +32127,79 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GoldFactorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gold/flows": {
+      "get": {
+        "tags": [
+          "gold",
+          "gold"
+        ],
+        "summary": "Get Gold Flows",
+        "operationId": "get_gold_flows_api_gold_flows_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldFlowsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/macro/dxy": {
+      "get": {
+        "tags": [
+          "macro",
+          "macro"
+        ],
+        "summary": "Get Dxy",
+        "operationId": "get_dxy_api_macro_dxy_get",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DxyResponse"
                 }
               }
             }

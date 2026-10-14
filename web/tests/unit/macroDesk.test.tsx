@@ -14,6 +14,7 @@ import type {
   MacroOverviewSlot,
 } from "@/components/macro/types";
 import type { components } from "@/lib/types";
+import { GOLD_FACTOR, GOLD_FLOWS } from "../fixtures/goldFactor";
 import FIXTURE from "../fixtures/macroDomainStates.json";
 import {
   POLICY_COMPARISON,
@@ -82,7 +83,7 @@ const NO_SNAPSHOT = snap(null);
  * `OverviewDesk` with only the two publishers most of these assertions are about.
  *
  * Tab 00 gained six more props when it was rebound to the board's own structure (the
- * week-over-week pair, the policy comparison, the market-delta series, the gold gauge and
+ * week-over-week pair, the policy comparison, the market-delta series, the gold factor and
  * the two window labels). Every one of them is REQUIRED on the component, deliberately —
  * a default would let a wiring bug ship as an empty panel — so the defaults live here in
  * the test instead, where "this assertion is not about the deltas" is the honest reading.
@@ -98,7 +99,8 @@ function Desk(props: {
   week?: DomainWeek;
   policy?: { value: PolicyComparison | null; error?: string };
   deltas?: DeltaSeries[];
-  gauge?: { value: null; error?: string };
+  factor?: { value: typeof GOLD_FACTOR | null; error?: string };
+  flows?: { value: typeof GOLD_FLOWS | null };
 }) {
   const {
     domains,
@@ -106,7 +108,8 @@ function Desk(props: {
     week,
     policy,
     deltas,
-    gauge,
+    factor,
+    flows,
   } = props;
   return (
     <OverviewDesk
@@ -124,7 +127,8 @@ function Desk(props: {
       }
       policy={policy ?? { value: null }}
       deltas={deltas ?? []}
-      gauge={gauge ?? { value: null }}
+      factor={factor ?? { value: null }}
+      flows={flows ?? { value: null }}
       priorLabel="08-17"
       nowLabel="08-24"
       windowLabel="1 week"
@@ -144,7 +148,7 @@ describe("OverviewDesk — artifact panel contract", () => {
     ).toEqual([
       "State changes",
       "Market moves · 1 week",
-      "Gold–real yield link",
+      "Gold sensitivity",
       "Policy paths",
       "Domain conflicts",
       "Chain conflicts",
@@ -154,6 +158,31 @@ describe("OverviewDesk — artifact panel contract", () => {
       "Energy input · planned",
       "Desk limits",
     ]);
+  });
+});
+
+describe("OverviewDesk — gold factor (design v3)", () => {
+  it("shows gold's sensitivity, the breakdown section and the chain's explained share", () => {
+    render(
+      <Desk
+        domains={slots()}
+        snapshot={snap(snapshot())}
+        factor={{ value: GOLD_FACTOR }}
+        flows={{ value: GOLD_FLOWS }}
+      />,
+    );
+    expect(screen.getByTestId("gold-factor-band")).toBeTruthy();
+    expect(screen.getByTestId("macro-zone-gold-breakdown")).toBeTruthy();
+    expect(screen.getByTestId("macro-chain-note-gold").textContent).toBe(
+      "3 factors explain 26%",
+    );
+  });
+
+  it("says the factor is missing instead of drawing an empty sensitivity panel", () => {
+    render(<Desk domains={slots()} snapshot={snap(snapshot())} />);
+    expect(screen.queryByTestId("gold-factor-band")).toBeNull();
+    expect(screen.queryByTestId("macro-chain-note-gold")).toBeNull();
+    expect(screen.getByText(/Not computed yet/)).toBeTruthy();
   });
 });
 

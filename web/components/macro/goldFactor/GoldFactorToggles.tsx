@@ -6,6 +6,8 @@ import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import { chartFrame, niceTicks } from "@/lib/svgChart";
 
 import {
+  AXIS,
+  COLOR,
   PARTS,
   RESEARCH_LABEL,
   complete,
@@ -15,9 +17,7 @@ import {
   type GoldFactor,
 } from "./shared";
 
-const AXIS = { fontSize: 10, fill: "var(--text-muted)" } as const;
-
-function Toggle<T extends string>({
+export function Toggle<T extends string>({
   options,
   value,
   onChange,
@@ -59,12 +59,12 @@ function Toggle<T extends string>({
   );
 }
 
-const WINDOWS = [
-  { id: "week", text: "5 days", rows: 5 },
-  { id: "month", text: "21 days", rows: 21 },
-  { id: "ytd", text: "This year", rows: 0 },
+export const WINDOWS = [
+  { id: "week", text: "1W", rows: 5 },
+  { id: "month", text: "1M", rows: 21 },
+  { id: "ytd", text: "YTD", rows: 0 },
 ] as const;
-type WindowId = (typeof WINDOWS)[number]["id"];
+export type WindowId = (typeof WINDOWS)[number]["id"];
 
 /** Waterfall: each part steps from where the previous one ended, and the last bar is gold's
  *  own change, which the parts add up to exactly. */
@@ -96,7 +96,7 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
   });
   bars.push({
     label: "Gold",
-    color: "var(--text-primary)",
+    color: COLOR.gold,
     from: 0,
     to: s.gold_change,
     v: s.gold_change,
@@ -110,15 +110,15 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
   return (
     <BoardPanel
       id="gold-factor-breakdown"
-      title="What gold's move was made of"
+      title="What made up gold's move"
       questions={["Q4"]}
       basis="COMPUTED"
       sourceLabel="Formula"
-      source="sum of the daily parts over the window; parts + unexplained = gold"
+      source="sum of daily parts in the window; the parts add up to gold's change"
     >
       <Toggle label="Window" options={WINDOWS} value={win} onChange={setWin} />
       <div className="chart">
-        <svg {...f.svg} aria-label="Breakdown of gold's move">
+        <svg {...f.svg} aria-label="What moved gold">
           {niceTicks(lo, hi, 5)
             .filter((t) => t >= lo && t <= hi)
             .map((t) => (
@@ -147,7 +147,7 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
                   width={bw * 0.7}
                   height={Math.max(1, Math.abs(y(b.from) - y(b.to)))}
                   fill={b.color}
-                  opacity={b.label === "Gold" ? 0.9 : 0.75}
+                  opacity={b.label === "Gold" ? 0.95 : 0.8}
                 />
                 <text
                   x={x0 + bw * 0.35}
@@ -172,16 +172,16 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
         </svg>
       </div>
       <p className="cap">
-        Percent (100 × log change), {picked.length} days to {data.last_date} ·{" "}
-        {RESEARCH_LABEL}
+        Percent (100 × log change), {picked.length} trading days through{" "}
+        {data.last_date} · {RESEARCH_LABEL}
       </p>
     </BoardPanel>
   );
 }
 
 const VIEWS = [
-  { id: "grouped", text: "Three factors vs the rest" },
-  { id: "all", text: "All five parts" },
+  { id: "grouped", text: "3 factors vs rest" },
+  { id: "all", text: "All 5" },
 ] as const;
 type ViewId = (typeof VIEWS)[number]["id"];
 
@@ -190,8 +190,8 @@ function segments(y: FactorYear, view: ViewId) {
   const rest = y.own_trailing_drift + y.unexplained;
   return view === "grouped"
     ? [
-        { label: "Three factors", color: PARTS[0].color, v: factors },
-        { label: "The rest", color: PARTS[4].color, v: rest },
+        { label: "3 factors", color: COLOR.sum, v: factors },
+        { label: "The rest", color: COLOR.drift, v: rest },
       ]
     : [
         { label: PARTS[0].label, color: PARTS[0].color, v: y.real_yield_part },
@@ -207,8 +207,7 @@ function segments(y: FactorYear, view: ViewId) {
 }
 
 /** Stacked by sign: positive parts build up from zero, negative ones down, and the dot is
- *  gold's own change for the year. "The rest" = last year's pace + unexplained — a regrouping,
- *  not a new fit. */
+ *  gold's own change for the year. "The rest" = drift + unexplained — a regrouping, not a new fit. */
 export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
   const [view, setView] = useState<ViewId>("grouped");
   const stacks = years.map((yr) => {
@@ -238,7 +237,7 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
       questions={["Q4"]}
       basis="COMPUTED"
       sourceLabel="Formula"
-      source="per-year sums of the daily parts (/api/gold/factor years)"
+      source="sum of daily parts per year (/api/gold/factor years)"
     >
       <Toggle label="View" options={VIEWS} value={view} onChange={setView} />
       <div className="lgd">
@@ -251,7 +250,7 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
         <span>
           <i
             style={{
-              background: "var(--text-primary)",
+              background: COLOR.gold,
               width: 6,
               height: 6,
               borderRadius: 3,
@@ -261,7 +260,7 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
         </span>
       </div>
       <div className="chart">
-        <svg {...f.svg} aria-label="Yearly breakdown">
+        <svg {...f.svg} aria-label="Each year, split">
           {niceTicks(lo, hi, 5)
             .filter((t) => t >= lo && t <= hi)
             .map((t) => (
@@ -297,7 +296,8 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
                   cx={x0 + bw * 0.35}
                   cy={y(yr.gold_change)}
                   r={2.6}
-                  fill="var(--text-primary)"
+                  fill={COLOR.gold}
+                  stroke="var(--bg-panel)"
                 />
                 {i % 2 === 0 ? (
                   <text
@@ -313,7 +313,8 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
         </svg>
       </div>
       <p className="cap">
-        Percent (100 × log change); faded = partial year · {RESEARCH_LABEL}
+        Percent (100 × log change); dot = gold&rsquo;s change for the year,
+        faded bars are partial years · {RESEARCH_LABEL}
       </p>
     </BoardPanel>
   );

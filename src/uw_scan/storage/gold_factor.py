@@ -79,3 +79,39 @@ def fetch_rows(conn: psycopg.Connection, *, from_date: date | None = None) -> li
     )
     names = [c.name for c in cur.description]
     return [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+
+
+DXY_COLS = (
+    "obs_date", "dxy", "change_pct",
+    "eurusd_part", "usdjpy_part", "gbpusd_part", "usdcad_part", "usdsek_part", "usdchf_part",
+)  # fmt: skip
+
+
+def upsert_dxy_rows(conn: psycopg.Connection, out: pd.DataFrame, computed_at: datetime) -> int:
+    """Upsert every row of `gold_factor.dxy_daily` output; returns the row count."""
+    body = DXY_COLS[1:]
+    params = [(ts.date(), *(_clean(r[c]) for c in body), computed_at) for ts, r in out.iterrows()]
+    sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in (*body, "computed_at"))
+    with conn.cursor() as cur:
+        cur.executemany(
+            f"""
+            INSERT INTO uw_scan.dxy_synthetic_daily ({", ".join(DXY_COLS)}, computed_at)
+            VALUES ({", ".join(["%s"] * (len(DXY_COLS) + 1))})
+            ON CONFLICT (obs_date) DO UPDATE SET {sets}
+            """,
+            params,
+        )
+    return len(params)
+
+
+def fetch_dxy_rows(conn: psycopg.Connection, *, from_date: date | None = None) -> list[dict[str, Any]]:
+    cur = conn.execute(
+        f"""
+        SELECT {", ".join(DXY_COLS)}, computed_at FROM uw_scan.dxy_synthetic_daily
+        WHERE %(f)s::date IS NULL OR obs_date >= %(f)s::date
+        ORDER BY obs_date
+        """,
+        {"f": from_date},
+    )
+    names = [c.name for c in cur.description]
+    return [dict(zip(names, r, strict=True)) for r in cur.fetchall()]

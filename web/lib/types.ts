@@ -1726,6 +1726,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/gold/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Gold Flows */
+        get: operations["get_gold_flows_api_gold_flows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/macro/dxy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dxy */
+        get: operations["get_dxy_api_macro_dxy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rates/snapshot": {
         parameters: {
             query?: never;
@@ -4624,6 +4658,48 @@ export interface components {
             rv_z?: string | null;
         };
         /**
+         * DxyPoint
+         * @description Synthetic ICE dollar index; the six *_part sum to change_pct (percent, 100 x log).
+         */
+        DxyPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Dxy */
+            dxy: number;
+            /** Change Pct */
+            change_pct: number | null;
+            /** Eurusd Part */
+            eurusd_part: number | null;
+            /** Usdjpy Part */
+            usdjpy_part: number | null;
+            /** Gbpusd Part */
+            gbpusd_part: number | null;
+            /** Usdcad Part */
+            usdcad_part: number | null;
+            /** Usdsek Part */
+            usdsek_part: number | null;
+            /** Usdchf Part */
+            usdchf_part: number | null;
+        };
+        /** DxyResponse */
+        DxyResponse: {
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /**
+             * Last Date
+             * Format: date
+             */
+            last_date: string;
+            /** Points */
+            points: components["schemas"]["DxyPoint"][];
+        };
+        /**
          * EventClassStatus
          * @description The discovery gate's verdict for one candidate class.
          *
@@ -5677,6 +5753,28 @@ export interface components {
             unexplained: number;
             /** Explained Share */
             explained_share: number;
+        };
+        /** GoldFlowPoint */
+        GoldFlowPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Value */
+            value: number;
+        };
+        /**
+         * GoldFlowsResponse
+         * @description Stored flow and holdings history, latest vintage per date. Description only.
+         */
+        GoldFlowsResponse: {
+            /** China Reserves T */
+            china_reserves_t: components["schemas"]["GoldFlowPoint"][];
+            /** Cftc Mm Net Pct Oi */
+            cftc_mm_net_pct_oi: components["schemas"]["GoldFlowPoint"][];
+            /** Lbma Vault T */
+            lbma_vault_t: components["schemas"]["GoldFlowPoint"][];
         };
         /** GoldGauge60dTimeSeriesPoint */
         GoldGauge60dTimeSeriesPoint: {
@@ -15977,6 +16075,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoldFactorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_gold_flows_api_gold_flows_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldFlowsResponse"];
+                };
+            };
+        };
+    };
+    get_dxy_api_macro_dxy_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DxyResponse"];
                 };
             };
             /** @description Validation Error */

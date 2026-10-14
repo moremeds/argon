@@ -90,12 +90,15 @@ function ChainNode({
   domain,
   slot,
   flag,
+  note,
 }: {
   domain: MacroDomainKey;
   slot: MacroOverviewSlot<MacroDomainState>;
   /** The assembler's finding against THIS domain, if it made one. Rendered on the node so
    *  the chain-verdict panel is not the only place a broken edge is visible. */
   flag?: string;
+  /** One extra line under the state — gold's explained share from the factor model. */
+  note?: string;
 }) {
   const s = slot.value;
 
@@ -131,6 +134,11 @@ function ChainNode({
       <span className="dir" data-raw-value={s.direction}>
         {humanizeIdentifier(s.direction)}
       </span>
+      {note ? (
+        <span className="dir" data-testid={`macro-chain-note-${domain}`}>
+          {note}
+        </span>
+      ) : null}
       {flag ? (
         <span
           className="dir"
@@ -184,11 +192,14 @@ function ChainNode({
 export function ChainRail({
   domains,
   reasons = [],
+  goldShare,
 }: {
   domains: Record<MacroDomainKey, MacroOverviewSlot<MacroDomainState>>;
   /** The assembler's per-domain findings, so an offending node can be marked. Defaulted
    *  to empty rather than required: a rail with no snapshot is still a rail. */
   reasons?: readonly { domain: string; detail: string }[];
+  /** The factor model's latest 63-day explained share (0-1), when it was read. */
+  goldShare?: number | null;
 }) {
   const answered = CAUSAL_ORDER.filter((d) => domains[d].value !== null);
   const flagged = new Map(reasons.map((r) => [r.domain, r.detail]));
@@ -206,6 +217,11 @@ export function ChainRail({
             domain={domain}
             slot={domains[domain]}
             flag={flagged.get(domain)}
+            note={
+              domain === "gold" && goldShare != null
+                ? `3 factors explain ${Math.round(goldShare * 100)}%`
+                : undefined
+            }
           />,
           ...(i < CAUSAL_ORDER.length - 1
             ? [
@@ -217,9 +233,9 @@ export function ChainRail({
         ])}
       </div>
       <div className="edge-note">
-        {answered.length} of {CAUSAL_ORDER.length} nodes answered at this
-        instant · the arrows are the store&rsquo;s own causal order, not a
-        correlation measured here
+        {answered.length} of {CAUSAL_ORDER.length} nodes answered · the arrows
+        show which state cites which, not which one leads. The research found
+        no lead-lag between them.
       </div>
     </>
   );

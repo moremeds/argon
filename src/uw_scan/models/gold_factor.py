@@ -59,4 +59,47 @@ class GoldFactorResponse(BaseModel):
     years: list[GoldFactorYear]
 
 
-_preserve_public_module(GoldFactorPoint, GoldFactorYear, GoldFactorResponse)
+class DxyPoint(BaseModel):
+    """Synthetic ICE dollar index; the six *_part sum to change_pct (percent, 100 x log)."""
+
+    obs_date: date
+    dxy: float
+    change_pct: float | None
+    eurusd_part: float | None
+    usdjpy_part: float | None
+    gbpusd_part: float | None
+    usdcad_part: float | None
+    usdsek_part: float | None
+    usdchf_part: float | None
+
+
+class DxyResponse(BaseModel):
+    computed_at: datetime
+    last_date: date
+    points: list[DxyPoint]
+
+
+class GoldFlowPoint(BaseModel):
+    obs_date: date
+    value: float
+
+
+class GoldFlowsResponse(BaseModel):
+    """Stored flow and holdings history, latest vintage per date. Description only."""
+
+    china_reserves_t: list[GoldFlowPoint]  # quarterly, WGC
+    cftc_mm_net_pct_oi: list[
+        GoldFlowPoint
+    ]  # weekly, managed-money net / open interest x 100
+    lbma_vault_t: list[GoldFlowPoint]  # monthly, London vault holdings
+
+
+_preserve_public_module(
+    GoldFactorPoint,
+    GoldFactorYear,
+    GoldFactorResponse,
+    DxyPoint,
+    DxyResponse,
+    GoldFlowPoint,
+    GoldFlowsResponse,
+)

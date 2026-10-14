@@ -1,6 +1,9 @@
 import type { components } from "@/lib/types";
 
-import { BoardSecTitle } from "./domain/BoardPanel";
+import { BoardPanel, BoardSecTitle } from "./domain/BoardPanel";
+import { GoldBreakdownSection } from "./goldFactor/GoldFactorBand";
+import { SensitivityPanel } from "./goldFactor/GoldFactorPanels";
+import type { GoldFactor, GoldFlows } from "./goldFactor/shared";
 import {
   BoundaryPanel,
   ChainRail,
@@ -8,7 +11,6 @@ import {
 } from "./overview/chain";
 import { Zone } from "./overview/Zone";
 import {
-  AnchorPanel,
   MarketDeltasPanel,
   StateFlipsPanel,
   type DeltaSeries,
@@ -31,9 +33,6 @@ import type {
 import { CAUSAL_ORDER, DOMAIN_LABEL } from "./types";
 
 type PolicyComparison = components["schemas"]["PolicyComparison"];
-type GaugeResponse = {
-  history_60d?: components["schemas"]["GoldGauge60dTimeSeriesPoint"][];
-};
 
 /**
  * Tab 00 — the macro desk's overview, and the only tab whose subject is the other tabs.
@@ -63,7 +62,9 @@ type GaugeResponse = {
  *    The chain rail has four nodes and ends; there is no summary node.
  *  - **introduce an endpoint of its own.** Every route this tab reads is published by
  *    another tab: `/api/macro/*` by tabs 01–04, `/api/macro/policy` by tab 01,
- *    `/api/gold/{gauge,inputs}` by tab 05. If tab 00 wants a value no tab publishes, that
+ *    `/api/gold/{factor,flows,inputs}` by tab 05 and `/api/macro/dxy` by tab 04.
+ *    The gold sensitivity and breakdown panels are tab 05's own components. If tab 00
+ *    wants a value no tab publishes, that
  *    is a change to the domain that owns it, in that domain's PR.
  *  - **re-rank anything.** `MacroSnapshotStatus` is already worst-finding-wins; the
  *    per-domain contradictions publish no severity at all. An ordering invented here
@@ -90,7 +91,8 @@ export function OverviewDesk({
   snapshot,
   policy,
   deltas,
-  gauge,
+  factor,
+  flows,
   priorLabel,
   nowLabel,
   windowLabel,
@@ -100,7 +102,8 @@ export function OverviewDesk({
   snapshot: MacroOverviewSlot<MacroContextSnapshot>;
   policy: { value: PolicyComparison | null; error?: string };
   deltas: DeltaSeries[];
-  gauge: { value: GaugeResponse | null; error?: string };
+  factor: { value: GoldFactor | null; error?: string };
+  flows: { value: GoldFlows | null; error?: string };
   priorLabel: string;
   nowLabel: string;
   windowLabel: string;
@@ -116,6 +119,7 @@ export function OverviewDesk({
     (p) => p.slot.verdict.kind === "answered_after",
   );
   const withheld = wrongInstant.length > 0;
+  const lastFactor = factor.value?.points.at(-1);
 
   return (
     <div className="board" data-testid="macro-overview">
@@ -169,8 +173,33 @@ export function OverviewDesk({
               nowLabel={nowLabel}
             />
             <MarketDeltasPanel series={deltas} windowLabel={windowLabel} />
-            <AnchorPanel gauge={gauge} />
+            {lastFactor ? (
+              <SensitivityPanel last={lastFactor} />
+            ) : (
+              <BoardPanel
+                id="gold-factor-sensitivity"
+                title="Gold sensitivity"
+                questions={["Q4"]}
+                basis="REAL"
+                source="/api/gold/factor · gold_factor_daily"
+              >
+                <p className="cap">
+                  {factor.error ??
+                    (snapshot.verdict.kind === "not_replaying"
+                      ? "Not computed yet."
+                      : "Live data; not shown in replay.")}
+                </p>
+              </BoardPanel>
+            )}
           </div>
+
+          {factor.value && lastFactor ? (
+            <GoldBreakdownSection
+              data={factor.value}
+              flows={flows.value}
+              scope={`through ${factor.value.last_date}`}
+            />
+          ) : null}
 
           <Zone
             kicker="Zone 2"
@@ -204,6 +233,7 @@ export function OverviewDesk({
           <ChainRail
             domains={domains}
             reasons={snapshot.value?.reasons ?? []}
+            goldShare={lastFactor?.explained_share}
           />
           <div className="grid g2" style={{ marginTop: 12 }}>
             <EnergyProposalPanel />

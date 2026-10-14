@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(regime_validation.router, prefix="/api", tags=["regime"])
     app.include_router(gold.router, prefix="/api", tags=["gold"])
     app.include_router(gold_factor.router, prefix="/api", tags=["gold"])
+    app.include_router(gold_factor.dxy_router, prefix="/api", tags=["macro"])
     app.include_router(rates.router, prefix="/api", tags=["rates"])
     app.include_router(macro.router, prefix="/api", tags=["macro"])
     app.include_router(scanner.router, prefix="/api", tags=["scanner"])

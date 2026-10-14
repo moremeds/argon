@@ -1,4 +1,3 @@
-import { CorrelationLineChart } from "@/components/gold/correlation/CorrelationLineChart";
 import type { components } from "@/lib/types";
 
 import { BoardPanel, BoardRead } from "../domain/BoardPanel";
@@ -12,12 +11,9 @@ import type {
 import { CAUSAL_ORDER, DOMAIN_LABEL } from "../types";
 
 /**
- * ZONE 1 · WHAT CHANGED — the board's first three panels.
- *
- * All three answer the same question at different resolutions: the desk's own answers
- * (state and confidence), the market's (daily closes), and the one relationship the gold
- * gate stands on. The board puts them in that order because it is the order of authority:
- * what we published, what the world did, what the link between them is doing.
+ * ZONE 1 · WHAT CHANGED — state changes and market moves. The third panel of the row is
+ * gold's sensitivity from the factor model (design v3), rendered by OverviewDesk; the old
+ * 60-day gold-real-yield correlation panel was deleted with it.
  */
 
 /** One domain read at two instants. The prior read is a SECOND point-in-time request, not
@@ -216,9 +212,16 @@ export const DELTA_SERIES: readonly DeltaSeriesSpec[] = [
   { id: "DGS10", label: "10Y Treasury", unit: "bp" },
   { id: "DFII10", label: "10Y real yield", unit: "bp" },
   { id: "T10YIE", label: "10Y breakeven", unit: "bp" },
-  { id: "DTWEXBGS", label: "Broad dollar", unit: "pct" },
   { id: "VIXCLS", label: "VIX", unit: "pts" },
 ];
+
+/** The dollar row: the synthetic ICE index from `/api/macro/dxy` (IB pairs), placed after
+ *  the three yields. The Fed's weekly broad index lags 4-8 days and lives on tab 04. */
+export const DXY_SPEC: DeltaSeriesSpec = {
+  id: "DXY",
+  label: "Dollar index (DXY)",
+  unit: "pct",
+};
 
 export type DeltaSeries = {
   spec: DeltaSeriesSpec;
@@ -379,99 +382,6 @@ export function MarketDeltasPanel({
           Coverage {served.length}/{series.length} · missing: {missing.map((m) => m.spec.label).join(", ")}.
         </p>
       ) : null}
-    </BoardPanel>
-  );
-}
-
-/* ────────────────────────────────────────────────────────────────────────────
- * PANEL 3 · The anchor
- * ──────────────────────────────────────────────────────────────────────────── */
-
-type GaugePoint = components["schemas"]["GoldGauge60dTimeSeriesPoint"];
-type CorrelationPoint = components["schemas"]["GoldCorrelationPoint"];
-
-/** The persisted daily 60-day gauge history requested by the artifact. */
-export function AnchorPanel({
-  gauge,
-}: {
-  gauge: { value: { history_60d?: GaugePoint[] } | null; error?: string };
-}) {
-  const points = gauge.value?.history_60d ?? [];
-  const anchor: CorrelationPoint[] = points
-    .filter((p): p is GaugePoint & { corr_60d: string } => p.corr_60d != null)
-    .map((p) => ({ obs_date: p.obs_date, value: p.corr_60d }));
-
-  const first = anchor[0];
-  const last = anchor[anchor.length - 1];
-
-  return (
-    <BoardPanel
-      id="anchor-decay"
-      title="Gold–real yield link"
-      questions={["Q4"]}
-      basis="REAL"
-      source={
-        <>
-          /api/gold/gauge · history_60d,{" "}
-          {plural(anchor.length, "valued observation")} of {points.length} dated rows
-          {first && last ? (
-            <>
-              {" "}
-              spanning {first.obs_date} → {last.obs_date}
-            </>
-          ) : null}
-        </>
-      }
-    >
-      {gauge.error ? (
-        <p className="cap" style={{ color: "var(--negative)" }}>
-          {gauge.error}
-        </p>
-      ) : anchor.length === 0 ? (
-        <p className="cap">
-          No valued correlation observation has been stored — the gauge has
-          dated rows but no computed window at this instant.
-        </p>
-      ) : (
-        <>
-          <div className="chart">
-            <CorrelationLineChart
-              width={400}
-              height={119}
-              series={[
-                {
-                  id: "corr60",
-                  label: "gold ↔ real yield · 60d",
-                  // Near-neutral ink at heavier weight: this is the anchor, not one of
-                  // several channels, and the palette validator rejected the vivid
-                  // alternatives against --positive under deuteranopia (ΔE 4.6).
-                  color: "var(--text-primary, #e2e8f0)",
-                  strokeWidth: 2.25,
-                  points: anchor,
-                },
-              ]}
-            />
-          </div>
-          <p className="cap">
-            Gold ↔ real-yield correlation · <b>60-day window</b>
-          </p>
-
-          <BoardRead testId="macro-anchor-read">
-            {first && last && first !== last ? (
-              <>
-                The measured link reads{" "}
-                <span className="num">{Number(first.value).toFixed(2)}</span> →{" "}
-                <span className="num">{Number(last.value).toFixed(2)}</span>{" "}
-                across the stored history.
-              </>
-            ) : (
-              <>
-                One observation is a level, not a trend.
-              </>
-            )}
-          </BoardRead>
-        </>
-      )}
     </BoardPanel>
   );
 }
