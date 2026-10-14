@@ -1,7 +1,12 @@
 # Macro desk — Treasuries page (tab 02) plan
 
-Status: PLAN ONLY (design v3 asks for a plan first for the Treasuries page). No code in the macro-overview PR.
+Status: BUILT on `feat/macro-treasuries-page` (2026-10-14), with one amendment to §3 below.
 Date: 2026-10-13.
+
+Amendment to §3 (2026-10-14): prod `rates_observations.release_date` is NULL for every H.15 yield row and
+`realtime_start` is the fetch date, so no FRED publish time is stored. The page prints the data date and
+`first_seen_at` (when argon first stored the value, 18:45 ET; DGS10/DFII10 land on the next business day,
+T10YIE the same day), labelled as such, and never a FRED publish time.
 
 ## Scope
 
