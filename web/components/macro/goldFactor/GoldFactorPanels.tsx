@@ -1,3 +1,5 @@
+"use client";
+
 import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import {
   chartFrame,
@@ -5,6 +7,7 @@ import {
   pathFromBand,
   pathFromPoints,
 } from "@/lib/svgChart";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 import {
   AXIS,
@@ -67,7 +70,7 @@ export function SensitivityPanel({
       color: COLOR.haven,
     },
   ].filter((r) => legs?.includes(r.leg) ?? true);
-  const W = 620;
+  const [chartRef, W] = useChartWidth<SVGSVGElement>(620);
   const RH = 64;
   return (
     <BoardPanel
@@ -79,6 +82,7 @@ export function SensitivityPanel({
     >
       <div className="chart">
         <svg
+          ref={chartRef}
           viewBox={`0 0 ${W} ${RH * rows.length}`}
           width="100%"
           role="img"
@@ -142,8 +146,9 @@ export function SensitivityPanel({
 }
 
 export function ExplainedSharePanel({ data }: { data: GoldFactor }) {
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(620);
   const pts = data.points.filter((p) => p.explained_share != null);
-  const f = chartFrame(620, 240, { top: 10, right: 12, bottom: 22, left: 34 });
+  const f = chartFrame(w, 240, { top: 10, right: 12, bottom: 22, left: 34 });
   const x = xByIndex(pts.length, f);
   const y = f.y([-0.4, 1]);
   const last = pts.at(-1);
@@ -156,7 +161,11 @@ export function ExplainedSharePanel({ data }: { data: GoldFactor }) {
       source={SOURCE}
     >
       <div className="chart">
-        <svg {...f.svg} aria-label="Explained share, past 63 trading days">
+        <svg
+          {...f.svg}
+          ref={chartRef}
+          aria-label="Explained share, past 63 trading days"
+        >
           {[0, 0.5, 1].map((t) => (
             <text
               key={t}
@@ -220,9 +229,10 @@ type Line = {
 
 /** Running totals over one set of dates, one line each, zero line drawn. */
 function CumLines({ lines, label }: { lines: Line[]; label: string }) {
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(620);
   const all = lines.flatMap((l) => l.values);
   const n = Math.max(0, ...lines.map((l) => l.values.length));
-  const f = chartFrame(620, 240, { top: 10, right: 12, bottom: 22, left: 34 });
+  const f = chartFrame(w, 240, { top: 10, right: 12, bottom: 22, left: 34 });
   const lo = Math.min(0, ...all);
   const hi = Math.max(0, ...all);
   const x = xByIndex(n, f);
@@ -238,7 +248,7 @@ function CumLines({ lines, label }: { lines: Line[]; label: string }) {
         ))}
       </div>
       <div className="chart">
-        <svg {...f.svg} aria-label={label}>
+        <svg {...f.svg} ref={chartRef} aria-label={label}>
           {niceTicks(lo, hi, 5)
             .filter((t) => t >= lo && t <= hi)
             .map((t) => (
@@ -330,14 +340,15 @@ export function SlopeHistory({
   label: string;
   color: string;
 }) {
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(620);
   const rows = pts.filter((p) => p[k] != null);
   const lo = rows.map((p) => p[`${k}_lo95`] as number);
   const hi = rows.map((p) => p[`${k}_hi95`] as number);
-  const f = chartFrame(620, 140, { top: 14, right: 12, bottom: 18, left: 40 });
+  const f = chartFrame(w, 140, { top: 14, right: 12, bottom: 18, left: 40 });
   const x = xByIndex(rows.length, f);
   const y = f.y([Math.min(0, ...lo), Math.max(0, ...hi)]);
   return (
-    <svg {...f.svg} aria-label={label}>
+    <svg {...f.svg} ref={chartRef} aria-label={label}>
       <text x={f.M.left} y={10} {...AXIS} fill="var(--text-secondary)">
         {label}
       </text>

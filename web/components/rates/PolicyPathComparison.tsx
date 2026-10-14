@@ -1,18 +1,19 @@
+"use client";
+
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
 import { humanizeText } from "@/components/macro/presentation";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 import { fmtValue, toFiniteNumber } from "./format";
 import { isWithheld, releaseDate } from "./policyPath";
 import type { PolicyComparison, PolicyPathSlot } from "./types";
 
-// The Regime-width macro canvas gives each half-width panel about 620px of SVG
-// room after panel/chart padding. Keeping the artifact's 560-unit frame here
-// magnifies every label by 11%; use the available width as the coordinate frame
-// so chart typography stays on the desk's 1:1 scale.
-const WIDTH = 620;
+// The frame is the panel's measured width: `.chart svg { width: 100% }`
+// stretches a fixed viewBox's internal coordinate system, text included, so the
+// viewBox is sized to the box it lands in (620 is only the pre-measurement
+// fallback) and chart typography stays on the desk's 1:1 scale.
 const HEIGHT = 190;
 const X0 = 120;
-const X1 = 580;
 
 const LANES: Array<{
   kind: PolicyPathSlot["kind"];
@@ -99,6 +100,7 @@ export function PolicyPathComparison({
   comparison: PolicyComparison | null | undefined;
   errorMessage?: string;
 }) {
+  const [chartRef, width] = useChartWidth<SVGSVGElement>(620);
   if (!comparison) {
     return (
       <div className="note-refuse" data-testid="policy-paths-missing">
@@ -124,7 +126,8 @@ export function PolicyPathComparison({
     lane.reading ? [lane.reading.value] : [],
   );
   const { min, max } = chartDomain(values);
-  const xFor = (value: number) => X0 + ((value - min) / (max - min)) * (X1 - X0);
+  const x1 = width - 40;
+  const xFor = (value: number) => X0 + ((value - min) / (max - min)) * (x1 - X0);
   const ticks = Array.from({ length: 5 }, (_, index) =>
     min + ((max - min) * index) / 4,
   );
@@ -153,7 +156,8 @@ export function PolicyPathComparison({
     <>
       <div className="chart" data-testid="policy-path-comparison">
         <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          ref={chartRef}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
           aria-label="Four separately published policy paths compared without averaging"
         >
@@ -187,13 +191,13 @@ export function PolicyPathComparison({
                 <text x="8" y={y + 4} fill="var(--text-secondary)" fontSize="10">
                   {lane.label}
                 </text>
-                <line x1={X0} y1={y} x2={X1} y2={y} stroke="var(--border-dim)" strokeDasharray="2 3" />
+                <line x1={X0} y1={y} x2={x1} y2={y} stroke="var(--border-dim)" strokeDasharray="2 3" />
                 {reading ? (
                   <>
                     <circle cx={xFor(reading.value)} cy={y} r="6" fill={lane.color} stroke="var(--bg-base)" strokeWidth="2">
                       <title>{`${lane.label} ${reading.value.toFixed(3)}% · released ${releaseDate(reading.path)}`}</title>
                     </circle>
-                    <text x={Math.min(xFor(reading.value) + 12, 482)} y={y + 4} fill="var(--text-primary)" fontSize="11" fontWeight="600">
+                    <text x={Math.min(xFor(reading.value) + 12, width - 138)} y={y + 4} fill="var(--text-primary)" fontSize="11" fontWeight="600">
                       {reading.value.toFixed(3)}
                       {actual != null && lane.kind !== "actual" ? (
                         <tspan fill="var(--text-secondary)" fontWeight="400">

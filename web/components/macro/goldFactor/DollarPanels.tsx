@@ -6,6 +6,7 @@ import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import { Zone } from "@/components/macro/overview/Zone";
 import type { components } from "@/lib/types";
 import { chartFrame, pathFromPoints } from "@/lib/svgChart";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 import { SlopeHistory } from "./GoldFactorPanels";
 import { Toggle, WINDOWS, type WindowId } from "./GoldFactorToggles";
@@ -57,9 +58,10 @@ function pctChange(base: DxyPoint, last: DxyPoint): number {
 
 /** The index level over the last year, with its window moves as tiles. */
 export function DxyPanel({ dxy }: { dxy: Dxy }) {
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(620);
   const pts = dxy.points.slice(-252);
   const last = pts.at(-1);
-  const f = chartFrame(620, 150, { top: 8, right: 40, bottom: 18, left: 40 });
+  const f = chartFrame(w, 150, { top: 8, right: 40, bottom: 18, left: 40 });
   const vs = pts.map((p) => p.dxy);
   const x = f.x([0, Math.max(1, pts.length - 1)]);
   const y = f.y([Math.min(...vs), Math.max(...vs)]);
@@ -78,7 +80,7 @@ export function DxyPanel({ dxy }: { dxy: Dxy }) {
             {last.dxy.toFixed(2)} <small>{last.obs_date}</small>
           </div>
           <div className="chart">
-            <svg {...f.svg} aria-label="Dollar index (DXY)">
+            <svg {...f.svg} ref={chartRef} aria-label="Dollar index (DXY)">
               {[Math.min(...vs), Math.max(...vs)].map((t) => (
                 <text
                   key={t}
@@ -129,6 +131,7 @@ export function DxyPanel({ dxy }: { dxy: Dxy }) {
  *  change exactly; the simple percent beside it differs only by the log-vs-simple gap. */
 export function DxyPartsPanel({ dxy }: { dxy: Dxy }) {
   const [win, setWin] = useState<WindowId>("month");
+  const [chartRef, W] = useChartWidth<SVGSVGElement>(440);
   const w = windowOf(dxy.points, win);
   const parts = CURRENCIES.map((c) => ({
     ...c,
@@ -136,7 +139,6 @@ export function DxyPartsPanel({ dxy }: { dxy: Dxy }) {
   }));
   const total = parts.reduce((a, p) => a + p.v, 0);
   const m = Math.max(0.05, ...parts.map((p) => Math.abs(p.v))) * 1.3;
-  const W = 440;
   const rh = 28;
   const L = 100;
   const R = 50;
@@ -155,9 +157,11 @@ export function DxyPartsPanel({ dxy }: { dxy: Dxy }) {
         <>
           <div className="chart">
             <svg
+              ref={chartRef}
               viewBox={`0 0 ${W} ${parts.length * rh + 8}`}
               width="100%"
-              style={{ maxWidth: W }}
+              style={{ maxWidth: 440 }}
+              role="img"
               aria-label="Move by currency"
             >
               <line
@@ -264,7 +268,8 @@ export function GoldDollarMonthPanel({ factor }: { factor: GoldFactor }) {
       color: COLOR.drift,
     },
   ];
-  const f = chartFrame(300, 170, { top: 16, right: 6, bottom: 22, left: 34 });
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(300);
+  const f = chartFrame(w, 170, { top: 16, right: 6, bottom: 22, left: 34 });
   const vals = bars.map((b) => b.v);
   const y = f.y([
     Math.min(0, ...vals) * 1.15,
@@ -284,6 +289,7 @@ export function GoldDollarMonthPanel({ factor }: { factor: GoldFactor }) {
           <div className="chart">
             <svg
               {...f.svg}
+              ref={chartRef}
               style={{ maxWidth: 420 }}
               aria-label="This month: gold and its dollar part"
             >

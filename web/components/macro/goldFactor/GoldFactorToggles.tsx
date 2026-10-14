@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import { chartFrame, niceTicks } from "@/lib/svgChart";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 import {
   AXIS,
@@ -104,7 +105,8 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
   const ends = bars.flatMap((b) => [b.from, b.to]);
   const lo = Math.min(0, ...ends);
   const hi = Math.max(0, ...ends);
-  const f = chartFrame(620, 270, { top: 16, right: 8, bottom: 30, left: 34 });
+  const [chartRef, width] = useChartWidth<SVGSVGElement>(620);
+  const f = chartFrame(width, 270, { top: 16, right: 8, bottom: 30, left: 34 });
   const y = f.y([lo, hi]);
   const bw = (f.W - f.M.left - f.M.right) / bars.length;
   return (
@@ -118,7 +120,7 @@ export function MoveBreakdownPanel({ data }: { data: GoldFactor }) {
     >
       <Toggle label="Window" options={WINDOWS} value={win} onChange={setWin} />
       <div className="chart">
-        <svg {...f.svg} aria-label="What moved gold">
+        <svg {...f.svg} ref={chartRef} aria-label="What moved gold">
           {niceTicks(lo, hi, 5)
             .filter((t) => t >= lo && t <= hi)
             .map((t) => (
@@ -226,7 +228,8 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
     .concat(years.map((y) => y.gold_change));
   const lo = Math.min(0, ...ends);
   const hi = Math.max(0, ...ends);
-  const f = chartFrame(620, 270, { top: 10, right: 8, bottom: 22, left: 34 });
+  const [chartRef, w] = useChartWidth<SVGSVGElement>(620);
+  const f = chartFrame(w, 270, { top: 10, right: 8, bottom: 22, left: 34 });
   const y = f.y([lo, hi]);
   const bw = (f.W - f.M.left - f.M.right) / Math.max(1, years.length);
   const legend = segments(years[0] ?? ({} as FactorYear), view);
@@ -260,7 +263,7 @@ export function YearlyBreakdownPanel({ years }: { years: FactorYear[] }) {
         </span>
       </div>
       <div className="chart">
-        <svg {...f.svg} aria-label="Each year, split">
+        <svg {...f.svg} ref={chartRef} aria-label="Each year, split">
           {niceTicks(lo, hi, 5)
             .filter((t) => t >= lo && t <= hi)
             .map((t) => (
