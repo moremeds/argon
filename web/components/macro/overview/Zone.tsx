@@ -16,6 +16,7 @@ export function Zone({
   label,
   scope,
   first = false,
+  testKey,
 }: {
   /** Left kicker. The board writes `ZONE 1` … `ZONE 3`, then `ANCHOR` for the chain. */
   kicker: string;
@@ -26,11 +27,13 @@ export function Zone({
   scope: string;
   /** The first zone sits closer to the standfirst above it (board `.zone.z1`). */
   first?: boolean;
+  /** Test id suffix, for a label with no Latin letters to derive one from. */
+  testKey?: string;
 }) {
   return (
     <div
       className={first ? "zone z1" : "zone"}
-      data-testid={`macro-zone-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
+      data-testid={`macro-zone-${testKey ?? label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
     >
       <span className="sr-only">{kicker}</span>
       {/* An `<h2>`, where the board writes a `<span class="zl">`.

@@ -64,6 +64,20 @@ def changes(levels: pd.DataFrame) -> pd.DataFrame:
     return out.iloc[1:]
 
 
+def dxy_daily(levels: pd.DataFrame) -> pd.DataFrame:
+    """Synthetic ICE dollar index per date with all six pairs, and its daily move split by
+    currency: `<PAIR>_part` = exponent x 100 x log change, so the parts sum to `change_pct`
+    exactly. Not gated on DFII10, so it runs a day ahead of the factor rows."""
+    g = levels.loc[:, list(PAIRS)].sort_index().dropna()
+    lg = np.log(g)
+    out = pd.DataFrame(index=g.index)
+    out["dxy"] = DXY_CONSTANT * np.exp(sum(w * lg[p] for p, w in DXY_EXPONENT.items()))
+    out["change_pct"] = 100 * np.log(out["dxy"]).diff()
+    for p, w in DXY_EXPONENT.items():
+        out[f"{p.lower()}_part"] = 100 * w * lg[p].diff()
+    return out
+
+
 def rolling_ols(y: np.ndarray, X: np.ndarray, w: int = W) -> np.ndarray:
     """b_t from rows t-w+1..t; NaN before row w-1."""
     n, k = X.shape

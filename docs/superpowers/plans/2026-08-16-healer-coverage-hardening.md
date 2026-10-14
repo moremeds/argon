@@ -167,6 +167,12 @@ reach it.
 history from `macro_series_daily` with no external spend. **33 wired + 27 dated
 refusals.**
 
+**Post-plan amendment, 2026-10-13 — scope 60 → 61.** `dxy_synthetic_daily`
+(migration 163, the synthetic dollar index and its per-currency split) entered the
+daily scope wired: the same `gold_factor` adapter reruns `gold_factor_compute_job`,
+which upserts it from the six stored IB pairs before the factor fit, with no external
+spend. **34 wired + 27 dated refusals.**
+
 | task | datasets it makes healable |
 |---|---|
 | already wired | `option_surface_grid_daily`, `greek_exposure_daily`, `uw_gex_levels_daily`, `uw_volatility_signal_daily`, `uw_short_pressure_daily`, `daily_ohlc`, `vrp_daily`, `stock_analytics_daily`, `realized_volatility_history`, `volatility_stats_history`, `market_tide_sentiment_daily`, `macro_series_daily`, `rates_*`, `gold_posture_daily`, `uw_gold_options_daily` |

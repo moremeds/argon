@@ -51,3 +51,21 @@ def test_publish_needs_five_consecutive_rows() -> None:
     U, M, P, L = gf.UNDEF, gf.MUCH, gf.PART, gf.LITTLE
     raw = [U, M, P, P, P, P, M, P, P, P, P, P, L, L]
     assert gf.publish(raw) == [U, M, M, M, M, M, M, M, M, M, M, P, P, P]
+
+
+def test_dxy_parts_sum_to_the_index_move_and_skip_gaps() -> None:
+    lv = _levels(10)
+    lv.iloc[4, lv.columns.get_loc("DFII10")] = (
+        np.nan
+    )  # not a dollar input: the row stays
+    lv.iloc[6, lv.columns.get_loc("USDSEK")] = np.nan
+    out = gf.dxy_daily(lv)
+    assert lv.index[4] in out.index and lv.index[6] not in out.index
+    r0 = lv.iloc[0]
+    want = gf.DXY_CONSTANT * np.prod([r0[p] ** w for p, w in gf.DXY_EXPONENT.items()])
+    assert np.isclose(out["dxy"].iloc[0], want)
+    parts = out[[f"{p.lower()}_part" for p in gf.PAIRS]].iloc[1:]
+    assert np.allclose(parts.sum(axis=1), out["change_pct"].iloc[1:], atol=1e-12)
+    # the row after the gap changes from the last complete date, two dates back
+    d5, d7 = out.loc[lv.index[5], "dxy"], out.loc[lv.index[7], "dxy"]
+    assert np.isclose(out.loc[lv.index[7], "change_pct"], 100 * np.log(d7 / d5))

@@ -150,6 +150,8 @@ type GoldStateResponse = Json<"/api/gold/state", "get">;
 type GoldReplayResponse = Json<"/api/gold/replay", "get">;
 type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
 type GoldFactorResponse = Json<"/api/gold/factor", "get">;
+type GoldFlowsResponse = Json<"/api/gold/flows", "get">;
+type DxyResponse = Json<"/api/macro/dxy", "get">;
 type GoldLensResponse = Json<"/api/gold/lenses/{lens_id}", "get">;
 type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
@@ -429,6 +431,17 @@ export const api = {
     _fetch<GoldFactorResponse | null>(`/api/gold/factor`, undefined, {
       allow404: true,
     }),
+  // Stored flow/holdings history (China reserves, CFTC net % of OI, London vault). Live only.
+  goldFlows: (): Promise<GoldFlowsResponse> =>
+    _fetch<GoldFlowsResponse>(`/api/gold/flows`),
+  // Synthetic dollar index + its daily move split by currency. No date parameter: live
+  // only; 404 = not computed yet.
+  macroDxy: (from?: string): Promise<DxyResponse | null> =>
+    _fetch<DxyResponse | null>(
+      `/api/macro/dxy${from ? `?from=${encodeURIComponent(from)}` : ""}`,
+      undefined,
+      { allow404: true },
+    ),
   goldLens: (
     lensId: "structural" | "cyclical" | "valuation",
   ): Promise<GoldLensResponse | null> =>

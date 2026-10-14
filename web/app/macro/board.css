@@ -46,6 +46,25 @@
      arrows, the tight-list bullet, the zone kicker's sibling). It also happens to be the
      light theme's --positive, so one value reads correctly on both grounds. */
   --board-accent-deep: #048a7a;
+
+  /* The gold factor model's five parts plus their sum and gold itself, one colour each, the
+     same on every panel that splits gold's move (overview and tab 05). Design v3 values. */
+  --f-yield: #7aa2f7;
+  --f-dollar: #e0af68;
+  --f-haven: #bb9af7;
+  --f-drift: #64748b;
+  --f-u: #cbd5e1;
+  --f-sum: #05ad98;
+  --f-gold: #f1d48b;
+}
+[data-theme="light"] .board {
+  --f-yield: #3b6fd8;
+  --f-dollar: #b7791f;
+  --f-haven: #8a5cd6;
+  --f-drift: #64748b;
+  --f-u: #94a3b8;
+  --f-sum: #048a7a;
+  --f-gold: #a8801a;
 }
 
 /* ── section heading ── */

@@ -4,7 +4,8 @@
    six dollar-index pairs (CASH, IDEALPRO) and store them in macro_series_daily, source 'IB'.
    A month, not a day, so a missed night or a revised bar heals on the next run.
 2. Recompute the whole history from macro_series_daily (with FRED DFII10/DGS10) and upsert it:
-   the rolling fit is cheap and a revised input converges at once.
+   the rolling fit is cheap and a revised input converges at once. The synthetic dollar index
+   (dxy_synthetic_daily) is upserted from the same levels first; it needs only the six pairs.
 A leg xenon could not fetch still lets the compute run on what is stored; the job then raises
 naming the legs, so the failure reaches job_failures.
 """
@@ -68,6 +69,7 @@ def gold_factor_compute_job(
         if xenon_key and xenon_url:
             failures = fetch_ib_legs(conn, base_url=xenon_url, api_key=xenon_key)
         levels = store.fetch_inputs(conn)
+        store.upsert_dxy_rows(conn, gf.dxy_daily(levels), datetime.now(UTC))
         chg = gf.changes(levels)
         if len(chg) < gf.W + 2:
             raise RuntimeError(

@@ -15,7 +15,21 @@ import { api } from "@/lib/api";
 const LIVE = { replay: { kind: "live" } } as const;
 
 vi.mock("@/lib/api", () => ({
-  api: { goldState: vi.fn(), goldReplay: vi.fn() },
+  api: {
+    goldState: vi.fn(),
+    goldReplay: vi.fn(),
+    goldFactor: vi.fn(),
+    goldFlows: vi.fn(),
+    macroDomainState: vi.fn(),
+  },
+}));
+
+// The factor sections are covered by goldFactorBand.test.tsx; stubbed so these tests are
+// about which of the three states the live tab picks.
+vi.mock("@/components/macro/goldFactor/GoldFactorBand", () => ({
+  GoldResearchConclusion: () => <div>research rendered</div>,
+  GoldBreakdownSection: () => <div>breakdown rendered</div>,
+  GoldAttributionSection: () => <div>attribution rendered</div>,
 }));
 
 // The cockpit itself is covered by goldCompassLayout.test.tsx. Stubbed here so
@@ -37,40 +51,52 @@ describe("gold posture surfaces — three states, never two", () => {
   beforeEach(() => {
     vi.mocked(api.goldState).mockReset();
     vi.mocked(api.goldReplay).mockReset();
+    vi.mocked(api.goldFactor).mockReset();
+    vi.mocked(api.goldFlows).mockReset();
+    vi.mocked(api.macroDomainState).mockReset();
   });
 
-  it("renders the cockpit when the API answers with a posture", async () => {
-    vi.mocked(api.goldState).mockResolvedValueOnce(POSTURE);
+  it("renders the factor sections, and no GLD cockpit, when the model answers", async () => {
+    vi.mocked(api.goldFactor).mockResolvedValueOnce({
+      last_date: "2026-10-08",
+      points: [{ published_label: "part" }],
+    } as never);
+    vi.mocked(api.goldFlows).mockResolvedValueOnce(null as never);
+    vi.mocked(api.macroDomainState).mockResolvedValueOnce(null);
 
     render(await GoldTab(LIVE));
 
-    expect(screen.getByText(/cockpit rendered/)).not.toBeNull();
+    expect(screen.getByText("research rendered")).not.toBeNull();
+    expect(screen.getByText("attribution rendered")).not.toBeNull();
+    expect(screen.getByTestId("gold-factor-label").textContent).toBe("3 factors explain some");
+    expect(screen.queryByText(/cockpit rendered/)).toBeNull();
+    // Live never reads the posture: its outage cannot hide the research.
+    expect(api.goldState).not.toHaveBeenCalled();
   });
 
-  it("says the posture has not been computed when the API answers with no row", async () => {
-    vi.mocked(api.goldState).mockResolvedValueOnce(null);
+  it("says the model has not been computed when the API answers with no row", async () => {
+    vi.mocked(api.goldFactor).mockResolvedValueOnce(null);
+    vi.mocked(api.goldFlows).mockResolvedValueOnce(null as never);
+    vi.mocked(api.macroDomainState).mockResolvedValueOnce(null);
 
     render(await GoldTab(LIVE));
 
-    expect(body()).toContain("posture not yet computed");
-    expect(body()).toContain("the engine has not run");
-    // The distinguishing half: this must not read as an outage.
-    expect(body()).not.toContain("request failed:");
+    expect(body()).toContain("not computed yet");
+    expect(body()).not.toContain("request failed");
   });
 
   it("says the request failed, and names the failure, when the API errors", async () => {
-    vi.mocked(api.goldState).mockRejectedValueOnce(
-      new Error("API 500 for /api/gold/state: database unavailable"),
+    vi.mocked(api.goldFactor).mockRejectedValueOnce(
+      new Error("API 500 for /api/gold/factor: database unavailable"),
     );
+    vi.mocked(api.goldFlows).mockResolvedValueOnce(null as never);
+    vi.mocked(api.macroDomainState).mockResolvedValueOnce(null);
 
     render(await GoldTab(LIVE));
 
-    expect(body()).toContain("posture request failed");
+    expect(body()).toContain("request failed");
     expect(body()).toContain("database unavailable");
-    // The distinguishing half: an unreachable API must not claim the engine
-    // never ran.
-    expect(body()).not.toContain("not yet computed");
-    expect(body()).toContain("unknown");
+    expect(body()).not.toContain("not computed yet");
   });
 
   it("asks the OBSERVATION endpoint when a date is requested, and says so", async () => {

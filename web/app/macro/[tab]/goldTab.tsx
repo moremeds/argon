@@ -1,11 +1,21 @@
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
-import { GoldFactorBand } from "@/components/gold/factor/GoldFactorBand";
 import { GoldMetaChips } from "@/components/gold/GoldMetaChips";
 import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
 import {
   BoardSecTitle,
   BoardStatePill,
 } from "@/components/macro/domain/BoardPanel";
+import {
+  GoldAttributionSection,
+  GoldBreakdownSection,
+  GoldResearchConclusion,
+} from "@/components/macro/goldFactor/GoldFactorBand";
+import {
+  LABEL_TEXT,
+  type GoldFactor,
+  type GoldFlows,
+} from "@/components/macro/goldFactor/shared";
+import { Zone } from "@/components/macro/overview/Zone";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import { humanizeIdentifier } from "@/components/macro/presentation";
 import {
@@ -27,10 +37,8 @@ import type { components } from "@/lib/types";
  * renders `components/gold/*`, and §7 forbids `components/macro/*` importing from the
  * domain subtrees. A co-located route file is the one home that satisfies both.
  *
- * TWO endpoints, not one, and which is called depends on the request: `/api/gold/state`
- * returns the newest posture and takes no date at all, while `/api/gold/replay` takes a
- * REQUIRED `as_of` and matches `obs_date` exactly. So live and replay are separate calls
- * here, unlike tabs 01-04 where one endpoint takes an optional parameter.
+ * Replay reads `/api/gold/replay`, which takes a REQUIRED `as_of` and matches `obs_date`
+ * exactly.
  *
  * That exactness is the whole of §3.1's third clock. An `obs_date` names the market day a
  * reading is ABOUT; a day with no row has no answer and does not fall back to the day
@@ -43,18 +51,9 @@ import type { components } from "@/lib/types";
  * to `/gold/replay/<date>`. Left on, this tab would show two pickers, and the second would
  * navigate off the desk.
  *
- * It DOES call `/api/gold/gauge`, reversing §4.5 of the port plan. That section declined
- * the route as expensive — "recomputing 262 correlation gauges per request" — and
- * settled for the `correlation_history` that arrives inside the state response.
- * Re-measured 2026-08-29: the route answers in ~50ms against ~29ms for
- * `/api/gold/state`. The cost was real when measured and is not material now.
- *
- * What it buys is depth, not the board's resolution. `history_252d` carries ~261
- * observations where `correlation_history` carries 3-5, which is the difference between
- * a line that can show an anchor decaying and three segments that can only show a
- * direction. It does NOT carry `corr_60d` — no point of it does — so the board's
- * "corr_60d, daily" heading still cannot be honoured; `CorrelationHistoryPanel` names
- * the window it draws and states the gap.
+ * Live, the tab is the gold factor model (design v3) and reads `/api/gold/factor` and
+ * `/api/gold/flows`; the posture/gauge reads and the GLD-based cockpit remain only for a
+ * replayed market day, whose date those routes can answer.
  */
 const GOLD_PUBLISHER = "gold posture";
 
@@ -124,47 +123,94 @@ function GoldHeading({
   );
 }
 
-export async function GoldTab({ replay }: MacroTabProps) {
-  const asOf = replay.kind === "replay" ? replay.asOf : null;
-  // The domain state is fetched ONLY in live mode, and that is a clock decision rather
-  // than an optimisation. This tab's date is an `obs_date` — the market day a reading is
-  // about, matched exactly — while `/api/macro/gold` resolves an INSTANT. Handing this
-  // tab's date to that endpoint would put two different questions under one pill and let
-  // the answer to the second pass for the answer to the first. Live, both mean "newest",
-  // so they agree and the pill is honest.
-  const [posture, domain, gauge, factor] = await Promise.all([
-    settle(
-      () => (asOf === null ? api.goldState() : api.goldReplay(asOf)),
-      "gold posture API",
-    ),
-    asOf === null
-      ? settle(() => api.macroDomainState("gold"), "gold state API")
-      : Promise.resolve({ value: null, error: undefined }),
-    // The anchor-decay panel's dense series, and live-only for the same clock reason as
-    // the domain state above: `/api/gold/gauge` takes no date, so under replay it would
-    // answer a question about today inside a tab that has named a past observation date.
-    // Settled separately — a gauge outage must cost one panel's primary line, not the
-    // tab, which is why it is not folded into the posture request.
-    asOf === null
-      ? settle(() => api.goldGauge(), "gold gauge API")
-      : Promise.resolve({ value: null, error: undefined }),
-    // The factor model, live-only for the same clock reason: `/api/gold/factor` takes no
-    // date. Settled on its own so an outage costs this band, not the tab.
-    asOf === null
-      ? settle(() => api.goldFactor(), "gold factor API")
-      : Promise.resolve({ value: null, error: undefined }),
+/**
+ * Live tab 05, laid out as design v3: the question is how much of gold's daily move the
+ * three factors (10-year real yield, dollar, safe haven) explain, on spot gold (XAUUSD),
+ * with the dollar inside the answer and no hard-coded break year. The pill is the factor
+ * model's published label; the domain-state pill beside it is the stored gold state.
+ *
+ * Three states for the model, never two: answered, not computed yet (404), request failed.
+ * The posture endpoint is not read live any more — its panels were the GLD / 60-day
+ * correlation framing v3 replaces — so an outage there cannot hide the research.
+ */
+async function GoldLive() {
+  const [domain, factor, flows] = await Promise.all([
+    settle(() => api.macroDomainState("gold"), "gold state API"),
+    settle(() => api.goldFactor(), "gold factor API"),
+    settle(() => api.goldFlows(), "gold flows API"),
   ]);
-  const factorBand = factor.value ? (
-    <GoldFactorBand data={factor.value} />
-  ) : factor.error ? (
-    <GoldPostureNotice
-      tone="failed"
-      headline="Gold factor model · request failed"
-      detail={factor.error}
-      body="The API could not be read, so whether the model has been computed is unknown."
-    />
-  ) : null;
+  const data: GoldFactor | null = factor.value;
+  const label = data?.points.at(-1)?.published_label;
+  return (
+    <div className="board">
+      <BoardSecTitle
+        title="Gold"
+        questions={["Q4", "Q5"]}
+        aside={
+          <>
+            {label ? (
+              <span className="state neust" data-testid="gold-factor-label">
+                3 factors {LABEL_TEXT[label]}
+              </span>
+            ) : null}
+            <BoardStatePill
+              facts={domain.value}
+              testId="macro-domain-gold"
+              absent={
+                domain.error ??
+                "no state — the engine has not run for this instant"
+              }
+            />
+          </>
+        }
+      >
+        How much of gold&rsquo;s daily move three factors explain: the 10-year
+        real yield, the dollar and a safe-haven spread. Gold is spot XAUUSD.
+        This describes the past; it is not a forecast.
+      </BoardSecTitle>
+      {data ? (
+        <>
+          <Zone
+            first
+            kicker="Result"
+            label="Research result"
+            scope={`through ${data.last_date}`}
+            testKey="gold-result"
+          />
+          <GoldResearchConclusion data={data} />
+          <GoldBreakdownSection
+            data={data}
+            flows={(flows.value as GoldFlows | null) ?? null}
+            scope="real yield · dollar · haven · drift · unexplained"
+          />
+          <GoldAttributionSection data={data} />
+        </>
+      ) : factor.error ? (
+        <GoldPostureNotice
+          tone="failed"
+          headline="Gold factor model · request failed"
+          detail={factor.error}
+          body="The API could not be read, so we do not know whether the model has run. This is a read failure, not a finding about the data."
+        />
+      ) : (
+        <GoldPostureNotice
+          tone="pending"
+          headline="Gold factor model · not computed yet"
+          body="The API answered, but there is no model result yet: the nightly job has not completed a run."
+        />
+      )}
+    </div>
+  );
+}
 
+export async function GoldTab({ replay }: MacroTabProps) {
+  if (replay.kind !== "replay") return GoldLive();
+  const asOf = replay.asOf;
+  // Replay names a market day (`obs_date`, matched exactly). The factor model's routes
+  // take no date, so a replayed tab shows the stored posture of that day, as before.
+  const [posture] = await Promise.all([
+    settle(() => api.goldReplay(asOf), "gold posture API"),
+  ]);
   const verdict = replayVerdictForObsDate(replay, {
     obsDate: posture.value?.obs_date,
     computedAt: posture.value?.computed_at,
@@ -212,22 +258,15 @@ export async function GoldTab({ replay }: MacroTabProps) {
     <>
       {status}
       <div className="board">
-        {factorBand}
         <GoldCompassLayout
           state={posture.value}
-          replayDate={asOf ?? undefined}
+          replayDate={asOf}
           showReplayPicker={false}
-          anchorHistory={gauge.value?.history_60d}
           deskHeading={
             <GoldHeading
               posture={posture.value}
-              domain={domain.value}
-              domainNote={
-                asOf !== null
-                  ? "domain state not shown for a replayed observation date — this tab's date names a market day, and the state endpoint answers an instant"
-                  : (domain.error ??
-                    "no state — the engine has not run for this instant")
-              }
+              domain={null}
+              domainNote="domain state not shown for a replayed observation date — this tab's date names a market day, and the state endpoint answers an instant"
             />
           }
         />

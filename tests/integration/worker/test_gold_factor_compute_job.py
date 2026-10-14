@@ -86,3 +86,34 @@ def test_api_serves_points_and_years(fresh_db: Settings) -> None:
     yr = body["years"][-1]
     parts = ("own_trailing_drift", "real_yield_part", "dollar_part", "haven_part", "unexplained")
     assert np.isclose(sum(yr[p] for p in parts), yr["gold_change"]) and yr["partial_year"]
+
+
+def test_job_writes_dxy_and_api_serves_dxy_and_flows(fresh_db: Settings) -> None:
+    from fastapi.testclient import TestClient
+
+    from uw_scan.api.deps import get_repo, get_settings
+    from uw_scan.api.server import create_app
+
+    dsn = fresh_db.db_dsn()
+    _seed(dsn, 300)
+    gold_factor_compute_job(dsn=dsn)
+
+    def _repo():
+        with psycopg.connect(dsn) as conn:
+            yield Repository(conn, schema="uw_scan")
+
+    app = create_app()
+    app.dependency_overrides[get_settings] = lambda: fresh_db
+    app.dependency_overrides[get_repo] = _repo
+    with TestClient(app) as client:
+        dxy = client.get("/api/macro/dxy", params={"from": "2020-01-01"}).json()
+        flows = client.get("/api/gold/flows").json()
+    assert len(dxy["points"]) == 300  # every date with the six pairs, base row included
+    last = dxy["points"][-1]
+    pairs = ("eurusd", "usdjpy", "gbpusd", "usdcad", "usdsek", "usdchf")
+    assert np.isclose(sum(last[f"{p}_part"] for p in pairs), last["change_pct"])
+    assert flows == {
+        "china_reserves_t": [],
+        "cftc_mm_net_pct_oi": [],
+        "lbma_vault_t": [],
+    }

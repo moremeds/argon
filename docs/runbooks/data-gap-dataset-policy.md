@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_registry/` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**187 datasets** across 11 groups.
+**188 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -69,6 +69,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 |---|---|---|---|---|---|---|---|
 | cb_gold_reserves_monthly | freshness_only | none | none |  | monthly | World Gold Council source requires an interactive auth cookie and exposes no historical API; the ingest can only capture what is live at fetch time. Same failure as etf_holdings_daily. | 2026-08-16 |
 | cot_gold_weekly | freshness_only | external | run_once | gold_cot | weekly |  |  |
+| dxy_synthetic_daily | freshness_only | db | run_once | gold_factor | equity_session |  |  |
 | etf_aum_cache | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
 | etf_flows_daily | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
 | etf_holdings_daily | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |

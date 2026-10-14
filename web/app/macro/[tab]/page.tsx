@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DesignNotes } from "@/components/macro/DesignNotes";
 import { DomainStateTab } from "@/components/macro/DomainStateTab";
 import { BoardSecTitle } from "@/components/macro/domain/BoardPanel";
+import { UsdDollarSection } from "@/components/macro/goldFactor/DollarPanels";
 import {
   DeliveryFormPanel,
   ExportRefusalPanel,
@@ -190,11 +191,16 @@ function domainTab(
     // to the rates domain — the board's own row says "(single owner)". So it is CITED at
     // the same instant, settled separately: a rates outage must cost inflation one leg of
     // one panel, not the whole tab. Tab 04 asks for nothing extra and pays for nothing.
-    const [state, citedRates] = await Promise.all([
+    // Tab 04 also reads the synthetic DXY and the gold factor model. Both routes are
+    // live-only (no `as_of`), so a replay skips them rather than show today as history.
+    const liveUsd = domain === "usd" && !asOf;
+    const [state, citedRates, dxy, factor] = await Promise.all([
       settle(() => api.macroDomainState(domain, asOf), `${domain} state API`),
       domain === "inflation"
         ? settle(() => api.macroDomainState("rates", asOf), "rates state API")
         : Promise.resolve({ value: null, error: undefined }),
+      settle(async () => (liveUsd ? api.macroDxy() : null), "synthetic DXY API"),
+      settle(async () => (liveUsd ? api.goldFactor() : null), "gold factor API"),
     ]);
 
     const verdict = replayVerdictForDomainState(replay, {
@@ -211,6 +217,7 @@ function domainTab(
     return (
       <>
         {status}
+        {liveUsd ? <UsdDollarSection dxy={dxy} factor={factor} /> : null}
         <DomainStateTab
           domain={domain}
           slot={slot}
