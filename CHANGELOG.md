@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The nightly gold factor job failed on its first xenon leg.** xenon answers 503 when its idle IB data socket was reset, and reconnects on that same request; XAUUSD is fetched first, so it took the 503 and the other six legs passed (`job_failures` on prod: 2 consecutive failures, the last at 17:46 ET on 2026-10-13, no success yet). `fetch_ib_legs` now retries a leg once, 5 s after a `SourceUnavailable`. The factor compute still ran on those nights on stored prices; only the XAUUSD refresh was missed.
+
 ## [0.13.31] — 2026-10-14
 
 
