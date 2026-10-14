@@ -2,8 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { CurveDesk } from "@/components/rates/CurveDesk";
-import { GOLD_FACTOR } from "../../fixtures/goldFactor";
 import {
+  GOLD_FACTOR_PROD,
   POLICY_RATES_STATE,
   SNAPSHOT,
   SNAPSHOT_PROD_2026_10_09,
@@ -256,10 +256,10 @@ describe("CurveDesk", () => {
     render(<CurveDesk snapshot={SNAPSHOT_PROD_2026_10_09} />);
 
     const drivers = screen.getByRole("region", { name: /move drivers/i });
-    for (const [window, nominal] of [
-      ["1D", "+2.0"],
-      ["1W", "-4.0"],
-      ["1M", "+41.0"],
+    for (const [window, nominal, residual, driver] of [
+      ["1D", "+2.0", "+2.0", "Real rate"],
+      ["1W", "-4.0", "-4.0", "Breakeven"],
+      ["1M", "+41.0", "+41.0", "Real rate"],
     ] as const) {
       const cells = within(
         within(drivers).getByRole("row", { name: new RegExp(`^${window}\\b`) }),
@@ -271,7 +271,8 @@ describe("CurveDesk", () => {
         expect(cell.title).toBe("no new monthly model value in this window");
       }
       // Residual and driver stay — tape minus a static model is still real.
-      expect(cells[8].textContent).toBe("Real rate");
+      expect(cells[7].textContent).toBe(residual);
+      expect(cells[8].textContent).toBe(driver);
     }
     // YTD crosses a vintage boundary, so its model columns are real numbers.
     const ytd = within(
@@ -304,14 +305,17 @@ describe("CurveDesk", () => {
   });
 
   it("shows gold's real-yield sensitivity beside the decompositions when the factor is live", () => {
-    render(<CurveDesk snapshot={SNAPSHOT} goldFactor={GOLD_FACTOR} />);
+    render(<CurveDesk snapshot={SNAPSHOT} goldFactor={GOLD_FACTOR_PROD} />);
 
     const panel = screen.getByRole("region", { name: /real-yield sensitivity/i });
-    // Prod around 2026-10-13 read roughly −0.05 %/bp with the interval crossing zero.
-    expect(panel.textContent).toContain("−0.050");
+    // Prod's last point (2026-10-09): b_r −0.0513 %/bp, 95% interval crossing zero.
+    expect(panel.textContent).toContain("−0.051");
     expect(panel.textContent).toContain("interval crosses zero");
-    expect(panel.textContent).toContain("through 2026-09-30");
+    expect(panel.textContent).toContain("through 2026-10-09");
     expect(panel.textContent).toContain("Describes the past, not a forecast");
+    // Only the real-yield leg renders — dollar and haven stay on the gold tab.
+    expect(panel.textContent).not.toContain("Dollar · %/%");
+    expect(panel.textContent).not.toContain("Haven · %/%");
     // Beside the model decomposition — same grid, not a separate band.
     const cleveland = screen.getByRole("region", {
       name: /model decomposition/i,
@@ -329,9 +333,9 @@ describe("CurveDesk", () => {
 
   it("hides the gold sensitivity when the latest fit lacks the real-yield row", () => {
     const factor = {
-      ...GOLD_FACTOR,
-      points: GOLD_FACTOR.points.map((point, index) =>
-        index === GOLD_FACTOR.points.length - 1
+      ...GOLD_FACTOR_PROD,
+      points: GOLD_FACTOR_PROD.points.map((point, index) =>
+        index === GOLD_FACTOR_PROD.points.length - 1
           ? { ...point, b_r: null, b_r_lo95: null, b_r_hi95: null }
           : point,
       ),
@@ -350,17 +354,26 @@ describe("CurveDesk", () => {
     // Header + eleven curve series + DFII10 + T10YIE.
     expect(within(table).getAllByRole("row")).toHaveLength(14);
 
-    // H.15 rows for Friday 2026-10-09 were first stored Monday 2026-10-12 at 18:45 ET.
-    // (The fixture names the 10Y point DGS10Y; prod calls it DGS10.)
+    // H.15 rows for Friday 2026-10-09 were first stored Monday 2026-10-13 at 18:45 ET.
     const dgs10 = within(table).getByRole("row", {
-      name: /DGS10Y · 10Y Treasury nominal/,
+      name: /DGS10 · 10Y Treasury nominal/,
     });
     expect(dgs10.textContent).toContain("2026-10-09");
-    expect(dgs10.textContent).toContain("2026-10-12 18:45 ET");
+    expect(dgs10.textContent).toContain("2026-10-13 18:45 ET");
 
     // T10YIE is stored on the observation day itself.
-    const t10yie = within(table).getByRole("row", { name: /T10YIE/ });
-    expect(t10yie.textContent).toContain("2026-10-09 18:45 ET");
+    const t10yie = within(table).getByRole("row", {
+      name: /T10YIE · 10Y breakeven inflation/,
+    });
+    expect(t10yie.textContent).toContain("2026-10-13");
+    expect(t10yie.textContent).toContain("2026-10-13 18:45 ET");
+
+    // A series without a prod first_seen_at prints a dash, never an invented time.
+    const dgs2 = within(table).getByRole("row", {
+      name: /DGS2 · 2Y Treasury nominal/,
+    });
+    expect(dgs2.textContent).toContain("2026-10-09");
+    expect(dgs2.textContent).toContain("—");
 
     // The caption states what the column is and what the warehouse cannot say.
     expect(table.textContent).toContain(

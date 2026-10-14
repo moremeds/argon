@@ -100,6 +100,7 @@ def _snapshot(
                 label="10Y Treasury",
                 latest_obs_date=date(2026, 5, 20),
                 last_seen_at=datetime(2026, 5, 21, 1, 2, 3, tzinfo=UTC),
+                first_seen_at=datetime(2026, 5, 20, 22, 45, tzinfo=UTC),
                 status="ok",
             )
         ],
@@ -161,6 +162,19 @@ def test_stale_rates_snapshot_marks_live_sources_stale() -> None:
 
     assert stale.source_freshness[0].status == "stale"
     assert "scheduled FRED refresh" in stale.synthesis.risks[-1]
+
+
+def test_stale_marking_keeps_first_seen_at() -> None:
+    """First-seen is provenance about storage, not freshness: ageing a snapshot
+    rewrites the status word, never the timestamp argon first stored the row."""
+    stale = _mark_stale_snapshot_sources(
+        _snapshot(),
+        at=datetime(2026, 5, 23, 14, 2, 4, tzinfo=UTC),
+    )
+
+    assert stale.source_freshness[0].first_seen_at == datetime(
+        2026, 5, 20, 22, 45, tzinfo=UTC
+    )
 
 
 # --- point-in-time replay ------------------------------------------------------------

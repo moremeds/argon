@@ -1,5 +1,6 @@
 import type { components } from "@/lib/types";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { SensitivityPanel } from "@/components/macro/goldFactor/GoldFactorPanels";
 
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
@@ -12,7 +13,6 @@ import {
   MoveAttributionSection,
   NominalDecompositionSection,
 } from "./sections/DecompositionSection";
-import { GoldSensitivitySection } from "./sections/GoldSensitivitySection";
 import { PositioningSection } from "./sections/PositioningSection";
 import { SubStateSection } from "./sections/SubStateSection";
 import {
@@ -353,7 +353,12 @@ export function CurveDesk({
           />
           <ClevelandDecompositionSection decomposition={decomposition} />
           {goldSensitivity ? (
-            <GoldSensitivitySection last={goldSensitivity} />
+            <SensitivityPanel
+              last={goldSensitivity}
+              legs={["yield"]}
+              id="gold-real-yield-sensitivity"
+              title="Gold · real-yield sensitivity"
+            />
           ) : null}
         </div>
         <MoveAttributionSection decomposition={decomposition} />

@@ -26,10 +26,24 @@ function xByIndex(n: number, f: ReturnType<typeof chartFrame>) {
 }
 
 /** Each slope on its own axis: the units differ (% per bp against % per %), so one shared
- *  axis would flatten the yield slope into its zero line. */
-export function SensitivityPanel({ last }: { last: FactorPoint }) {
+ *  axis would flatten the yield slope into its zero line. `legs` selects which of the
+ *  three factor slopes to draw (fixed canonical order, height follows the rendered
+ *  count) — the rates tab renders `["yield"]` beside its own decompositions, under its
+ *  own panel id/title; `id`/`title` default to the gold tab's identity. */
+export function SensitivityPanel({
+  last,
+  legs,
+  id = "gold-factor-sensitivity",
+  title = "Gold sensitivity",
+}: {
+  last: FactorPoint;
+  legs?: ("yield" | "dollar" | "haven")[];
+  id?: string;
+  title?: string;
+}) {
   const rows = [
     {
+      leg: "yield" as const,
       label: "Real yield · %/bp",
       b: last.b_r,
       lo: last.b_r_lo95,
@@ -37,6 +51,7 @@ export function SensitivityPanel({ last }: { last: FactorPoint }) {
       color: COLOR.yield,
     },
     {
+      leg: "dollar" as const,
       label: "Dollar · %/%",
       b: last.b_d,
       lo: last.b_d_lo95,
@@ -44,19 +59,20 @@ export function SensitivityPanel({ last }: { last: FactorPoint }) {
       color: COLOR.dollar,
     },
     {
+      leg: "haven" as const,
       label: "Haven · %/%",
       b: last.b_s,
       lo: last.b_s_lo95,
       hi: last.b_s_hi95,
       color: COLOR.haven,
     },
-  ];
+  ].filter((r) => legs?.includes(r.leg) ?? true);
   const W = 620;
   const RH = 64;
   return (
     <BoardPanel
-      id="gold-factor-sensitivity"
-      title="Gold sensitivity"
+      id={id}
+      title={title}
       questions={["Q4"]}
       basis="REAL"
       source={SOURCE}
