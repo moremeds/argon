@@ -14,11 +14,24 @@ from uw_scan.rates.calculations import (
 )
 
 
-def _point(obs_date: date, value: str):
+def _point(obs_date: date, value: str, first_seen_at: datetime | None = None):
     return {
         "obs_date": obs_date,
         "value": Decimal(value),
         "last_seen_at": datetime(2026, 5, 21, 21, tzinfo=UTC),
+        "first_seen_at": first_seen_at,
+    }
+
+
+def _cleveland_rows(*dates: date):
+    return {
+        series_id: [_point(obs_date, "1.0") for obs_date in dates]
+        for series_id in (
+            "CLEVE_MODEL_REAL_YIELD_10Y",
+            "CLEVE_EXPECTED_INFLATION_10Y",
+            "CLEVE_REAL_RISK_PREMIUM_10Y",
+            "CLEVE_INFLATION_RISK_PREMIUM_10Y",
+        )
     }
 
 
@@ -164,6 +177,58 @@ def test_compute_decomposition_attribution_uses_live_history():
     assert by_window["YTD"].nominal_10y_bps == 32.0
 
 
+def _market_history():
+    return {
+        "DGS10": [
+            _point(date(2026, 4, 20), "4.32"),
+            _point(date(2026, 5, 13), "4.45"),
+            _point(date(2026, 5, 19), "4.55"),
+            _point(date(2026, 5, 20), "4.57"),
+        ],
+        "DFII10": [
+            _point(date(2026, 4, 20), "1.90"),
+            _point(date(2026, 5, 13), "2.00"),
+            _point(date(2026, 5, 19), "2.10"),
+            _point(date(2026, 5, 20), "2.13"),
+        ],
+        "T10YIE": [
+            _point(date(2026, 4, 20), "2.42"),
+            _point(date(2026, 5, 13), "2.45"),
+            _point(date(2026, 5, 19), "2.45"),
+            _point(date(2026, 5, 20), "2.44"),
+        ],
+    }
+
+
+def test_decomposition_attribution_reports_whether_the_model_vintage_changed():
+    attribution = compute_decomposition_attribution(
+        {
+            **_market_history(),
+            **_cleveland_rows(date(2026, 4, 1), date(2026, 5, 1)),
+        },
+        as_of=date(2026, 5, 20),
+    )
+    by_window = {row.window: row for row in attribution}
+
+    # Both ends read the same May vintage, so the model deltas are an exact 0.0.
+    assert by_window["1D"].model_vintage_changed is False
+    assert by_window["1D"].model_nominal_10y_bps == 0.0
+    assert by_window["1W"].model_vintage_changed is False
+    # The 1M end predates the May vintage, so the window saw a new model value.
+    assert by_window["1M"].model_vintage_changed is True
+    # Jan 1 predates every stored vintage, so there is no prior model date.
+    assert by_window["YTD"].model_vintage_changed is None
+
+
+def test_decomposition_attribution_vintage_is_none_without_a_model():
+    attribution = compute_decomposition_attribution(
+        _market_history(),
+        as_of=date(2026, 5, 20),
+    )
+
+    assert all(row.model_vintage_changed is None for row in attribution)
+
+
 def test_compute_source_freshness_marks_missing_series():
     freshness = compute_source_freshness(
         {
@@ -178,3 +243,25 @@ def test_compute_source_freshness_marks_missing_series():
     assert by_id["DGS10"].label == "10Y Treasury nominal"
     assert by_id["DGS10"].latest_obs_date == date(2026, 5, 20)
     assert by_id["DGS2"].status == "missing"
+
+
+def test_compute_source_freshness_carries_latest_rows_first_seen_at():
+    first_seen = datetime(2026, 5, 21, 22, 45, tzinfo=UTC)
+    freshness = compute_source_freshness(
+        {
+            "DGS10": [
+                _point(
+                    date(2026, 5, 19),
+                    "4.61",
+                    first_seen_at=datetime(2026, 5, 20, 22, 45, tzinfo=UTC),
+                ),
+                _point(date(2026, 5, 20), "4.67", first_seen_at=first_seen),
+            ],
+            "DGS2": [_point(date(2026, 5, 20), "4.13")],
+        },
+        as_of=date(2026, 5, 20),
+    )
+
+    by_id = {row.id: row for row in freshness}
+    assert by_id["DGS10"].first_seen_at == first_seen
+    assert by_id["DGS2"].first_seen_at is None

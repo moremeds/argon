@@ -8814,6 +8814,8 @@ export interface components {
             inflation_risk_premium_bps?: number | null;
             /** Fred Model Residual Bps */
             fred_model_residual_bps?: number | null;
+            /** Model Vintage Changed */
+            model_vintage_changed?: boolean | null;
             /** Driver */
             driver?: string | null;
             /**
@@ -9105,6 +9107,8 @@ export interface components {
             latest_obs_date?: string | null;
             /** Last Seen At */
             last_seen_at?: string | null;
+            /** First Seen At */
+            first_seen_at?: string | null;
             /**
              * Status
              * @default missing

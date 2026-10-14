@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Treasuries tab (02): gold real-yield sensitivity, honest model attribution, per-series data dates.** The `rates` macro tab gains a "Gold · real-yield sensitivity" panel beside the decompositions — the gold factor's real-yield slope with its 95% interval, live only (`/api/gold/factor` takes no `as_of`, so it hides under replay) and carrying "Describes the past, not a forecast · the direction test (Phase 3) failed". `RatesDecompositionAttribution` gains `model_vintage_changed`: when both window ends read the same monthly Cleveland vintage the five model columns print `—` ("no new monthly model value in this window") instead of a misleading `+0.0`, and the 1M read names the vintage rather than "accounts for 0.0bps". `RatesSourceFreshness` gains `first_seen_at`, and a compact "Data dates" table inside the curve panel lists each yield series' observation date and argon first-storage time in New York; the caption states that FRED's own publish time is not stored.
+
 ## [0.13.32] — 2026-10-14
 
 

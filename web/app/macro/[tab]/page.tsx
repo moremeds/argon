@@ -128,12 +128,19 @@ async function FedTab({ replay }: MacroTabProps) {
  * select on different columns — `/api/rates/snapshot` on `computed_at`, `/api/macro/*` on
  * `as_of` — so a banner driven by whichever answered would be a banner that changes its
  * meaning depending on which publisher was up. The cited half degrades to its readings.
+ *
+ * A third publisher since 2026-10-13: `/api/gold/factor` feeds the real-yield
+ * sensitivity beside the decompositions. The endpoint takes no `as_of`, so a replay
+ * skips it rather than show today's fit as the requested day's — the same rule
+ * tab 04 already applies to the same endpoint — and it settles on its own, so a
+ * gold-factor outage costs that one panel, not the curve.
  */
 async function CurveTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : undefined;
-  const [snapshot, ratesState] = await Promise.all([
+  const [snapshot, ratesState, factor] = await Promise.all([
     settle(() => api.ratesSnapshot(asOf), "rates API"),
     settle(() => api.macroDomainState("rates", asOf), "rates state API"),
+    settle(async () => (asOf ? null : api.goldFactor()), "gold factor API"),
   ]);
 
   const verdict = replayVerdict(replay, {
@@ -156,6 +163,7 @@ async function CurveTab({ replay }: MacroTabProps) {
         snapshot={snapshot.value}
         errorMessage={snapshot.error}
         subStates={ratesState.value?.sub_states}
+        goldFactor={factor.value}
       />
     </>
   );

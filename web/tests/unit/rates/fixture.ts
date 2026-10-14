@@ -314,6 +314,123 @@ export const SNAPSHOT: Snapshot = {
   ],
 };
 
+/**
+ * Prod `/api/rates/snapshot` as of 2026-10-09, fetched 2026-10-13. The numbers
+ * the desk verified against the live response: Cleveland vintage 2026-09-01,
+ * 1D nominal +2.0bp / 1W −4.0bp / 1M +41.0bp / YTD +106.0bp, and model deltas of
+ * exactly 0.0 on the three short windows because `_clarida_components` picks the
+ * latest common monthly vintage at both ends — that is `model_vintage_changed:
+ * false`, "no new monthly model value in this window", not "the model explains
+ * nothing". YTD spans the boundary (+83.0bp model, flag true). The per-leg
+ * model fields and residuals are plausible fills, marked synthetic — only the
+ * nominal/model/vintage values above are prod reads.
+ *
+ * The `first_seen_at` pattern is prod's: always 18:45 ET (22:45 UTC in October);
+ * H.15 yield rows for obs date D (DGS tenors and DFII10) are first stored the next
+ * business day — Friday 2026-10-09 lands Monday 2026-10-12 — while T10YIE lands
+ * on day D itself.
+ */
+export const SNAPSHOT_PROD_2026_10_09: Snapshot = {
+  ...SNAPSHOT,
+  as_of: "2026-10-09",
+  decomposition: {
+    ...SNAPSHOT.decomposition!,
+    clarida_model_date: "2026-09-01",
+    attribution: [
+      {
+        window: "1D",
+        nominal_10y_bps: 2,
+        real_10y_bps: 1,
+        breakeven_10y_bps: 1,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: 2,
+        model_vintage_changed: false,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "1W",
+        nominal_10y_bps: -4,
+        real_10y_bps: -3,
+        breakeven_10y_bps: -1,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: -4,
+        model_vintage_changed: false,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "1M",
+        nominal_10y_bps: 41,
+        real_10y_bps: 30,
+        breakeven_10y_bps: 11,
+        residual_bps: 0,
+        model_nominal_10y_bps: 0,
+        expected_short_real_bps: 0,
+        expected_short_inflation_bps: 0,
+        real_term_premium_bps: 0,
+        inflation_risk_premium_bps: 0,
+        fred_model_residual_bps: 41,
+        model_vintage_changed: false,
+        driver: "Real rate",
+        status: "ok",
+      },
+      {
+        window: "YTD",
+        nominal_10y_bps: 106,
+        real_10y_bps: 60,
+        breakeven_10y_bps: 46,
+        residual_bps: 0,
+        model_nominal_10y_bps: 83,
+        expected_short_real_bps: 10,
+        expected_short_inflation_bps: 40,
+        real_term_premium_bps: 20,
+        inflation_risk_premium_bps: 13,
+        fred_model_residual_bps: 23,
+        model_vintage_changed: true,
+        driver: "Expected inflation",
+        status: "ok",
+      },
+    ],
+  },
+  source_freshness: [
+    ...TENORS.map((tenor) => ({
+      id: `DGS${tenor}`,
+      label: `${tenor} Treasury nominal`,
+      latest_obs_date: "2026-10-09",
+      last_seen_at: "2026-10-13T22:45:00Z",
+      first_seen_at: "2026-10-12T22:45:00Z",
+      status: "ok" as const,
+    })),
+    {
+      id: "DFII10",
+      label: "10Y TIPS real yield",
+      latest_obs_date: "2026-10-09",
+      last_seen_at: "2026-10-13T22:45:00Z",
+      first_seen_at: "2026-10-12T22:45:00Z",
+      status: "ok" as const,
+    },
+    {
+      id: "T10YIE",
+      label: "10Y breakeven inflation",
+      latest_obs_date: "2026-10-09",
+      last_seen_at: "2026-10-13T22:45:00Z",
+      first_seen_at: "2026-10-09T22:45:00Z",
+      status: "ok" as const,
+    },
+  ],
+};
+
 // ---------------------------------------------------------------------------
 // MC2 fixtures.
 //

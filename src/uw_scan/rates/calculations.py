@@ -143,6 +143,9 @@ def compute_source_freshness(
                 label=SERIES_LABELS.get(series_id, series_id),
                 latest_obs_date=latest["obs_date"] if latest is not None else None,
                 last_seen_at=latest.get("last_seen_at") if latest is not None else None,
+                first_seen_at=(
+                    latest.get("first_seen_at") if latest is not None else None
+                ),
                 status=status,
             )
         )
@@ -201,6 +204,13 @@ def _decomposition_attribution_row(
         clarida_current["fred_model_residual_10y"],
         clarida_prior["fred_model_residual_10y"],
     )
+    current_model_date = clarida_current["clarida_model_date"]
+    prior_model_date = clarida_prior["clarida_model_date"]
+    model_vintage_changed = (
+        None
+        if current_model_date is None or prior_model_date is None
+        else current_model_date != prior_model_date
+    )
     values = [nominal_delta, real_delta, breakeven_delta]
     status = "ok" if all(value is not None for value in values) else (
         "partial" if any(value is not None for value in values) else "missing"
@@ -217,6 +227,7 @@ def _decomposition_attribution_row(
         real_term_premium_bps=real_term_delta,
         inflation_risk_premium_bps=inflation_risk_delta,
         fred_model_residual_bps=model_residual_delta,
+        model_vintage_changed=model_vintage_changed,
         driver=_attribution_driver(
             real_delta,
             breakeven_delta,
