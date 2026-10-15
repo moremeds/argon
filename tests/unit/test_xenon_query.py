@@ -7,7 +7,6 @@ import pytest
 
 from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.sources.xenon_query import (
-    fetch_ib_daily_midpoints,
     fetch_ib_option_iv,
     fetch_ib_option_quote,
 )
@@ -174,40 +173,3 @@ def test_programming_error_propagates():
             client=_client(handler),
         )
 
-
-def test_daily_midpoints_sends_the_research_contract_and_returns_closes():
-    import json
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.path == "/historical/bars"
-        assert request.headers["X-API-Key"] == "k"
-        body = json.loads(request.content)
-        assert body["contract"] == {"sec_type": "CASH", "symbol": "EUR", "currency": "USD"}
-        assert (body["what_to_show"], body["use_rth"], body["bar_size"]) == ("MIDPOINT", False, "1 day")
-        assert (body["duration"], body["end_date_time"]) == ("6 Y", "20200201-00:00:00")
-        # xenon's live sample row, 2026-10-10 (volume -1 is IB's MIDPOINT sentinel)
-        bar = {"date": "2026-10-09", "open": 1.1206, "high": 1.1243, "low": 1.11875, "close": 1.12, "volume": -1}
-        return httpx.Response(200, json={"bars": [bar]})
-
-    out = fetch_ib_daily_midpoints(
-        base_url="http://x", api_key="k", sec_type="CASH", symbol="EUR",
-        duration="6 Y", end_date_time="20200201-00:00:00", client=_client(handler),
-    )  # fmt: skip
-    assert out == [("2026-10-09", 1.12)]
-
-
-@pytest.mark.parametrize(
-    "resp",
-    [
-        httpx.Response(401),
-        # xenon #174: a contract IB cannot qualify is a 404, never 200 {"bars": []}
-        httpx.Response(404, json={"detail": "IB could not qualify contract(s): CASH XXX USD@IDEALPRO"}),
-        httpx.Response(200, json={"nope": []}),
-    ],
-)
-def test_daily_midpoints_raise_source_unavailable(resp):
-    with pytest.raises(SourceUnavailable):
-        fetch_ib_daily_midpoints(
-            base_url="http://x", api_key=None, sec_type="CMDTY", symbol="XAUUSD",
-            client=_client(lambda _r: resp),
-        )

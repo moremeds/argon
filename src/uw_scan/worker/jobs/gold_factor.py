@@ -1,100 +1,103 @@
-"""Nightly gold factor: IB prices via xenon -> macro_series_daily -> gold_factor_daily.
+"""Nightly gold factor: livewire lake prices + FRED yields -> gold_factor_daily / dxy_synthetic_daily.
 
-1. With a xenon key, fetch the last month of IB 1-day MIDPOINT closes for XAUUSD (CMDTY) and the
-   six dollar-index pairs (CASH, IDEALPRO) and store them in macro_series_daily, source 'IB'.
-   A month, not a day, so a missed night or a revised bar heals on the next run.
-2. Recompute the whole history from macro_series_daily (with FRED DFII10/DGS10) and upsert it:
-   the rolling fit is cheap and a revised input converges at once. The synthetic dollar index
-   (dxy_synthetic_daily) is upserted from the same levels first; it needs only the six pairs.
-A leg xenon could not fetch still lets the compute run on what is stored; the job then raises
-naming the legs, so the failure reaches job_failures.
+1. Read the IB 1-day MIDPOINT closes of XAUUSD (`bronze/asset_class=cmdty`) and the six dollar-index
+   pairs (`bronze/asset_class=fx_ib`) from the lake, in memory. livewire writes them at ~17:20 New York
+   time (launchd `com.livewire.ib-evening`); the bar dated D is 17:15 New York D-1 to 17:00 New York D.
+   argon stores no raw prices: the old xenon path wrote them to macro_series_daily (source 'IB'); those
+   rows stay but no longer grow.
+2. Read DFII10 / DGS10 from macro_series_daily (FRED, gold_fred_ingest_job).
+3. Recompute the whole history and upsert it: the rolling fit is cheap and a revised input converges
+   at once. The synthetic dollar index is upserted from the same levels first; it needs only the pairs.
+A leg whose last lake bar is older than the last completed session still lets the compute run on
+what the lake has; the job then raises naming the legs, so the miss reaches job_failures.
 """
 
 from __future__ import annotations
 
 import logging
-import time
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
+import pandas as pd
 import psycopg
 
 from uw_scan.macro import gold_factor as gf
-from uw_scan.sources.source_errors import SourceUnavailable
-from uw_scan.sources.xenon_query import fetch_ib_daily_midpoints
+from uw_scan.sources.lake import read_vol_index_parquet
 from uw_scan.storage import gold_factor as store
-from uw_scan.storage.repository import Repository
+from uw_scan.worker.market_session import is_us_equity_market_day
 
 logger = logging.getLogger(__name__)
 
-
-def _ib_contract(leg: str) -> tuple[str, str, str]:
-    return ("CMDTY", leg, "USD") if leg == "XAUUSD" else ("CASH", leg[:3], leg[3:])
-
-
-def _fetch_leg(retry_wait: float, **kw: str) -> list[tuple[str, float]]:
-    """xenon answers 503 when its idle IB data socket was reset, and reconnects on that same
-    request, so one retry after a short wait gets the bars. On prod (2026-10-13/14) the first leg
-    of each run failed this way and the other six passed."""
-    try:
-        return fetch_ib_daily_midpoints(**kw)
-    except SourceUnavailable as exc:
-        logger.warning(
-            "gold_factor: xenon fetch %s unavailable, retrying once: %s", kw["symbol"], repr(exc)
-        )
-        time.sleep(retry_wait)
-        return fetch_ib_daily_midpoints(**kw)
+NY = ZoneInfo("America/New_York")
+BAR_CLOSE_NY = time(17, 0)
 
 
-def fetch_ib_legs(
-    conn: psycopg.Connection,
-    *,
-    base_url: str,
-    api_key: str,
-    duration: str = "1 M",
-    end_date_time: str = "",
-    retry_wait: float = 5.0,
-) -> list[str]:
-    """Store the IB closes of every price leg; returns the failures as 'LEG: error'."""
-    repo = Repository(conn, schema="uw_scan")
-    now = datetime.now(UTC)
-    failures = []
+def last_closed_bar(now: datetime) -> date:
+    """Newest bar date whose 17:00 New York close has passed."""
+    ny = now.astimezone(NY)
+    return ny.date() if ny.time() >= BAR_CLOSE_NY else ny.date() - timedelta(days=1)
+
+
+def expected_bar(now: datetime) -> date:
+    """The last NYSE session whose bar has closed. FX and gold also trade on some NYSE holidays;
+    those bars are used when present but never required."""
+    d = last_closed_bar(now)
+    while not is_us_equity_market_day(d):
+        d -= timedelta(days=1)
+    return d
+
+
+def read_lake_legs(lake_root: Path, now: datetime) -> pd.DataFrame:
+    """Close of every price leg, one column per leg, completed bars only."""
+    cutoff = last_closed_bar(now)
+    cols = {}
     for leg in gf.PRICE_LEGS:
-        sec_type, symbol, currency = _ib_contract(leg)
-        try:
-            bars = _fetch_leg(
-                retry_wait, base_url=base_url, api_key=api_key, sec_type=sec_type, symbol=symbol,
-                currency=currency, duration=duration, end_date_time=end_date_time,
-            )  # fmt: skip
-        except Exception as exc:
-            logger.exception("gold_factor: xenon fetch %s failed: %r", leg, exc)
-            failures.append(f"{leg}: {repr(exc)[:200]}")
-            continue
-        repo.insert_macro_series_daily_rows(
-            ({"series_id": leg, "obs_date": date.fromisoformat(d), "value": v} for d, v in bars),
-            as_of=now,
-            source="IB",
+        asset_class = "cmdty" if leg == "XAUUSD" else "fx_ib"
+        rows = read_vol_index_parquet(
+            lake_root / "bronze" / f"asset_class={asset_class}", leg
         )
-    conn.commit()
-    return failures
+        cols[leg] = pd.Series(
+            {
+                pd.Timestamp(r["trade_date"]): r["close"]
+                for r in rows
+                if r["trade_date"] <= cutoff
+            },
+            dtype="float64",
+        )
+    return pd.DataFrame(cols).reindex(columns=list(gf.PRICE_LEGS))
+
+
+def stale_legs(legs: pd.DataFrame, now: datetime) -> list[str]:
+    want = expected_bar(now)
+    out = []
+    for leg in gf.PRICE_LEGS:
+        s = legs[leg].dropna()
+        last = s.index[-1].date() if len(s) else None
+        if last is None or last < want:
+            out.append(f"{leg}: last lake bar {last}, expected {want}")
+    return out
 
 
 def gold_factor_compute_job(
-    *, dsn: str, xenon_url: str | None = None, xenon_key: str | None = None
+    *, dsn: str, lake_root: Path, now: datetime | None = None
 ) -> int:
-    failures: list[str] = []
+    now = now or datetime.now(UTC)
+    legs = read_lake_legs(lake_root, now)
+    stale = stale_legs(legs, now)
     with psycopg.connect(dsn) as conn:
-        if xenon_key and xenon_url:
-            failures = fetch_ib_legs(conn, base_url=xenon_url, api_key=xenon_key)
-        levels = store.fetch_inputs(conn)
+        levels = legs.join(store.fetch_yields(conn), how="outer").reindex(
+            columns=list(gf.INPUTS)
+        )
         store.upsert_dxy_rows(conn, gf.dxy_daily(levels), datetime.now(UTC))
         chg = gf.changes(levels)
         if len(chg) < gf.W + 2:
             raise RuntimeError(
-                f"gold_factor: {len(chg)} complete rows, need {gf.W + 2}; "
-                "seed with scripts/backfill/gold_factor_seed.py"
+                f"gold_factor: {len(chg)} complete rows, need {gf.W + 2}; check the lake legs "
+                "and seed FRED with scripts/backfill/gold_factor_seed.py"
             )
         n = store.upsert_rows(conn, gf.compute(chg), datetime.now(UTC))
     logger.info("gold_factor: upserted %d rows through %s", n, chg.index[-1].date())
-    if failures:
-        raise RuntimeError(f"gold_factor: computed, but xenon fetch failed for {failures}")
+    if stale:
+        raise RuntimeError(f"gold_factor: computed, but lake legs are stale: {stale}")
     return n

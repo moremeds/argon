@@ -107,11 +107,8 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
             )
 
     def _gold_factor_compute() -> None:
-        key = settings.xenon_query_api_key
         gold_factor_compute_job(
-            dsn=settings.db_dsn(),
-            xenon_url=settings.xenon_query_api_url,
-            xenon_key=key.get_secret_value() if key is not None else None,
+            dsn=settings.db_dsn(), lake_root=settings.market_warehouse_lake_root
         )
 
     def _gold_posture_compute() -> None:
@@ -127,11 +124,12 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         id="gold_fred_ingest",
         name="Gold: FRED daily refresh",
     )
-    # 17:40, after the 17:00 FRED refresh: FRED posts DFII10 for day t on t+1, so this run
-    # completes row t; row t+1 waits for tomorrow's yield (no forward fill).
+    # 17:50, after the 17:00 FRED refresh and livewire's ~17:20 New York IB lake write
+    # (com.livewire.ib-evening). FRED posts DFII10 for day t on t+1, so this run completes row t;
+    # row t+1 waits for tomorrow's yield (no forward fill).
     sched.add_job(
         _gold_factor_compute,
-        CronTrigger.from_crontab("40 17 * * 0-4", timezone=settings.rth_tz),
+        CronTrigger.from_crontab("50 17 * * 0-4", timezone=settings.rth_tz),
         id="gold_factor_compute",
         name="Gold: factor model (real yield / dollar / haven)",
     )
