@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 import psycopg
 
-from uw_scan.macro.gold_factor import INPUTS
+from uw_scan.macro.gold_factor import INPUTS, PRICE_LEGS
 
 COLS = (
     "obs_date", "a",
@@ -27,8 +27,10 @@ COLS = (
 )  # fmt: skip
 
 
-def fetch_inputs(conn: psycopg.Connection) -> pd.DataFrame:
-    """Latest vintage of every model input, one column per series, indexed by date."""
+def fetch_yields(conn: psycopg.Connection) -> pd.DataFrame:
+    """Latest vintage of the FRED inputs (DFII10, DGS10), one column each, indexed by date.
+    The price legs come from the lake (worker/jobs/gold_factor.py)."""
+    ids = [s for s in INPUTS if s not in PRICE_LEGS]
     rows = conn.execute(
         """
         SELECT DISTINCT ON (series_id, obs_date) series_id, obs_date, value::float8
@@ -36,12 +38,12 @@ def fetch_inputs(conn: psycopg.Connection) -> pd.DataFrame:
         WHERE series_id = ANY(%s)
         ORDER BY series_id, obs_date, as_of DESC
         """,
-        (list(INPUTS),),
+        (ids,),
     ).fetchall()
     df = pd.DataFrame(rows, columns=["series_id", "obs_date", "value"])
     wide = df.pivot(index="obs_date", columns="series_id", values="value")
     wide.index = pd.DatetimeIndex(wide.index)
-    return wide.reindex(columns=list(INPUTS))
+    return wide.reindex(columns=ids)
 
 
 def _clean(v: Any) -> Any:

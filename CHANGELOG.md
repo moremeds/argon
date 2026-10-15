@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The nightly gold factor reads its prices from the livewire lake, not xenon.** `gold_factor_compute` now reads XAUUSD (`bronze/asset_class=cmdty`) and the six dollar-index pairs (`bronze/asset_class=fx_ib`) as IB 1-day MIDPOINT closes from the lake that livewire writes at ~17:20 New York, and moves from 17:40 to 17:50 ET. It no longer stores raw prices: the `source='IB'` rows in `macro_series_daily` stay but stop growing, and `fetch_ib_legs` / `xenon_query.fetch_ib_daily_midpoints` are deleted. Only completed bars are used (a bar dated D closes 17:00 New York on D); xenon returned the bar still forming, so prod stored partial days (`dxy_synthetic_daily` 2026-10-14 = 102.116 from a mid-session bar, 102.528 from the final one). When a leg's last lake bar is older than the last completed NYSE session the job still computes, then fails naming the legs, so a missed livewire run reaches `job_failures`. The lake also carries sessions the old chunked xenon seed dropped at its window seams (around Feb 1), adding 11 factor rows; recomputed on prod data the fitted slopes move by at most 0.35 (`b_s`) over the whole history and 0.022 since 2025, and the latest rows are identical. `gold_factor_daily` and `dxy_synthetic_daily` join the data-freshness monitor.
+
 ## [0.13.33] — 2026-10-14
 
 

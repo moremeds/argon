@@ -218,7 +218,9 @@ def _run_gold_factor(ctx: HealContext) -> int:
     from uw_scan.worker.jobs.gold_factor import gold_factor_compute_job
 
     # Recomputes and upserts the whole history from stored inputs; no external spend.
-    gold_factor_compute_job(dsn=ctx.settings.db_dsn())
+    gold_factor_compute_job(
+        dsn=ctx.settings.db_dsn(), lake_root=ctx.settings.market_warehouse_lake_root
+    )
     return 0
 
 

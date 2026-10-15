@@ -136,6 +136,11 @@ MONITORED_TABLES: list[MonitoredTable] = [
         "watchlist",  # ticker-less (keyed by exchange) -> freshness-only
         None,
     ),
+    # Ticker-less derived tables of gold_factor_compute. The 2026-10-13 xenon outage left
+    # gold_factor_daily stuck at 10-09 (10-12 is a bond holiday, no row by design) and no
+    # freshness row showed it.
+    MonitoredTable("gold_factor_daily", "watchlist", None),
+    MonitoredTable("dxy_synthetic_daily", "watchlist", None),
     # --- coverage-expansion pass: every table below was previously invisible
     # to /api/health freshness. Excluded on purpose (not an oversight):
     #   dark_pool_events, flow_events, option_contract_snapshots,

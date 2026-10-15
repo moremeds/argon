@@ -340,7 +340,7 @@
    "options": {
     "name": "'Gold: factor model (real yield / dollar / haven)'"
    },
-   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='50'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",
@@ -1155,7 +1155,7 @@
    "options": {
     "name": "'Gold: factor model (real yield / dollar / haven)'"
    },
-   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='50'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",
@@ -2458,7 +2458,7 @@
    "options": {
     "name": "'Gold: factor model (real yield / dollar / haven)'"
    },
-   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='50'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",
@@ -3103,7 +3103,7 @@
    "options": {
     "name": "'Gold: factor model (real yield / dollar / haven)'"
    },
-   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='40'] tz=America/New_York"
+   "trigger": "cron[month='*', day='*', day_of_week='0-4', hour='17', minute='50'] tz=America/New_York"
   },
   {
    "func": "_gold_fred_ingest",
