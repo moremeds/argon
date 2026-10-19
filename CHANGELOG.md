@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The spot WS consumer now authenticates to xenon's realtime relay.** xenon v0.9.0 rejects a WebSocket upgrade from a service client unless it carries `X-API-Key` and no `Origin` header. `XenonWsClient` (the live session and the fallback probe) now sends `X-API-Key: $XENON_QUERY_API_KEY` on the upgrade when the key is set, and never an `Origin`. Older relays ignore the header. Without the key, xenon v0.9.0 answers 401 and the consumer fails over to massive, so the mini's argon `.env` must carry `XENON_QUERY_API_KEY` (the same key the REST greeks API needs) and the WS consumer must restart to pick up a rotated key.
+
 ## [0.13.34] — 2026-10-15
 
 

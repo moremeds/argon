@@ -390,6 +390,11 @@ async def run_consumer_once(
     return final_flush_ok
 
 
+def _xenon_api_key(settings: Settings) -> str | None:
+    key = settings.xenon_query_api_key
+    return key.get_secret_value() if key is not None else None
+
+
 async def _xenon_probe_loop(settings: Settings) -> None:
     """Block until xenon accepts a connection AND reports ib_connected.
 
@@ -401,7 +406,9 @@ async def _xenon_probe_loop(settings: Settings) -> None:
         await asyncio.sleep(settings.xenon_ws_retry_primary_seconds)
         url = discover_xenon_ws_url(settings.xenon_ws_url, settings.xenon_ws_port_file)
         try:
-            async with XenonWsClient(url, open_timeout=5.0):
+            async with XenonWsClient(
+                url, open_timeout=5.0, api_key=_xenon_api_key(settings)
+            ):
                 pass  # handshake (status with ib_connected) IS the success test
             logger.info("xenon ws probe succeeded at %s", url)
             return
@@ -498,7 +505,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                         flush_interval_seconds=settings.massive_ws_flush_interval_seconds,
                         subscription_poll_interval_seconds=settings.massive_ws_watchlist_poll_interval_seconds,
                         buffer=buffer,
-                        client=XenonWsClient(url),
+                        client=XenonWsClient(url, api_key=_xenon_api_key(settings)),
                         source_tag="xenon_ws",
                         quiet_failover_seconds=settings.xenon_ws_quiet_failover_seconds,
                         rth_tz=settings.rth_tz,

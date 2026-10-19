@@ -239,3 +239,34 @@ async def test_client_subscribe_is_idempotent_and_unsubscribe_diffs() -> None:
     assert len(received) == 2
     assert received[1]["action"] == "unsubscribe"
     assert received[1]["symbols"] == ["HYG"]
+
+
+async def _upgrade_headers(**client_kwargs) -> dict[str, str]:
+    seen: dict[str, str] = {}
+
+    async def handler(ws):
+        seen.update(ws.request.headers)
+        await ws.send(_status(True))
+        await asyncio.sleep(0.1)
+
+    async with websockets.serve(handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        async with XenonWsClient(f"ws://127.0.0.1:{port}", **client_kwargs):
+            pass
+    return {k.lower(): v for k, v in seen.items()}
+
+
+@pytest.mark.asyncio
+async def test_client_sends_api_key_header_and_no_origin() -> None:
+    # xenon v0.9.0 accepts a service client only with X-API-Key and NO Origin.
+    headers = await _upgrade_headers(api_key="k-123")
+    assert headers["x-api-key"] == "k-123"
+    assert "origin" not in headers
+
+
+@pytest.mark.asyncio
+async def test_client_omits_api_key_header_when_unset() -> None:
+    for kwargs in ({}, {"api_key": None}, {"api_key": ""}):
+        headers = await _upgrade_headers(**kwargs)
+        assert "x-api-key" not in headers
+        assert "origin" not in headers

@@ -197,7 +197,10 @@ class XenonWsClient:
             async for tick in client.ticks():
                 ...
 
-    No auth (localhost / tailnet trust). On connect, waits for the initial
+    ``api_key`` (``XENON_QUERY_API_KEY``) goes out as ``X-API-Key`` on the
+    upgrade; xenon >= v0.9.0 rejects a service client without it, and older
+    relays ignore it. No ``Origin`` header is ever sent — xenon treats an
+    Origin as a browser and demands a ticket instead. On connect, waits for the initial
     ``status`` frame: ``ib_connected: false`` raises XenonFeedUnavailable so
     the consumer fails over instead of sitting on a tickless socket.
     Mid-session IB blips are logged only — the server auto-restores IB
@@ -212,8 +215,10 @@ class XenonWsClient:
         open_timeout: float = 10.0,
         ping_interval: float = 20.0,
         status_timeout: float = 5.0,
+        api_key: str | None = None,
     ) -> None:
         self._url = url
+        self._api_key = api_key
         self._open_timeout = open_timeout
         self._ping_interval = ping_interval
         self._status_timeout = status_timeout
@@ -225,6 +230,7 @@ class XenonWsClient:
             self._url,
             open_timeout=self._open_timeout,
             ping_interval=self._ping_interval,
+            additional_headers={"X-API-Key": self._api_key} if self._api_key else None,
         )
         try:
             await self._await_initial_status()
