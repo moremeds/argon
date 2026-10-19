@@ -29,6 +29,8 @@ import asyncio
 import decimal
 import json
 import logging
+import sys
+import traceback
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -187,6 +189,44 @@ def discover_xenon_ws_url(configured_url: str, port_file: str) -> str:
     return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
 
 
+class _KeyRedactingLogger(logging.LoggerAdapter):
+    """``websockets.client`` logger that never hands a handler the API key.
+
+    websockets 16 logs every outgoing upgrade header verbatim at DEBUG
+    (``> X-API-Key: <value>``) and logs received frames as objects. Each
+    record is rendered to text here (message, args, exception, stack), the
+    key is masked as ``***`` (also in the spaced-hex form websockets uses
+    for binary frames), and only that text is emitted: no args, no
+    ``exc_info``, no ``stack_info``.
+    """
+
+    def __init__(self, secret: str) -> None:
+        super().__init__(logging.getLogger("websockets.client"), {})
+        self._forms = (secret, " ".join(f"{b:02x}" for b in secret.encode()))
+
+    def log(self, level, msg, *args, exc_info=None, stack_info=False, **kwargs):
+        if not self.isEnabledFor(level):
+            return
+        try:
+            text = logging.LogRecord("", level, "", 0, msg, args, None).getMessage()
+        except (TypeError, ValueError):
+            text = f"{msg} {repr(args)}"  # a malformed call; keep both parts
+        fmt = logging.Formatter()
+        if exc_info:
+            if isinstance(exc_info, BaseException):
+                exc_info = (type(exc_info), exc_info, exc_info.__traceback__)
+            elif not isinstance(exc_info, tuple):
+                exc_info = sys.exc_info()
+            if exc_info[0] is not None:
+                text += "\n" + fmt.formatException(exc_info)
+        if stack_info:
+            stack = "".join(traceback.format_stack()).rstrip()
+            text += "\n" + fmt.formatStack("Stack (most recent call last):\n" + stack)
+        for form in self._forms:
+            text = text.replace(form, "***")
+        super().log(level, text, **kwargs)
+
+
 class XenonWsClient:
     """Async context manager mirroring MassiveWsClient's surface.
 
@@ -197,7 +237,10 @@ class XenonWsClient:
             async for tick in client.ticks():
                 ...
 
-    No auth (localhost / tailnet trust). On connect, waits for the initial
+    ``api_key`` (``XENON_QUERY_API_KEY``) goes out as ``X-API-Key`` on the
+    upgrade; xenon >= v0.9.0 rejects a service client without it, and older
+    relays ignore it. No ``Origin`` header is ever sent — xenon treats an
+    Origin as a browser and demands a ticket instead. On connect, waits for the initial
     ``status`` frame: ``ib_connected: false`` raises XenonFeedUnavailable so
     the consumer fails over instead of sitting on a tickless socket.
     Mid-session IB blips are logged only — the server auto-restores IB
@@ -212,8 +255,10 @@ class XenonWsClient:
         open_timeout: float = 10.0,
         ping_interval: float = 20.0,
         status_timeout: float = 5.0,
+        api_key: str | None = None,
     ) -> None:
         self._url = url
+        self._api_key = api_key
         self._open_timeout = open_timeout
         self._ping_interval = ping_interval
         self._status_timeout = status_timeout
@@ -225,6 +270,8 @@ class XenonWsClient:
             self._url,
             open_timeout=self._open_timeout,
             ping_interval=self._ping_interval,
+            additional_headers={"X-API-Key": self._api_key} if self._api_key else None,
+            logger=_KeyRedactingLogger(self._api_key) if self._api_key else None,
         )
         try:
             await self._await_initial_status()

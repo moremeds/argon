@@ -12,11 +12,14 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from contextlib import contextmanager
 from decimal import Decimal
+from http import HTTPStatus
 
 import pytest
 import websockets
+from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.worker.massive_ws_consumer import (
@@ -275,3 +278,62 @@ async def test_xenon_probe_loop_keeps_retrying_after_handshake_failure():
 
     # First 2 attempts must have failed (ib_connected=false), 3rd succeeded.
     assert attempts[0] >= 3
+
+
+@pytest.mark.asyncio
+async def test_live_failover_logs_no_key_when_rejection_echoes_it(
+    seeded_db_with_cards, caplog
+):
+    """xenon rejects the upgrade (401) and echoes the X-API-Key back in a
+    header and the body; the live-session failover warning (and every other
+    client-side record) must not carry the key. Synthetic key only."""
+    key = "sekrit-key-123"
+    repo = seeded_db_with_cards
+    repo._conn.autocommit = True
+    caplog.set_level(logging.DEBUG)
+
+    @contextmanager
+    def _repo_factory(role: str):
+        yield repo
+
+    def reject(connection, request):
+        resp = connection.respond(HTTPStatus.UNAUTHORIZED, f"bad key {key}\n")
+        resp.headers["X-Echo-Key"] = request.headers["X-API-Key"]
+        return resp
+
+    async with websockets.serve(
+        lambda ws: None, "127.0.0.1", 0, process_request=reject
+    ) as xenon_srv:
+        x_port = xenon_srv.sockets[0].getsockname()[1]
+        settings = Settings.from_env().model_copy(
+            update={
+                "xenon_ws_enabled": True,
+                "xenon_ws_url": f"ws://127.0.0.1:{x_port}",
+                "xenon_ws_port_file": "",
+                "xenon_ws_retry_primary_seconds": 3600.0,
+                "xenon_query_api_key": SecretStr(key),
+                "massive_ws_enabled": False,  # xenon-only: fail, warn, wait
+            }
+        )
+        consumer_task = asyncio.create_task(
+            run_consumer_forever(settings, _repo_factory)
+        )
+        try:
+            for _ in range(100):
+                if any(
+                    "xenon ws unavailable" in r.getMessage() for r in caplog.records
+                ):
+                    break
+                await asyncio.sleep(0.1)
+        finally:
+            consumer_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await consumer_task
+
+    fmt = logging.Formatter("%(name)s %(message)s")
+    out = "\n".join(
+        fmt.format(r) for r in caplog.records if r.name != "websockets.server"
+    )
+    assert "xenon ws unavailable ('InvalidStatus HTTP 401')" in out
+    assert "X-Echo-Key: ***" in out
+    assert key not in out
