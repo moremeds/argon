@@ -46,7 +46,7 @@ from collections.abc import Iterable
 from datetime import datetime, timezone
 
 import psycopg
-from websockets.exceptions import WebSocketException
+from websockets.exceptions import InvalidStatus, WebSocketException
 
 from uw_scan.config import Settings
 from uw_scan.sources.massive_ws import MassiveWsClient
@@ -395,6 +395,14 @@ def _xenon_api_key(settings: Settings) -> str | None:
     return key.get_secret_value() if key is not None else None
 
 
+def _ws_error_summary(exc: BaseException) -> str:
+    """Type name (+ HTTP status) only: a rejected upgrade's response can echo
+    the X-API-Key, and repr/str of the exception would carry it."""
+    if isinstance(exc, InvalidStatus):
+        return f"{type(exc).__name__} HTTP {exc.response.status_code}"
+    return type(exc).__name__
+
+
 async def _xenon_probe_loop(settings: Settings) -> None:
     """Block until xenon accepts a connection AND reports ib_connected.
 
@@ -418,7 +426,7 @@ async def _xenon_probe_loop(settings: Settings) -> None:
             asyncio.TimeoutError,
             WebSocketException,
         ) as exc:
-            logger.debug("xenon ws probe failed: %s", repr(exc))
+            logger.debug("xenon ws probe failed: %s", repr(_ws_error_summary(exc)))
 
 
 def _record_ws_error_best_effort(repo_factory, message: str) -> None:
@@ -595,7 +603,7 @@ async def run_consumer_forever(settings: Settings, repo_factory) -> None:
                 )
                 logger.warning(
                     "xenon ws unavailable (%s); falling back to massive for %.0fs",
-                    repr(exc),
+                    repr(_ws_error_summary(exc)),
                     settings.xenon_ws_retry_primary_seconds,
                 )
                 continue

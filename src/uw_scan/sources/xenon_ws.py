@@ -29,6 +29,8 @@ import asyncio
 import decimal
 import json
 import logging
+import sys
+import traceback
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -188,21 +190,41 @@ def discover_xenon_ws_url(configured_url: str, port_file: str) -> str:
 
 
 class _KeyRedactingLogger(logging.LoggerAdapter):
-    """``websockets.client`` logger that masks the API key.
+    """``websockets.client`` logger that never hands a handler the API key.
 
     websockets 16 logs every outgoing upgrade header verbatim at DEBUG
-    (``> X-API-Key: <value>``); this keeps the wire log but prints ``***``.
+    (``> X-API-Key: <value>``) and logs received frames as objects. Each
+    record is rendered to text here (message, args, exception, stack), the
+    key is masked as ``***`` (also in the spaced-hex form websockets uses
+    for binary frames), and only that text is emitted: no args, no
+    ``exc_info``, no ``stack_info``.
     """
 
     def __init__(self, secret: str) -> None:
         super().__init__(logging.getLogger("websockets.client"), {})
-        self._secret = secret
+        self._forms = (secret, " ".join(f"{b:02x}" for b in secret.encode()))
 
-    def log(self, level, msg, *args, **kwargs) -> None:
-        args = tuple(
-            a.replace(self._secret, "***") if isinstance(a, str) else a for a in args
-        )
-        super().log(level, msg, *args, **kwargs)
+    def log(self, level, msg, *args, exc_info=None, stack_info=False, **kwargs):
+        if not self.isEnabledFor(level):
+            return
+        try:
+            text = logging.LogRecord("", level, "", 0, msg, args, None).getMessage()
+        except (TypeError, ValueError):
+            text = f"{msg} {repr(args)}"  # a malformed call; keep both parts
+        fmt = logging.Formatter()
+        if exc_info:
+            if isinstance(exc_info, BaseException):
+                exc_info = (type(exc_info), exc_info, exc_info.__traceback__)
+            elif not isinstance(exc_info, tuple):
+                exc_info = sys.exc_info()
+            if exc_info[0] is not None:
+                text += "\n" + fmt.formatException(exc_info)
+        if stack_info:
+            stack = "".join(traceback.format_stack()).rstrip()
+            text += "\n" + fmt.formatStack("Stack (most recent call last):\n" + stack)
+        for form in self._forms:
+            text = text.replace(form, "***")
+        super().log(level, text, **kwargs)
 
 
 class XenonWsClient:
