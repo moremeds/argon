@@ -187,6 +187,24 @@ def discover_xenon_ws_url(configured_url: str, port_file: str) -> str:
     return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
 
 
+class _KeyRedactingLogger(logging.LoggerAdapter):
+    """``websockets.client`` logger that masks the API key.
+
+    websockets 16 logs every outgoing upgrade header verbatim at DEBUG
+    (``> X-API-Key: <value>``); this keeps the wire log but prints ``***``.
+    """
+
+    def __init__(self, secret: str) -> None:
+        super().__init__(logging.getLogger("websockets.client"), {})
+        self._secret = secret
+
+    def log(self, level, msg, *args, **kwargs) -> None:
+        args = tuple(
+            a.replace(self._secret, "***") if isinstance(a, str) else a for a in args
+        )
+        super().log(level, msg, *args, **kwargs)
+
+
 class XenonWsClient:
     """Async context manager mirroring MassiveWsClient's surface.
 
@@ -231,6 +249,7 @@ class XenonWsClient:
             open_timeout=self._open_timeout,
             ping_interval=self._ping_interval,
             additional_headers={"X-API-Key": self._api_key} if self._api_key else None,
+            logger=_KeyRedactingLogger(self._api_key) if self._api_key else None,
         )
         try:
             await self._await_initial_status()

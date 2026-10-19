@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from decimal import Decimal
+from http import HTTPStatus
 
 import pytest
 import websockets
+from websockets.exceptions import InvalidStatus
 
 from uw_scan.sources.xenon_ws import (
     XENON_INDEX_SYMBOLS,
@@ -270,3 +273,46 @@ async def test_client_omits_api_key_header_when_unset() -> None:
         headers = await _upgrade_headers(**kwargs)
         assert "x-api-key" not in headers
         assert "origin" not in headers
+
+
+def _client_log_text(caplog) -> str:
+    # The in-process test server logs the request it receives under
+    # websockets.server; only the client side is under test here.
+    return "\n".join(
+        r.getMessage() for r in caplog.records if r.name != "websockets.server"
+    )
+
+
+@pytest.mark.asyncio
+async def test_api_key_never_logged_on_successful_upgrade(caplog) -> None:
+    # websockets 16 logs every outgoing upgrade header verbatim at DEBUG.
+    caplog.set_level(logging.DEBUG)
+    headers = await _upgrade_headers(api_key="sekrit-key-123")
+    assert headers["x-api-key"] == "sekrit-key-123"  # the wire still carries it
+    text = _client_log_text(caplog)
+    assert "> X-API-Key: ***" in text  # wire DEBUG ran, value masked
+    assert "sekrit-key-123" not in text
+
+
+@pytest.mark.asyncio
+async def test_api_key_never_logged_on_rejected_upgrade(caplog) -> None:
+    caplog.set_level(logging.DEBUG)
+    seen: dict[str, str] = {}
+
+    def reject(connection, request):
+        seen.update(request.headers)
+        return connection.respond(HTTPStatus.UNAUTHORIZED, "missing_ticket\n")
+
+    async with websockets.serve(
+        lambda ws: None, "127.0.0.1", 0, process_request=reject
+    ) as server:
+        port = server.sockets[0].getsockname()[1]
+        with pytest.raises(InvalidStatus):
+            async with XenonWsClient(
+                f"ws://127.0.0.1:{port}", api_key="sekrit-key-123"
+            ):
+                pass
+    assert {k.lower(): v for k, v in seen.items()}["x-api-key"] == "sekrit-key-123"
+    text = _client_log_text(caplog)
+    assert "> X-API-Key: ***" in text
+    assert "sekrit-key-123" not in text
