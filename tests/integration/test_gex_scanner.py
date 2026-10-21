@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+
 import pytest
 
 from uw_scan.api.client import UwClient
@@ -211,6 +214,59 @@ def test_run_falls_back_to_iv_rank_when_stock_state_fails(
     assert payload["day_change_pct"] is None
 
 
+def _stub_index_without_uw_spot(monkeypatch):
+    """UW's real SPX shape since 2026-10-05: /stock-state 422s for an index and
+    the iv_rank row carries ``close: None`` (volatility is still present)."""
+    _stub_minimal_chain(monkeypatch)
+    monkeypatch.setattr(
+        gex_scanner,
+        "fetch_iv_rank_rows",
+        lambda c, r, rid, t: [
+            {"date": "2026-10-20", "close": None, "volatility": "0.133"},
+        ],
+    )
+    monkeypatch.setattr(
+        gex_scanner, "fetch_stock_state_snapshot", lambda c, r, rid, t: None
+    )
+
+
+def test_run_uses_ws_quote_when_uw_has_no_index_spot(
+    seeded_db_empty_cards: Repository, mock_client: UwClient, monkeypatch
+):
+    """An index (SPX) gets its spot from the live WS quote, not an abort."""
+    _stub_index_without_uw_spot(monkeypatch)
+    # SPX close 2026-10-20 (apex lake, fetched 2026-10-21).
+    quoted_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+    seeded_db_empty_cards.upsert_intraday_quote(
+        "SPX", Decimal("7712.57"), quoted_at, source="xenon_ws"
+    )
+
+    gex_scanner.run(mock_client, seeded_db_empty_cards, ticker="SPX")
+    payload = seeded_db_empty_cards.fetch_latest_gex(ticker="SPX")
+
+    assert payload["spot"] == 7712.57
+    assert payload["spot_source"] == "xenon_ws"
+    assert payload["tape_time"] == quoted_at.isoformat()
+    assert payload["prev_close"] is None
+    assert payload["iv"]["iv30d"] == 0.133
+
+
+def test_run_rejects_stale_ws_quote(
+    seeded_db_empty_cards: Repository, mock_client: UwClient, monkeypatch
+):
+    """A WS quote older than the cap means the feed is down: abort, don't plot it."""
+    _stub_index_without_uw_spot(monkeypatch)
+    stale = datetime.now(timezone.utc) - timedelta(
+        seconds=gex_scanner.WS_SPOT_MAX_AGE_SECONDS + 60
+    )
+    seeded_db_empty_cards.upsert_intraday_quote(
+        "SPX", Decimal("7712.57"), stale, source="xenon_ws"
+    )
+
+    with pytest.raises(RuntimeError, match="could not fetch spot"):
+        gex_scanner.run(mock_client, seeded_db_empty_cards, ticker="SPX")
+
+
 def test_run_persists_greek_exposure_daily_tail(
     seeded_db_empty_cards: Repository,
     mock_client: UwClient,
@@ -283,6 +339,7 @@ def test_run_persists_greek_exposure_daily_tail(
 # propagates uncovered. Pre-PR-108, finish_scan_run's UPDATE was
 # silently rolled back at conn close, leaving an orphan running row.
 
+
 class _SimulatedFetcherFailure(RuntimeError):
     """Stand-in for a fetcher raising in the middle of gex.run."""
 
@@ -309,5 +366,7 @@ def test_run_seals_status_error_when_fetcher_raises(
         row = cur.fetchone()
 
     assert row is not None, "scan_runs row must be inserted before the fetcher raised"
-    assert row[0] == "error", "scan_run must be sealed status='error', not stuck 'running'"
+    assert row[0] == "error", (
+        "scan_run must be sealed status='error', not stuck 'running'"
+    )
     assert row[1] is not None, "finished_at must be populated by the error-path commit"

@@ -7,9 +7,10 @@ Differences from xenon:
 - No CLI; no HTML rendering.
 - This repo's UW pattern threads ``run_id`` from ``repo.insert_scan_run(...)``
   through every fetcher for audit trail.
-- Spot source: ``/stock/{ticker}/stock-state`` (intraday) with iv_rank.close as
-  EOD fallback (xenon uses /stock-state; ``/info`` returns only metadata, no
-  price). Yahoo banned. ``compute_days_above_flip`` set to 0 in v1 (no history
+- Spot source: ``/stock/{ticker}/stock-state`` (intraday), then the live WS
+  quote in ``intraday_quote`` (the only source for an index: UW 422s
+  stock-state for SPX), then iv_rank.close as EOD fallback (xenon uses
+  /stock-state; ``/info`` returns only metadata, no price). Yahoo banned. ``compute_days_above_flip`` set to 0 in v1 (no history
   reader).
 """
 
@@ -22,9 +23,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from uw_scan.api.client import UwClient
-from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.cards.greek_exposure_history import parse_greek_exposure_history
+from uw_scan.scanners.live_quotes import LiveQuote, load_live_quotes
 from uw_scan.sources import uw as uw_source
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -397,6 +399,28 @@ def fetch_stock_state_snapshot(
         return None
 
 
+# A day covers off-hours scans (an index does not tick outside RTH); an older
+# quote means the WS consumer is down, and a scan on it would plot a stale spot.
+WS_SPOT_MAX_AGE_SECONDS = 24 * 3600
+
+
+def fetch_ws_spot_quote(repo: Repository, ticker: str) -> LiveQuote | None:
+    """Latest live WS quote (xenon primary / massive fallback) from intraday_quote.
+
+    UW answers /stock-state with HTTP 422 for index tickers ("Stock state data
+    is not available for index ticker SPX") and its iv_rank ``close`` is null
+    for SPX, so for an index this is the only spot source that works. SPX is
+    always subscribed via ``REGIME_WS_SYMBOLS``.
+    """
+    try:
+        return load_live_quotes(
+            repo, [ticker], max_age_seconds=WS_SPOT_MAX_AGE_SECONDS
+        ).get(ticker)
+    except Exception as exc:
+        log.warning("ws_spot_fetch_failed ticker=%s err=%s", ticker, repr(exc))
+        return None
+
+
 def fetch_vol_pc(
     client: UwClient, repo: Repository, run_id: int, ticker: str
 ) -> float | None:
@@ -437,12 +461,19 @@ def run(client: UwClient, repo: Repository, ticker: str = "SPX") -> int:
     try:
         iv_rows = fetch_iv_rank_rows(client, repo, run_id, ticker)
         snapshot = fetch_stock_state_snapshot(client, repo, run_id, ticker)
+        ws_quote = None if snapshot is not None else fetch_ws_spot_quote(repo, ticker)
         if snapshot is not None:
             spot = snapshot["spot"]
             prev_close = snapshot["prev_close"]
             market_time = snapshot["market_time"]
             tape_time = snapshot["tape_time"]
             spot_source = snapshot["source"]
+        elif ws_quote is not None:
+            spot = ws_quote.price
+            prev_close = None
+            market_time = None
+            tape_time = ws_quote.quoted_at.astimezone(timezone.utc).isoformat()
+            spot_source = ws_quote.source
         else:
             spot = fetch_spot_price(iv_rows)
             prev_close = None
