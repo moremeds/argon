@@ -7,10 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.36] — 2026-10-21
+
+
 ### Fixed
 
 - **The SPX GEX scan runs again; it had been stuck on 2026-10-03.** Since 2026-10-05 UW answers `/stock/SPX/stock-state` with HTTP 422 ("not available for index ticker SPX") and returns `close: null` in the SPX iv-rank row, so `scanners/gex.run` had no spot and aborted every 2 minutes. The other 11 tickers succeeded, so the job never failed and the Regime GEX tab kept showing the last SPX snapshot. The scan now takes the spot from the live WS quote in `intraday_quote` (xenon primary; SPX is always subscribed via `REGIME_WS_SYMBOLS`) when UW has none, tags `spot_source` with the feed, and sets `tape_time` to the quote time. A quote older than 24 h means the feed is down, and the scan still aborts. Intraday SPX snapshots from 2026-10-05 until this deploy are lost; the first good scan refills `greek_exposure_daily` for SPX, because UW's aggregate endpoint returns the full daily series.
-
 ## [0.13.35] — 2026-10-19
 
 
