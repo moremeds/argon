@@ -1,7 +1,7 @@
 {
   "name": "uw-watchlist-web",
   "private": true,
-  "version": "0.13.36",
+  "version": "0.13.37",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3001",

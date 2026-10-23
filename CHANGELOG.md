@@ -7,10 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.37] — 2026-10-24
+
+
 ### Changed
 
 - **Watchlist and stock-page spots are pushed to the browser instead of polled.** The page used to poll `/api/watchlist/spots` every 2.5 s on top of a 1 s WS flush, so a price change reached the screen up to ~3.6 s late. Now the WS writer sends a Postgres `NOTIFY` inside each flush transaction; one `LISTEN` connection per API process re-reads the spots and pushes only the changed tickers over Server-Sent Events at `GET /api/watchlist/spots/stream` (`api/live_spots.py`); `LiveSpotsProvider` opens one `EventSource` per page. The flush interval default drops from 1 s to 0.25 s (`MASSIVE_WS_FLUSH_INTERVAL_SECONDS`). Measured on a local stack through the Next proxy: an event every ~0.25 s, and 3.4 ms median (6.3 ms max) from the DB commit to the browser. The stream sends `Cache-Control: no-transform`, because Next's rewrite proxy otherwise gzips it for any browser that accepts gzip and holds every event in the gzip buffer. The API pings every 2 s and the page reopens a stream that is silent for 5 s or closed for good: when the API restarts, the Next proxy can leave the browser's half of the stream open and silent. uvicorn gets `--timeout-graceful-shutdown` in `dev.sh` (1 s) and `docker-compose.yml` (3 s), because an open stream otherwise blocks a reload forever. The mini runs its own copy of the compose file, so there the stop stays bounded by Docker's 10 s SIGKILL until that copy is synced. `GET /api/watchlist/spots` stays for other readers.
-
 ## [0.13.36] — 2026-10-21
 
 
