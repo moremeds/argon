@@ -14,6 +14,10 @@ from .rows import (
     WatchlistRow,
 )
 
+# Postgres NOTIFY channel the WS writer signals after each spot flush; the API's
+# /watchlist/spots/stream listens on it (api/live_spots.py).
+SPOTS_CHANNEL = "watchlist_spots"
+
 
 class _WatchlistMixin:
     _conn: psycopg.Connection
@@ -74,6 +78,12 @@ class _WatchlistMixin:
                 """
             )
             return list(cur.fetchall())
+
+    def notify_watchlist_spots(self) -> None:
+        """Wake the spot-stream listeners. Inside a transaction Postgres holds
+        the NOTIFY until COMMIT, so a listener never reads before the rows land."""
+        with self._conn.cursor() as cur:
+            cur.execute(f"NOTIFY {SPOTS_CHANNEL}")
 
     def add_watchlist_ticker(
         self,

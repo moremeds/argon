@@ -4,7 +4,9 @@ Writes happen under one psycopg transaction wrapping:
   1. bulk_upsert_intraday_quotes (canonical source of truth)
   2. bulk_upsert_watchlist_card_quotes (denormalized for fast dashboard reads,
      incl. ret_1d / ret_1w / ret_30d computed against the latest tick)
-  3. record_ws_heartbeat (operator visibility)
+  3. notify_watchlist_spots (NOTIFY, delivered at COMMIT, wakes the API's
+     /watchlist/spots/stream push)
+  4. record_ws_heartbeat (operator visibility)
 
 A2 (adversarial fix): drained ticks are held in ``_pending`` and only cleared
 after a successful commit. On failure the pending batch is merged back into
@@ -178,6 +180,7 @@ class WsDbWriter:
                 with self._repo.conn.transaction():
                     self._repo.bulk_upsert_intraday_quotes(quote_rows)
                     self._repo.bulk_upsert_watchlist_card_quotes(card_rows)
+                    self._repo.notify_watchlist_spots()
                     self._repo.record_ws_heartbeat(
                         last_tick_at=latest_quoted_at,
                         last_flush_at=flush_at,

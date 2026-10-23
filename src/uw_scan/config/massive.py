@@ -36,7 +36,7 @@ class MassiveSettings(BaseModel):
     )
     massive_ws_flush_interval_seconds: Annotated[
         float, EnvVar("MASSIVE_WS_FLUSH_INTERVAL_SECONDS")
-    ] = 1.0
+    ] = 0.25  # each flush pushes to /watchlist/spots/stream, so this IS page latency
     massive_ws_watchlist_poll_interval_seconds: Annotated[
         float, EnvVar("MASSIVE_WS_WATCHLIST_POLL_INTERVAL_SECONDS")
     ] = 30.0

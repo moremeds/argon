@@ -5,8 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 
-from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.api.deps import get_repo, get_settings, get_spots_broadcaster
+from uw_scan.api.live_spots import SpotsBroadcaster, spots_response, sse_events
 from uw_scan.config import Settings
 from uw_scan.models.watchlist import (
     GammaBlock,
@@ -22,7 +24,6 @@ from uw_scan.models.watchlist import (
     WatchlistMutation,
     WatchlistPatch,
     WatchlistResponse,
-    WatchlistSpot,
     WatchlistSpotsResponse,
 )
 from uw_scan.storage.repository import Repository
@@ -209,23 +210,26 @@ def get_watchlist_queue(repo: Repository = Depends(get_repo)) -> QueueSummary:
 def get_watchlist_spots(
     repo: Repository = Depends(get_repo),
 ) -> WatchlistSpotsResponse:
-    """Live spot snapshot for the dashboard's LiveSpotsProvider poller.
+    """Live spot snapshot (ticker, spot, quoted_at, source) — the lightweight
+    projection the WS consumer (xenon primary / massive fallback) rewrites on
+    every flush. The dashboard streams it from /watchlist/spots/stream."""
+    return spots_response(repo.list_watchlist_spots())
 
-    The spot WS consumer (xenon primary / massive fallback) rewrites
-    watchlist_card.spot every ~1s; this projection lets the browser tick
-    prices without refetching the full watchlist payload (same pattern as
-    /watchlist/queue for QueueProgress).
-    """
-    return WatchlistSpotsResponse(
-        spots=[
-            WatchlistSpot(
-                ticker=ticker,
-                spot=spot,
-                spot_quoted_at=quoted_at,
-                spot_source=source,
-            )
-            for (ticker, spot, quoted_at, source) in repo.list_watchlist_spots()
-        ]
+
+# Not in the OpenAPI schema: an SSE body can't be typed there. Each `data:`
+# event is a WatchlistSpotsResponse JSON holding only the tickers that changed
+# (the first event after connect holds all of them).
+@router.get("/watchlist/spots/stream", include_in_schema=False)
+async def stream_watchlist_spots(
+    broadcaster: SpotsBroadcaster = Depends(get_spots_broadcaster),
+) -> StreamingResponse:
+    return StreamingResponse(
+        sse_events(broadcaster),
+        media_type="text/event-stream",
+        # no-transform: Next's rewrite proxy (and Cloudflare) would otherwise
+        # gzip the stream for any browser that accepts gzip, and gzip holds
+        # every event until its buffer fills — the page would see nothing.
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
     )
 
 
