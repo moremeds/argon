@@ -79,7 +79,8 @@ class SpotsBroadcaster:
         for queue in self._subs:
             try:
                 queue.put_nowait(message)
-            except asyncio.QueueFull:
+            except asyncio.QueueFull as exc:
+                logger.info("live_spots stream fell behind, resyncing: %s", repr(exc))
                 while not queue.empty():
                     queue.get_nowait()
                 queue.put_nowait(encode(list(self._last.values())))
@@ -114,7 +115,8 @@ async def sse_events(broadcaster: SpotsBroadcaster) -> AsyncIterator[str]:
         while True:
             try:
                 message = await asyncio.wait_for(queue.get(), HEARTBEAT_SECONDS)
-            except TimeoutError:
+            except TimeoutError as exc:
+                logger.debug("live_spots heartbeat: %s", repr(exc))
                 yield "event: ping\ndata: 1\n\n"
                 continue
             yield f"data: {message}\n\n"

@@ -113,6 +113,15 @@ function json(res, body, status = 200) {
   res.end(JSON.stringify(body));
 }
 
+// The spots stream: an SSE response that stays open and pings like the API
+// does, so LiveSpotsProvider's EventSource connects without a console error.
+function sse(req, res) {
+  res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache, no-transform" });
+  res.write('data: {"spots":[]}\n\n');
+  const ping = setInterval(() => res.write("event: ping\ndata: 1\n\n"), 2000);
+  req.on("close", () => clearInterval(ping));
+}
+
 createServer((req, res) => {
   const path = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname;
   if (path === "/health") return json(res, { ok: true });
@@ -123,6 +132,7 @@ createServer((req, res) => {
   }
   if (path === "/api/stock/DRYRUN") return json(res, stock);
   if (path === "/api/watchlist/spots") return json(res, { spots: [] });
+  if (path === "/api/watchlist/spots/stream") return sse(req, res);
   if (path === "/api/watchlist") return json(res, { tickers: [] });
   // Next prefetches sibling stock tabs. They are outside this focused fixture;
   // return a neutral object so speculative requests stay quiet.
