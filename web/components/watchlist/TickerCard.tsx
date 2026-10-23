@@ -46,9 +46,9 @@ const linkReset = {
 export function TickerCard({ card, sparkline = [] }: Props) {
   const [showNotReady, setShowNotReady] = useState(false);
   const [closes, setCloses] = useState<number[]>(sparkline);
-  // Live spot from the grid-wide poller (LiveSpotsProvider). Falls back to
+  // Live spot from the grid-wide stream (LiveSpotsProvider). Falls back to
   // the server-rendered card values when no provider is mounted or the
-  // first poll hasn't landed yet.
+  // first stream event hasn't landed yet.
   const live = useLiveSpot(card.ticker);
   const spot = live?.spot ?? card.spot;
   const spotQuotedAt = live?.spot_quoted_at ?? card.spot_quoted_at;

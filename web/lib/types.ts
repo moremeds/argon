@@ -106,12 +106,9 @@ export interface paths {
         };
         /**
          * Get Watchlist Spots
-         * @description Live spot snapshot for the dashboard's LiveSpotsProvider poller.
-         *
-         *     The spot WS consumer (xenon primary / massive fallback) rewrites
-         *     watchlist_card.spot every ~1s; this projection lets the browser tick
-         *     prices without refetching the full watchlist payload (same pattern as
-         *     /watchlist/queue for QueueProgress).
+         * @description Live spot snapshot (ticker, spot, quoted_at, source) — the lightweight
+         *     projection the WS consumer (xenon primary / massive fallback) rewrites on
+         *     every flush. The dashboard streams it from /watchlist/spots/stream.
          */
         get: operations["get_watchlist_spots_api_watchlist_spots_get"];
         put?: never;

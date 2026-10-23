@@ -69,7 +69,9 @@ services:
     # never serves against an un-migrated schema, and a bad migration crash-loops the
     # container (healthcheck red → web down) instead of silently partial-serving.
     # Idempotent + ~1s, so re-running every boot is free. `exec` gives uvicorn PID 1
-    # for clean SIGTERM shutdown.
+    # for clean SIGTERM shutdown. --timeout-graceful-shutdown: an open
+    # /watchlist/spots/stream never closes on its own, and uvicorn would wait on
+    # it until Docker's SIGKILL.
     # ponytail: only api self-migrates (single non-sharded container = no racing DDL);
     # the 2× workers get new code from the same deploy and could touch a new table in
     # the seconds before api finishes — tolerable (worker jobs are cron-scheduled and
@@ -81,6 +83,7 @@ services:
       - >-
         python -m uw_scan.storage.migrate_runner &&
         exec uvicorn uw_scan.api.server:app --host 0.0.0.0 --port 8400
+        --timeout-graceful-shutdown 3
     ports:
       - "127.0.0.1:8400:8400"   # loopback-only publish for host health checks
     healthcheck:

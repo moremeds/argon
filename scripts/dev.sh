@@ -112,7 +112,7 @@ names=(next api uw-0 uw-1 massive-0 massive-1)
 colors=(cyan green yellow magenta blue white)
 cmds=(
   "cd web && NEXT_INTERNAL_API_BASE=$API_BASE npx next dev --port $WEB_PORT --webpack"
-  "sleep 15 && $COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port $API_PORT --reload --reload-dir src"
+  "sleep 15 && $COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port $API_PORT --reload --reload-dir src --timeout-graceful-shutdown 1"
   "sleep 20 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
   "sleep 22 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
   "sleep 24 && $COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"

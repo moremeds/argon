@@ -9,6 +9,7 @@ from functools import lru_cache
 from psycopg_pool import ConnectionPool
 
 from uw_scan.api.client import UwClient
+from uw_scan.api.live_spots import SpotsBroadcaster
 from uw_scan.config import Settings
 from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
@@ -45,6 +46,18 @@ def get_repo() -> Generator[Repository, None, None]:
     """
     with get_pool().connection() as conn:
         yield Repository(conn, schema=get_settings().db_schema)
+
+
+@lru_cache(maxsize=1)
+def get_spots_broadcaster() -> SpotsBroadcaster:
+    """Process-wide: one LISTEN connection however many browsers stream."""
+
+    def read_spots():
+        with get_pool().connection() as conn:
+            repo = Repository(conn, schema=get_settings().db_schema)
+            return repo.list_watchlist_spots()
+
+    return SpotsBroadcaster(get_settings().db_dsn(), read_spots)
 
 
 def get_uw_client() -> Generator[UwClient, None, None]:

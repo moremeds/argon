@@ -1427,11 +1427,11 @@
   "type": "bool"
  },
  "massive_ws_flush_interval_seconds": {
-  "class_default": 1.0,
+  "class_default": 0.25,
   "env": [
    "MASSIVE_WS_FLUSH_INTERVAL_SECONDS"
   ],
-  "env_default": 1.0,
+  "env_default": 0.25,
   "probes": {
    "MASSIVE_WS_FLUSH_INTERVAL_SECONDS": {
     "''": {

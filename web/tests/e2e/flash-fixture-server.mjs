@@ -21,6 +21,15 @@ const json = (res, body, status = 200) => {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
 };
+// The spots stream: an SSE response that stays open and pings like the API
+// does, so LiveSpotsProvider's EventSource connects without a console error.
+function sse(req, res) {
+  res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache, no-transform' });
+  res.write('data: {"spots":[]}\n\n');
+  const ping = setInterval(() => res.write('event: ping\ndata: 1\n\n'), 2000);
+  req.on('close', () => clearInterval(ping));
+}
+
 createServer((req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1');
   if (req.method !== 'GET') return json(res, { detail: 'read-only fixture' }, 405);
@@ -42,5 +51,6 @@ createServer((req, res) => {
   }
   if (path === '/api/watchlist') return json(res, { tickers: [] });
   if (path === '/api/watchlist/spots') return json(res, { spots: [] });
+  if (path === '/api/watchlist/spots/stream') return sse(req, res);
   return json(res, {});
 }).listen(Number(process.env.PORT ?? 18407), '127.0.0.1');
