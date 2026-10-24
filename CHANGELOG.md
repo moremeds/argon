@@ -7,6 +7,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The watchlist page no longer throws a React hydration error (#418).** The server formats card times in its own zone (UTC in Docker) and the browser in the reader's, so the text differed and React threw the tree away and re-rendered it on the client. The `suppressHydrationWarning` flag sat one element too high to cover the text. `TickerCard` now renders the UTC string during hydration and switches to local time right after (`useSyncExternalStore`).
+- **The API opens one connection pool, not one per racing first request.** `get_pool()` was a bare `lru_cache`, which runs the factory once for each thread that misses at the same time; each extra pool opened connections and threads, was dropped, and its `__del__` later failed with "cannot join current thread". A lock now serializes the first call.
+
 ## [0.13.37] — 2026-10-24
 
 

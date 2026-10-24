@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Generator
 from functools import lru_cache
 
@@ -20,15 +21,27 @@ def get_settings() -> Settings:
     return Settings.from_env()
 
 
-@lru_cache(maxsize=1)
+_POOL_LOCK = threading.Lock()
+
+
 def get_pool() -> ConnectionPool:
     """Process-wide connection pool, opened once on first request.
 
     Replaces the old connect-per-request path: TCP + auth + ``SET search_path``
-    were paid on every hit (including the 2.5s watchlist-spot poll). Under the
-    Docker cutover this matters more — connection setup now crosses the VM
-    boundary to host.docker.internal.
+    were paid on every hit. Under the Docker cutover this matters more —
+    connection setup now crosses the VM boundary to host.docker.internal.
+
+    The lock matters: ``lru_cache`` runs the factory once per thread that misses
+    concurrently, and the first requests arrive together on the threadpool. Each
+    extra pool opened connections and threads, was dropped, and its ``__del__``
+    later failed with "cannot join current thread".
     """
+    with _POOL_LOCK:
+        return _open_pool()
+
+
+@lru_cache(maxsize=1)
+def _open_pool() -> ConnectionPool:
     settings = get_settings()
     return ConnectionPool(
         settings.db_dsn(),
