@@ -167,8 +167,11 @@ def test_discover_url_prefers_port_file_for_localhost(tmp_path) -> None:
     assert discover_xenon_ws_url("ws://127.0.0.1:8765", "") == "ws://127.0.0.1:8765"
 
 
-def _status(ib: bool = True) -> str:
-    return json.dumps({"type": "status", "ib_connected": ib, "subscriptions": []})
+def _status(ib: bool = True, futu: bool | None = None) -> str:
+    frame: dict = {"type": "status", "ib_connected": ib, "subscriptions": []}
+    if futu is not None:
+        frame["providers"] = {"futu": {"connected": futu, "opend_connected": futu}}
+    return json.dumps(frame)
 
 
 @pytest.mark.asyncio
@@ -208,6 +211,26 @@ async def test_client_raises_when_ib_disconnected_at_connect() -> None:
         with pytest.raises(XenonFeedUnavailable):
             async with XenonWsClient(f"ws://127.0.0.1:{port}"):
                 pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("futu", [True, False])
+async def test_client_gate_with_ib_down_follows_futu(futu: bool) -> None:
+    """xenon v0.15.0 status: IB logged out -> stay on xenon only if Futu is up."""
+
+    async def handler(ws):
+        await ws.send(_status(False, futu=futu))
+        await asyncio.sleep(1)
+
+    async with websockets.serve(handler, "127.0.0.1", 0) as server:
+        port = server.sockets[0].getsockname()[1]
+        if futu:
+            async with XenonWsClient(f"ws://127.0.0.1:{port}"):
+                pass
+        else:
+            with pytest.raises(XenonFeedUnavailable):
+                async with XenonWsClient(f"ws://127.0.0.1:{port}"):
+                    pass
 
 
 @pytest.mark.asyncio

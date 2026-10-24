@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { apiFetch } from "@/lib/apiClient";
 import type { components } from "@/lib/types";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
@@ -43,7 +43,13 @@ const linkReset = {
   textDecoration: "none",
 };
 
+const noSubscribe = () => () => {};
+
 export function TickerCard({ card, sparkline = [] }: Props) {
+  // The server formats times in its own zone (UTC in Docker), the browser in
+  // the reader's. Hydrate with UTC so both sides match, then switch to local.
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
+  const timeZone = hydrated ? undefined : "UTC";
   const [showNotReady, setShowNotReady] = useState(false);
   const [closes, setCloses] = useState<number[]>(sparkline);
   // Live spot from the grid-wide stream (LiveSpotsProvider). Falls back to
@@ -266,13 +272,12 @@ export function TickerCard({ card, sparkline = [] }: Props) {
             fontFamily: "var(--font-mono)",
             lineHeight: 1.25,
           }}
-          suppressHydrationWarning
         >
-          <div>spot {fmtDateTimeWithZone(spotQuotedAt)}</div>
+          <div>spot {fmtDateTimeWithZone(spotQuotedAt, { timeZone })}</div>
           <div>
             analytics{" "}
             {card.scanned_at
-              ? fmtDateTimeWithZone(card.scanned_at)
+              ? fmtDateTimeWithZone(card.scanned_at, { timeZone })
               : "not scanned"}
           </div>
           {queueLabel && (

@@ -78,6 +78,7 @@ class XenonFrame:
     kind: str  # "batch" | "price" | "status" | "error" | "other"
     ticks: list[WsTick] = field(default_factory=list)
     ib_connected: bool | None = None
+    futu_connected: bool | None = None
     error: str | None = None
 
 
@@ -136,8 +137,16 @@ def parse_xenon_message(raw: str | bytes) -> XenonFrame:
         return XenonFrame(kind="price", ticks=[tick] if tick else [])
     if kind == "status":
         ib = payload.get("ib_connected")
+        futu = (payload.get("providers") or {}).get("futu")
         return XenonFrame(
-            kind="status", ib_connected=bool(ib) if ib is not None else None
+            kind="status",
+            ib_connected=bool(ib) if ib is not None else None,
+            # xenon >= v0.15.0 serves US stocks from Futu during RTH, IB or not.
+            futu_connected=(
+                bool(futu.get("connected") and futu.get("opend_connected"))
+                if isinstance(futu, dict)
+                else None
+            ),
         )
     if kind == "error":
         return XenonFrame(kind="error", error=str(payload.get("message") or ""))
@@ -241,8 +250,10 @@ class XenonWsClient:
     upgrade; xenon >= v0.9.0 rejects a service client without it, and older
     relays ignore it. No ``Origin`` header is ever sent — xenon treats an
     Origin as a browser and demands a ticket instead. On connect, waits for the initial
-    ``status`` frame: ``ib_connected: false`` raises XenonFeedUnavailable so
-    the consumer fails over instead of sitting on a tickless socket.
+    ``status`` frame: ``ib_connected: false`` with Futu also down raises
+    XenonFeedUnavailable so the consumer fails over instead of sitting on a
+    tickless socket. Futu alone keeps the connection: it is the primary
+    stock feed during RTH (indexes still need IB).
     Mid-session IB blips are logged only — the server auto-restores IB
     subscriptions, and the consumer's quiet watchdog is the backstop.
     Reconnect/backoff is the caller's responsibility (single connection).
@@ -296,10 +307,10 @@ class XenonWsClient:
                     frame = parse_xenon_message(await self._ws.recv())
                     if frame.kind != "status":
                         continue
-                    if frame.ib_connected is False:
+                    if frame.ib_connected is False and not frame.futu_connected:
                         raise XenonFeedUnavailable(
-                            "xenon connected but IB Gateway is down "
-                            "(ib_connected=false)"
+                            "xenon connected but IB Gateway and Futu are down "
+                            "(ib_connected=false, futu not connected)"
                         )
                     return
         except (asyncio.TimeoutError, ConnectionClosed) as exc:

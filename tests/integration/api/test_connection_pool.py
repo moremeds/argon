@@ -25,13 +25,13 @@ def _pool_on_test_db(monkeypatch):
     settings = Settings.from_env().model_copy(update={"db_name": test_db})
 
     deps.get_settings.cache_clear()
-    deps.get_pool.cache_clear()
+    deps._open_pool.cache_clear()
     monkeypatch.setattr(deps, "get_settings", lambda: settings)
 
     yield
 
     deps.get_pool().close()
-    deps.get_pool.cache_clear()
+    deps._open_pool.cache_clear()
     # get_settings is monkeypatched to a plain lambda at this point; monkeypatch
     # restores the real lru_cache function on undo (which runs after this body).
     # Calling .cache_clear() on the lambda AttributeErrors — the next test's
