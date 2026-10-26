@@ -149,6 +149,11 @@ def test_discover_url_prefers_port_file_for_localhost(tmp_path) -> None:
     assert (
         discover_xenon_ws_url("ws://127.0.0.1:8765", str(pf)) == "ws://127.0.0.1:9001"
     )
+    # the futu-first opt-in rides the query string and must survive port drift
+    assert (
+        discover_xenon_ws_url("ws://127.0.0.1:8765?quotes=futu-first", str(pf))
+        == "ws://127.0.0.1:9001?quotes=futu-first"
+    )
     # non-localhost host: the port file is some OTHER machine's state — ignore
     assert (
         discover_xenon_ws_url("ws://100.66.147.98:8765", str(pf))

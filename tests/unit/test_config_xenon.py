@@ -31,7 +31,7 @@ def test_xenon_defaults(monkeypatch) -> None:
     _clear_xenon_env(monkeypatch)
     s = Settings.from_env(env_path=NO_ENV)
     assert s.xenon_ws_enabled is False
-    assert s.xenon_ws_url == "ws://127.0.0.1:8765"
+    assert s.xenon_ws_url == "ws://127.0.0.1:8765?quotes=futu-first"
     assert s.xenon_ws_port_file == "/tmp/xenon-ib-realtime.json"
     assert s.xenon_ws_retry_primary_seconds == 300.0
     assert s.xenon_ws_quiet_failover_seconds == 120.0

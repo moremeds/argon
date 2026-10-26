@@ -3147,11 +3147,11 @@
   "type": "float"
  },
  "xenon_ws_url": {
-  "class_default": "ws://127.0.0.1:8765",
+  "class_default": "ws://127.0.0.1:8765?quotes=futu-first",
   "env": [
    "XENON_WS_URL"
   ],
-  "env_default": "ws://127.0.0.1:8765",
+  "env_default": "ws://127.0.0.1:8765?quotes=futu-first",
   "probes": {
    "XENON_WS_URL": {
     "''": "",
