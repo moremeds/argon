@@ -19,7 +19,11 @@ class XenonSettings(BaseModel):
     xenon_ws_enabled: Annotated[bool, EnvVar("XENON_WS_ENABLED", parse=_true_only)] = (
         False
     )
-    xenon_ws_url: Annotated[str, EnvVar("XENON_WS_URL")] = "ws://127.0.0.1:8765"
+    # ``?quotes=futu-first`` asks the relay (xenon >= v0.15.0, X-API-Key auth
+    # only) for Futu quotes on US stocks where Futu is ready, IB otherwise.
+    xenon_ws_url: Annotated[str, EnvVar("XENON_WS_URL")] = (
+        "ws://127.0.0.1:8765?quotes=futu-first"
+    )
     xenon_ws_port_file: Annotated[str, EnvVar("XENON_WS_PORT_FILE")] = (
         "/tmp/xenon-ib-realtime.json"
     )

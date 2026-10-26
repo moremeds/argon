@@ -63,7 +63,7 @@ on purpose; api `:8400` was already loopback-only.
 |---|---|
 | `UW_SCAN_DB_HOST` | `host.docker.internal` |
 | `UW_SCAN_DB_NAME` | `option_wizard` |
-| `XENON_WS_URL` | `ws://host.docker.internal:8765` |
+| `XENON_WS_URL` | `ws://host.docker.internal:8765?quotes=futu-first` (the query asks xenon >= v0.15.0 for Futu-first US stock quotes; drop it for IB only) |
 | `XENON_WS_PORT_FILE` | `""` (empty — host-local file, invisible in-container) |
 | `XENON_QUERY_API_URL` | `http://host.docker.internal:8321` |
 | `APEX_API_URL` | `http://host.docker.internal:8322` |

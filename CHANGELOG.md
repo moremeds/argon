@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The xenon spot feed asks for Futu-first quotes by default.** `XENON_WS_URL` now defaults to `ws://127.0.0.1:8765?quotes=futu-first`, and the Docker runbook row carries the same query. The mini has run with it since 2026-10-24 through its `.env`; this makes a fresh deploy match. Port-file discovery keeps the query.
+
 ## [0.13.38] — 2026-10-24
 
 
