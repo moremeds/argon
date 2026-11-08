@@ -11,8 +11,11 @@ Reproduce:
 
 Pass the day AFTER the deploy as --before. Rows on the deploy day itself may
 still hold the old value when the deploy landed after that day's last scan.
-For rows the fixed scan wrote, the repair recomputes the same OI ratio, so a
-later cutoff is safe; an earlier one leaves volume ratios behind.
+Run it only after the deploy day's 18:15 ET flow refresh has written that
+day's options_volume_daily rows; earlier, a correct deploy-day row would be
+replaced with the previous session's ratio or NULL. With the source present
+the recomputed ratio matched the scan's own OI on 16,661 of 17,203 prod rows
+checked (2026-11-08); the rest differ by at most one session of OI drift.
 """
 
 from __future__ import annotations

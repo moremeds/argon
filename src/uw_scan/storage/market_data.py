@@ -218,7 +218,9 @@ class _MarketDataMixin:
         latest session at or before ``snapshot_date`` within ``max_lag_days``.
         ``snapshot_date`` is the worker's UTC date: it equals the ET session
         for every scheduled scan (04:00-16:30 ET), while an ad hoc rescan
-        after ~20:00 ET or on a weekend lands on a non-session date. A row with
+        after ~20:00 ET lands on the next calendar date (a weekday's later
+        scheduled scans then overwrite it) and a weekend one on a non-session
+        date. A row with
         no such session is set NULL, never left holding the volume ratio.
         Idempotent; ``apply=False`` rolls the transaction back.
         """
