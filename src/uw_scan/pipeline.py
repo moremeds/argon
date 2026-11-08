@@ -19,7 +19,7 @@ from . import normalize, scoring
 from .api.client import LiveDataUnavailable, UwClient
 from .cards import exposures as cards_exposures
 from .config import Settings
-from .models import MarketAggregates, SingleStockReport
+from .models import BulkScreenerRow, MarketAggregates, SingleStockReport
 from .reports.single_stock import assemble_single_stock_report
 from .reports.trade_insights import (
     ASSEMBLER_VERSION,
@@ -100,6 +100,39 @@ def _get_or_fetch_etf_aum(
     if aum is not None:
         repo.upsert_etf_aum(ticker, aum)
     return aum
+
+
+def _put_call_ratio(puts: int | None, calls: int | None) -> Decimal | None:
+    """puts / calls; a real 0 puts is 0, a missing or zero calls is no ratio."""
+    if puts is None or not calls:
+        return None
+    return Decimal(puts) / Decimal(calls)
+
+
+def aggregates_from_screener(
+    row: BulkScreenerRow, *, aum: Decimal | None
+) -> MarketAggregates:
+    """Map one UW screener row onto MarketAggregates.
+
+    Both ratios are computed here. UW's own ``put_call_ratio`` is NOT used:
+    its spec defines it as put volume / call volume, so storing it as
+    ``pcr_oi`` labelled a volume ratio as an OI ratio (fixed 2026-11-08).
+    """
+    return MarketAggregates(
+        call_oi_total=row.call_open_interest,
+        put_oi_total=row.put_open_interest,
+        call_volume_total=row.call_volume,
+        put_volume_total=row.put_volume,
+        call_volume_ask_side=row.call_volume_ask_side,
+        call_volume_bid_side=row.call_volume_bid_side,
+        put_volume_ask_side=row.put_volume_ask_side,
+        put_volume_bid_side=row.put_volume_bid_side,
+        pcr_oi=_put_call_ratio(row.put_open_interest, row.call_open_interest),
+        pcr_vol=_put_call_ratio(row.put_volume, row.call_volume),
+        iv30d=row.iv30d,
+        market_cap=row.marketcap,
+        aum=aum,
+    )
 
 
 def _next_friday(today: _date) -> _date:
@@ -417,26 +450,7 @@ def run_single_stock(
                     client=client,
                     run_id=run_id,
                 )
-            pcr_vol = None
-            if screener_row.put_volume and screener_row.call_volume:
-                pcr_vol = Decimal(screener_row.put_volume) / Decimal(
-                    screener_row.call_volume
-                )
-            aggregates = MarketAggregates(
-                call_oi_total=screener_row.call_open_interest,
-                put_oi_total=screener_row.put_open_interest,
-                call_volume_total=screener_row.call_volume,
-                put_volume_total=screener_row.put_volume,
-                call_volume_ask_side=screener_row.call_volume_ask_side,
-                call_volume_bid_side=screener_row.call_volume_bid_side,
-                put_volume_ask_side=screener_row.put_volume_ask_side,
-                put_volume_bid_side=screener_row.put_volume_bid_side,
-                pcr_oi=screener_row.put_call_ratio,
-                pcr_vol=pcr_vol,
-                iv30d=screener_row.iv30d,
-                market_cap=screener_row.marketcap,
-                aum=etf_aum,
-            )
+            aggregates = aggregates_from_screener(screener_row, aum=etf_aum)
             report.aggregates = aggregates
             repo.set_aggregates(run_id, aggregates)
 

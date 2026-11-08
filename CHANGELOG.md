@@ -13,6 +13,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **`pcr_oi` is now the open-interest put/call ratio.** Since the first Next.js release the scan stored UW's screener `put_call_ratio` as `pcr_oi`, but UW defines that field as put volume / call volume, so "PCR (OI)" on every watchlist card repeated "PCR (Vol)", "PCR Δ30d" was a 30-day change in a one-day volume ratio, and Trade Insights AI received the volume ratio under the OI name. `pipeline.aggregates_from_screener` now computes `pcr_oi` from the screener's put and call OI. `pcr_vol` now reads 0 instead of empty on a day with zero put volume. On prod, all 38,376 `pcr_history` rows (2026-01-02 → 2026-11-06) held `pcr_vol`'s value in `pcr_oi`. `scripts/backfill/pcr_history_oi_repair.py --before <day after deploy> [--apply]` rewrites them from `options_volume_daily` OI and sets NULL where no session falls within 4 days. Run it once after deploy, or "PCR Δ30d" subtracts an old volume ratio from a new OI ratio for the next 30 days.
 - **CI is green again after two date-driven breaks.** `tests/integration/api/test_provider_usage.py` hard-coded the `-04:00` EDT offset for the provider-day bounds and failed once EST began on 2026-11-01; it now expects the offset of today's `provider_day_bounds()`. GitHub's `ubuntu-latest` moved to ubuntu 26.04, where Playwright has no Chromium build, so the web job failed at `Install Playwright Chromium`; that job is pinned to `ubuntu-24.04`. Production code is unchanged.
 
 ## [0.13.38] — 2026-10-24
