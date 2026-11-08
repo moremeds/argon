@@ -11,6 +11,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **The xenon spot feed asks for Futu-first quotes by default.** `XENON_WS_URL` now defaults to `ws://127.0.0.1:8765?quotes=futu-first`, and the Docker runbook row carries the same query. The mini has run with it since 2026-10-24 through its `.env`; this makes a fresh deploy match. Port-file discovery keeps the query.
 
+### Fixed
+
+- **`pcr_oi` is now the open-interest put/call ratio.** Since the first Next.js release the scan stored UW's screener `put_call_ratio` as `pcr_oi`, but UW defines that field as put volume / call volume, so "PCR (OI)" on every watchlist card repeated "PCR (Vol)", "PCR Δ30d" was a 30-day change in a one-day volume ratio, and Trade Insights AI received the volume ratio under the OI name. `pipeline.aggregates_from_screener` now computes `pcr_oi` from the screener's put and call OI. `pcr_vol` now reads 0 instead of empty on a day with zero put volume. On prod, all 38,376 `pcr_history` rows (2026-01-02 → 2026-11-06) held `pcr_vol`'s value in `pcr_oi`. `scripts/backfill/pcr_history_oi_repair.py --before <deploy date> [--apply]` rewrites them from `options_volume_daily` OI and sets NULL where no session falls within 4 days. Run it once after deploy, or "PCR Δ30d" subtracts an old volume ratio from a new OI ratio for the next 30 days.
+
 ## [0.13.38] — 2026-10-24
 
 

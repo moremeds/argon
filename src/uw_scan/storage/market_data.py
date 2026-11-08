@@ -206,6 +206,67 @@ class _MarketDataMixin:
             row = cur.fetchone()
         return PcrHistoryRow(*row) if row else None
 
+    def repair_pcr_history_oi(
+        self, *, before: _date, max_lag_days: int = 4, apply: bool = False
+    ) -> dict[str, int]:
+        """Recompute ``pcr_history.pcr_oi`` as put OI / call OI for rows dated
+        before ``before``.
+
+        Until 2026-11-08 the scan stored UW's screener ``put_call_ratio`` there,
+        which UW defines as put VOLUME / call volume, so every older row holds a
+        copy of ``pcr_vol``. The OI comes from ``options_volume_daily``: the
+        latest session at or before ``snapshot_date`` within ``max_lag_days``
+        (the worker stamps in UTC, so an evening-ET scan lands on the next
+        date). A row with no such session is set NULL, never left holding the
+        volume ratio. Idempotent; ``apply=False`` rolls the transaction back.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH src AS (
+                  SELECT p.ticker, p.snapshot_date,
+                         (SELECT CASE WHEN o.call_open_interest > 0
+                                           AND o.put_open_interest IS NOT NULL
+                                      THEN round(o.put_open_interest::numeric
+                                                 / o.call_open_interest, 4)
+                                 END
+                          FROM {self._schema}.options_volume_daily o
+                          WHERE o.ticker = p.ticker
+                            AND o.trade_date <= p.snapshot_date
+                            AND o.trade_date >= p.snapshot_date - %(lag)s::int
+                          ORDER BY o.trade_date DESC
+                          LIMIT 1) AS new_oi
+                  FROM {self._schema}.pcr_history p
+                  WHERE p.snapshot_date < %(before)s
+                ), upd AS (
+                  UPDATE {self._schema}.pcr_history p
+                  SET pcr_oi = src.new_oi
+                  FROM src
+                  WHERE p.ticker = src.ticker
+                    AND p.snapshot_date = src.snapshot_date
+                    AND p.pcr_oi IS DISTINCT FROM src.new_oi
+                  RETURNING p.pcr_oi
+                )
+                SELECT (SELECT count(*) FROM src),
+                       (SELECT count(*) FROM src WHERE new_oi IS NOT NULL),
+                       (SELECT count(*) FROM upd),
+                       (SELECT count(*) FROM upd WHERE pcr_oi IS NULL)
+                """,
+                {"before": before, "lag": max_lag_days},
+            )
+            row = cur.fetchone()
+        assert row is not None
+        if apply:
+            self._conn.commit()
+        else:
+            self._conn.rollback()
+        return {
+            "rows_in_scope": row[0],
+            "rows_with_oi_source": row[1],
+            "rows_changed": row[2],
+            "rows_set_null": row[3],
+        }
+
     # ---- etf_aum_cache (A1 review fix: skip per-scan UW round trip) ----
     def get_recent_etf_aum(self, ticker: str, *, max_age: timedelta) -> Decimal | None:
         """Return cached AUM if fetched within max_age, else None.
