@@ -159,7 +159,8 @@ jobs:
 
   web:
     name: web typecheck + test + lint + build
-    runs-on: ubuntu-latest
+    # Playwright has no Chromium build for ubuntu-26.04 (ubuntu-latest from 2026-11).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 

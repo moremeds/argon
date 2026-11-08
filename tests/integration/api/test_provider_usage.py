@@ -39,8 +39,10 @@ def test_provider_usage_summary_returns_provider_day_counts(client, seeded_db_em
 
     assert response.status_code == 200
     body = response.json()
-    assert body["provider_day_start"].endswith("-04:00")
-    assert body["provider_day_end"].endswith("-04:00")
+    # ET offset of today's bounds: -04:00 under EDT, -05:00 under EST.
+    start, end = provider_day_bounds()
+    assert body["provider_day_start"].endswith(start.isoformat()[-6:])
+    assert body["provider_day_end"].endswith(end.isoformat()[-6:])
     assert body["total_requests"] == 3
     assert body["http_2xx"] == 2
     assert body["http_4xx"] == 1
