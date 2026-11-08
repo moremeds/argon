@@ -15,7 +15,9 @@ Run it only after the deploy day's 18:15 ET flow refresh has written that
 day's options_volume_daily rows; earlier, a correct deploy-day row would be
 replaced with the previous session's ratio or NULL. With the source present
 the recomputed ratio matched the scan's own OI on 16,661 of 17,203 prod rows
-checked (2026-11-08); the rest differ by at most one session of OI drift.
+checked (2026-11-08); 275 matched an earlier session (morning-only last
+scans saw pre-publish OI) and 267 had no exact match, 248 of them from
+notes-tagged (non-full-scan) runs.
 """
 
 from __future__ import annotations
