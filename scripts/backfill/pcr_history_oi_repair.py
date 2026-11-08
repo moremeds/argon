@@ -9,8 +9,10 @@ Reproduce:
   uv run python scripts/backfill/pcr_history_oi_repair.py --before 2026-11-09
   uv run python scripts/backfill/pcr_history_oi_repair.py --before 2026-11-09 --apply
 
-Pass the deploy date of the fix as --before: rows from then on are written
-correctly by the scan and must not be touched.
+Pass the day AFTER the deploy as --before. Rows on the deploy day itself may
+still hold the old value when the deploy landed after that day's last scan.
+For rows the fixed scan wrote, the repair recomputes the same OI ratio, so a
+later cutoff is safe; an earlier one leaves volume ratios behind.
 """
 
 from __future__ import annotations
