@@ -11,6 +11,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **The xenon spot feed asks for Futu-first quotes by default.** `XENON_WS_URL` now defaults to `ws://127.0.0.1:8765?quotes=futu-first`, and the Docker runbook row carries the same query. The mini has run with it since 2026-10-24 through its `.env`; this makes a fresh deploy match. Port-file discovery keeps the query.
 
+### Fixed
+
+- **CI is green again after two date-driven breaks.** `tests/integration/api/test_provider_usage.py` hard-coded the `-04:00` EDT offset for the provider-day bounds and failed once EST began on 2026-11-01; it now expects the offset of today's `provider_day_bounds()`. GitHub's `ubuntu-latest` moved to ubuntu 26.04, where Playwright has no Chromium build, so the web job failed at `Install Playwright Chromium`; that job is pinned to `ubuntu-24.04`. Production code is unchanged.
+
 ## [0.13.38] — 2026-10-24
 
 
