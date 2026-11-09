@@ -1,0 +1,7 @@
+skew,vol_index,corr_level,corr_change
+net_fear,VIX,0.635,0.371
+net_fear,VVIX,0.573,0.327
+net_fear,VIX3M,0.642,0.367
+mean_rrz,VIX,0.574,0.067
+mean_rrz,VVIX,0.479,0.037
+mean_rrz,VIX3M,0.578,0.073
